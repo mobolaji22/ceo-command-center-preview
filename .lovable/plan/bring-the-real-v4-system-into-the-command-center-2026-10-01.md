@@ -5,10 +5,12 @@ v4 runs only on your computer, so this app can't reach it there. Instead, v4's c
 ## What you'll get
 
 **1. Sign-in**
+
 - You sign in to the Command Center with email. Only your account has the owner role. Nobody else can open it, even with the link.
 - Clients sign in through invite emails and only ever see the Client Center.
 
 **2. Command Center, now with real data** (same look, same scene and hotspots)
+
 - **Computer**
   - Cases & Engagements: your live projects, with their status and priority.
   - Decision Ledger: real decisions, open and resolved.
@@ -16,11 +18,11 @@ v4 runs only on your computer, so this app can't reach it there. Instead, v4's c
 - **Contracts:** the real approval queue. Approve or reject a request, attach constraints, or ask for more evidence. Each action is saved, stamped with the time, and recorded in the project's event history.
 - **Phone:** live counts of signatures waiting, exceptions (blocked or stalled tasks), and recent activity.
 - **Brief:** a summary built from real events since your last visit. It shows what changed, what needs your judgment, and what moved forward.
-- **Directive:** saves your directive to a project, or as an organization-wide directive, and shows a history of past directives.
-- **Corridor rooms:** one room per department, built from the project areas that actually exist. A room with no projects yet shows "Being fitted out".
-- New: **create and edit projects and clients**, so data can come in from the start.
+- **Directive:** saves your directive to a project, or as an organization-wide directive, and optionally assign a client to the project/organization and shows a limited/full history of past directives.
+- **Corridor rooms:** one room per department, built from the domains/departments that actually exist. A room with no projects yet shows no projects pinned on the walls. It should hold a history of projects it has worked on in a type of flip book/calendar pinned to the wall with dates of when tasked were worked on. This should look at v4-command to replicate the corridor build but build the rooms in style with the rest of this project.
 
 **3. Client Center** (new, separate area with its own simpler look)
+
 - Each client sees only the projects you've linked them to.
 - They can see project status, a timeline of updates you choose to share, and deliverables (with file downloads).
 - They can approve or reject approvals you mark as needing the client, and leave comments.
@@ -28,12 +30,15 @@ v4 runs only on your computer, so this app can't reach it there. Instead, v4's c
 - You invite a client by email from inside the Command Center and choose which projects they can see.
 
 **4. Your existing v4 records**
+
 - The app starts empty, with no made-up data. Once the build is done, I can import your real records. Export each table to a CSV file from your local v4 database and upload the files here.
 
 ## Out of scope for this pass
+
 v4's AI orchestration worker, the controlled terminal, Git workspaces, and the design-intelligence engine. They need a long-running server and can't run inside this app. The data structure keeps room for them, so they can be connected later.
 
 ## Technical details
+
 - Enable Lovable Cloud with email sign-in. Add a profiles table and a separate `user_roles` table (roles: `owner`, `client`) with a `has_role()` check.
 - Tables mirror the core Prisma models with the same statuses: organizations, projects, tasks, decisions, evidence, approvals, artifacts (deliverables), context_requirements (requirements), outcomes, events, directives. Add a `project_clients` link table plus `client_visible` / `requires_client` flags on events, artifacts, approvals, and requirements.
 - Access rules: the owner can read and change everything. A client can only read rows for linked projects that are marked client-visible, can resolve only approvals marked `requires_client` on their projects, and can only update requirements assigned to them.
