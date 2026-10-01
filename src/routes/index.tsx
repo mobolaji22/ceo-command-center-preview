@@ -53,7 +53,7 @@ function Index() {
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [directive, setDirective] = useState("");
   const [submittedDirective, setSubmittedDirective] = useState("");
-  const [room, setRoom] = useState(doors[0]);
+  const [room, setRoom] = useState(doors[0]!);
 
   const openView = (next: View) => { setActiveHotspot(null); setView(next); };
   const actOnHotspot = (spot: Hotspot) => {
