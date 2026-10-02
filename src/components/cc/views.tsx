@@ -1,0 +1,173 @@
+import { useEffect, useMemo, useState } from "react";
+import { Activity, ArrowDownRight, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, MoreHorizontal, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { type OwnerData, type Approval, label, riskLabel, reversibilityLabel, statusTone, fmtDate, fmtAgo, pad, logEvent } from "@/lib/v4";
+
+type Common = { data: OwnerData; refresh: () => void };
+const CLOSED = ["COMPLETED", "CANCELLED", "ARCHIVED", "SUPERSEDED"];
+const projectName = (data: OwnerData, id: string | null) => data.projects.find((p) => p.id === id)?.name ?? "Organization-wide";
+
+export function Empty({ title, children }: { title: string; children?: React.ReactNode }) {
+  return <div className="empty-state"><span className="pulse-dot" /><div><b>{title}</b>{children && <p>{children}</p>}</div></div>;
+}
+
+export function ComputerView({ data, openContracts, openBrief, openManage }: Common & { openContracts: (projectId?: string) => void; openBrief: () => void; openManage: (projectId?: string) => void }) {
+  const [tab, setTab] = useState("Cases & Engagements");
+  const active = data.projects.filter((p) => !CLOSED.includes(p.status));
+  const pending = data.approvals.filter((a) => a.status === "REQUESTED");
+  const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
+  const exceptions = pending.length + blocked.length;
+  return <div className="computer-frame">
+    <div className="window-bar"><div className="traffic-dots"><i /><i /><i /></div><span>&gt; DevPlaybook V4 Core Canonical Operating System <span className="window-muted">//</span> State: <strong>Synchronized DPL-01</strong></span><MoreHorizontal size={18} /></div>
+    <div className="computer-body"><div className="computer-heading"><div><div className="eyebrow gold">THE ORGANIZATIONAL NERVOUS SYSTEM</div><h2>Operating overview<span className="period">.</span></h2><p>{data.projects.length} projects · {data.tasks.length} tasks · {data.decisions.length} decisions on record.</p></div><div className="system-time"><Radio size={15} /> LIVE FROM LOVABLE CLOUD</div></div>
+      <div className="computer-tabs" role="tablist">{["Cases & Engagements", "Decision Ledger", "Security/Gov"].map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</div>
+      {tab === "Cases & Engagements" && <div className="computer-content"><div className="section-label"><span>ACTIVE DOSSIERS</span><span>{pad(active.length)} IN MOTION</span></div>
+        {active.length === 0 ? <Empty title="No active projects yet.">Create your first project to start the ledger. <Button variant="ghost" className="inline-arrow" onClick={() => openManage()}>OPEN MANAGEMENT <ArrowRight size={14} /></Button></Empty> :
+        <div className="dossier-list">{active.map((p, i) => {
+          const hasPending = pending.some((a) => a.project_id === p.id);
+          return <div key={p.id} className="dossier-row"><span className="row-index">{pad(i + 1)}</span><div><b>{p.name}</b><small>{p.domains.length ? p.domains.join(" · ") : "No department"} · Priority {p.priority}</small></div><span className={`pill ${hasPending ? "amber" : statusTone(p.status)}`}>{hasPending ? "CEO REVIEW" : label(p.status).toUpperCase()}</span><Button variant="ghost" size="icon" className="icon-button" aria-label={`Open ${p.name}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><ArrowRight size={17} /></Button></div>;
+        })}</div>}
+        <div className="computer-lower"><div><div className="section-label">SIGNAL HEALTH</div><h3>{exceptions === 0 ? "Steady. Nothing needs you." : `Steady, with ${exceptions} exception${exceptions > 1 ? "s" : ""}.`}</h3><p>{pending.length} approval{pending.length === 1 ? "" : "s"} awaiting signature · {blocked.length} blocked or failed task{blocked.length === 1 ? "" : "s"}.</p></div><Button variant="ghost" className="inline-arrow" onClick={openBrief}>VIEW EXECUTIVE BRIEF <ArrowRight size={16} /></Button></div></div>}
+      {tab === "Decision Ledger" && <div className="computer-content"><div className="section-label"><span>DECISION LEDGER</span><span>TRACEABLE BY DESIGN</span></div>
+        {data.decisions.length === 0 ? <Empty title="No decisions recorded yet." /> :
+        <div className="dossier-list">{data.decisions.map((d, i) => <div key={d.id} className="dossier-row"><span className="row-index">{pad(i + 1)}</span><div><b>{d.question}</b><small>{projectName(data, d.project_id)} · {d.resolved_at ? `Resolved ${fmtDate(d.resolved_at)}` : `Raised ${fmtDate(d.created_at)}`}{d.selected_option ? ` · Chose: ${d.selected_option}` : ""}</small></div><span className={`pill ${statusTone(d.status)}`}>{label(d.status).toUpperCase()}</span><span /></div>)}</div>}</div>}
+      {tab === "Security/Gov" && <div className="computer-content"><div className="section-label"><span>SECURITY & GOVERNANCE</span><span>PROTOCOL ACTIVE</span></div><div className="governance-grid">
+        <div><ShieldCheck size={25} /><h3>Authorization controls</h3><p>{pending.length} requested · {data.approvals.filter((a) => a.status === "GRANTED").length} granted · {data.approvals.filter((a) => a.status === "REJECTED").length} rejected.</p><span className="pill green">ENFORCED</span></div>
+        <div><LockKeyhole size={25} /><h3>Evidence integrity</h3><p>{data.evidence.length} evidence records across {new Set(data.evidence.map((e) => e.project_id)).size} projects.</p><span className={`pill ${data.evidence.length ? "green" : "muted"}`}>{data.evidence.length ? "RECORDED" : "NONE YET"}</span></div>
+      </div></div>}
+    </div></div>;
+}
+
+export function PhoneView({ data, openBrief, openContracts }: Common & { openBrief: () => void; openContracts: (projectId?: string) => void }) {
+  const pending = data.approvals.filter((a) => a.status === "REQUESTED");
+  const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
+  const latest = data.events[0];
+  const hour = new Date().getHours();
+  const now = new Date();
+  return <div className="phone-layout"><div className="phone-intro"><div className="eyebrow gold">AGENCY PULSE / MOBILE CHANNEL</div><h2>Clarity in<br /><i>your pocket.</i></h2><p>The essentials, wherever the day takes you.</p><div className="phone-intro-rule" /><span>01 &nbsp; / &nbsp; EXECUTIVE ATTENTION</span></div>
+    <div className="phone-shell"><div className="phone-hardware"><span className="speaker" /><span className="camera" /></div><div className="phone-screen"><div className="phone-top"><span>{now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span><span>●●● &nbsp; ▰</span></div><div className="phone-content">
+      <div className="phone-app-head"><span className="phone-app-logo">D/</span><span className="pill amber">● AGENCY PULSE CHANNEL</span></div>
+      <div className="phone-greeting">Good {hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}, Ola.</div>
+      <h3>Executive<br />Attention<span className="period">.</span></h3>
+      <div className="phone-meta">{now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "long" }).toUpperCase()} <span>{pad(pending.length + blocked.length)} ITEMS NEED YOU</span></div>
+      <div className="phone-card brief-card"><div className="phone-card-top"><Sparkles size={16} /><span>DAILY EXECUTIVE BRIEF</span><ArrowRight size={15} /></div><p>What happened while I was away?</p><Button variant="ghost" className="phone-card-link" onClick={openBrief}>READ YOUR BRIEF <ArrowRight size={14} /></Button></div>
+      <div className="phone-section-title">Decisions Requiring<br />CEO Signature <span>{pad(pending.length)}</span></div>
+      {pending.length === 0 ? <div className="phone-info"><Check size={15} /><span>Nothing awaiting signature<small>You're clear</small></span></div> :
+        pending.slice(0, 3).map((a) => <Button key={a.id} variant="ghost" className="phone-decision" onClick={() => openContracts(a.project_id)}><span>{a.title}<small>{projectName(data, a.project_id)}</small><span className="risk-badges"><em>{riskLabel(a.risk)} risk</em><em>{reversibilityLabel(a.reversibility)} reversibility</em></span></span><ArrowRight size={16} /></Button>)}
+      <div className="phone-section-title small-title">Exceptions Detected <span>{pad(blocked.length)}</span></div>
+      {blocked.length === 0 ? <div className="phone-info"><Check size={15} /><span>No blocked work<small>All tasks flowing</small></span></div> :
+        blocked.slice(0, 2).map((t) => <div key={t.id} className="phone-info"><CircleAlert size={15} /><span>{t.title}<small>{label(t.status)} · {projectName(data, t.project_id)}</small></span></div>)}
+      <div className="phone-section-title small-title">Nervous System Activity</div>
+      <div className="phone-info"><Activity size={15} /><span>{latest ? latest.summary : "No activity yet"}<small>{latest ? fmtAgo(latest.created_at) : "Waiting for the first signal"}</small></span></div>
+    </div><div className="phone-home" /></div></div></div>;
+}
+
+export function ContractsView({ data, refresh, focusProjectId }: Common & { focusProjectId?: string }) {
+  const pending = data.approvals.filter((a) => a.status === "REQUESTED");
+  const ordered = focusProjectId ? [...pending].sort((a, b) => (a.project_id === focusProjectId ? -1 : 0) - (b.project_id === focusProjectId ? -1 : 0)) : pending;
+  const [selectedId, setSelectedId] = useState<string | null>(ordered[0]?.id ?? null);
+  const a = data.approvals.find((x) => x.id === selectedId) ?? ordered[0];
+  const [tab, setTab] = useState<"Contract Review" | "Modify Constraints & Scope" | "Request Evidence">("Contract Review");
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => { setText(tab === "Modify Constraints & Scope" ? a?.constraints ?? "" : tab === "Request Evidence" ? a?.evidence_request ?? "" : ""); }, [tab, a?.id]);
+
+  const resolved = data.approvals.filter((x) => x.status !== "REQUESTED").slice(0, 6);
+  if (!a) return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span></div>
+    <div className="contract-body"><Empty title="No authorizations awaiting your signature.">New approval requests appear here as soon as they're raised.</Empty>
+    {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}</div></div>;
+
+  const evidence = data.evidence.filter((e) => e.approval_id === a.id || (!e.approval_id && e.project_id === a.project_id));
+  const run = async (fn: () => PromiseLike<{ error: { message: string } | null }>, ev: string, done: string) => {
+    setBusy(true); setMsg(null);
+    const { error } = await fn();
+    if (error) { setMsg(error.message); setBusy(false); return; }
+    await logEvent({ project_id: a.project_id, type: "APPROVAL_UPDATED", summary: ev, client_visible: a.requires_client });
+    setMsg(done); setBusy(false); refresh();
+  };
+  const resolve = async (approved: boolean) => {
+    const { data: u } = await supabase.auth.getUser();
+    await run(() => supabase.from("approvals").update({ status: approved ? "GRANTED" : "REJECTED", resolved_by: u.user?.id, resolved_at: new Date().toISOString() }).eq("id", a.id), `CEO ${approved ? "approved" : "rejected"}: ${a.title}`, `Decision ${approved ? "approved" : "rejected"} and recorded in the governance ledger.`);
+    const next = pending.find((x) => x.id !== a.id); setSelectedId(next?.id ?? null);
+  };
+  const projectRef = `DPL-AC-${a.id.slice(0, 4).toUpperCase()}`;
+
+  return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span><span className="protocol-id">{projectRef}</span></div>
+    {ordered.length > 1 && <div className="approval-queue">{ordered.map((x, i) => <button key={x.id} className={x.id === a.id ? "active" : ""} onClick={() => { setSelectedId(x.id); setTab("Contract Review"); setMsg(null); }}><span>{pad(i + 1)}</span>{x.title}</button>)}</div>}
+    <div className="contract-tabs" role="tablist">{(["Contract Review", "Modify Constraints & Scope", "Request Evidence"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>{t}</Button>)}</div>
+    <div className="contract-body"><div className="classification"><span><LockKeyhole size={15} /> CLASSIFICATION: {label(a.target_type).toUpperCase()} · {projectName(data, a.project_id).toUpperCase()}</span><strong>{a.requires_client ? "CLIENT & CEO APPROVAL" : "CEO APPROVAL REQUIRED"}</strong></div>
+      {tab === "Contract Review" && <><div className="contract-columns"><div className="contract-main"><div className="eyebrow gold">01 / PROPOSED ACTION</div><h2>{a.title}<span className="period">.</span></h2>{a.recommendation && <p className="contract-lead">{a.recommendation}</p>}<div className="contract-rule" /><div className="eyebrow gold">02 / ORGANIZATIONAL REASONING</div><p className="reasoning">{a.reason}</p>
+        {a.consequences && <><div className="eyebrow gold">03 / CONSEQUENCES</div><p className="reasoning">{a.consequences}</p></>}
+        {a.constraints && <p className="reasoning"><b>Your constraints:</b> {a.constraints}</p>}
+        {a.evidence_request && <p className="reasoning"><b>Evidence requested:</b> {a.evidence_request}</p>}
+        <Button variant="ghost" className="evidence-trigger" onClick={() => setEvidenceOpen(!evidenceOpen)}><FileText size={17} /> Substantiating Evidence Trail ({evidence.length}) <ChevronDown size={16} className={evidenceOpen ? "rotated" : ""} /></Button>
+        {evidenceOpen && <div className="evidence-list">{evidence.length === 0 ? <div>No evidence attached yet.</div> : evidence.map((e, i) => <div key={e.id}><span>{pad(i + 1)}</span> {e.claim} <small>{e.source} · {Math.round(e.confidence * 100)}% confidence</small></div>)}</div>}</div>
+        <aside className="contract-aside"><div className="eyebrow">DECISION PROFILE</div><div className="aside-stat"><span>RISK LEVEL</span><strong>{riskLabel(a.risk)}</strong></div><div className="aside-stat"><span>REVERSIBILITY</span><strong>{reversibilityLabel(a.reversibility)}</strong></div><div className="aside-stat"><span>DECISION OWNER</span><strong>{a.requires_client ? "CEO + Client" : "Chief Executive Officer"}</strong></div><div className="aside-stat"><span>RAISED</span><strong>{fmtDate(a.created_at)}</strong></div><div className="aside-note"><ShieldCheck size={17} /> Your decision is recorded in the governance ledger.</div></aside></div>
+        <div className="contract-actions"><span>{msg ?? "Review the evidence before resolving this authorization."}</span><div><Button variant="outline" className="reject-btn" disabled={busy} onClick={() => resolve(false)}>Reject proposal</Button><Button className="approve-btn" disabled={busy} onClick={() => resolve(true)}><Check size={16} /> Approve authorization</Button></div></div></>}
+      {tab !== "Contract Review" && <div className="tab-pane"><div className="eyebrow gold">{tab === "Request Evidence" ? "ASK FOR CLARITY" : "CONTROL THE BOUNDARIES"}</div><h2>{tab === "Request Evidence" ? "Request evidence" : "Shape the scope"}<span className="period">.</span></h2><p>{tab === "Request Evidence" ? "Ask the organization to substantiate a part of this proposal before you decide." : "Specify the limits that must be met before authorization proceeds."}</p>
+        <textarea aria-label={tab} value={text} maxLength={4000} onChange={(e) => setText(e.target.value)} placeholder={tab === "Request Evidence" ? "What additional evidence would help you make this decision?" : "e.g. Limit the discovery phase to 60 days…"} />
+        {msg && <p>{msg}</p>}
+        <Button className="approve-btn" disabled={busy || !text.trim()} onClick={() => tab === "Request Evidence"
+          ? run(() => supabase.from("approvals").update({ evidence_request: text.trim() }).eq("id", a.id), `Evidence requested on: ${a.title}`, "Evidence request recorded.")
+          : run(() => supabase.from("approvals").update({ constraints: text.trim() }).eq("id", a.id), `Constraints set on: ${a.title}`, "Constraints saved.")}>{tab === "Request Evidence" ? "Record request" : "Save constraints"} <ArrowRight size={16} /></Button></div>}
+      {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}
+    </div></div>;
+}
+
+function ResolvedList({ data, items }: { data: OwnerData; items: Approval[] }) {
+  return <div className="resolved-list"><div className="section-label"><span>RECENTLY RESOLVED</span><span>{items.length}</span></div>{items.map((x) => <div key={x.id} className="resolved-row"><span>{x.title}<small>{projectName(data, x.project_id)} · {fmtDate(x.resolved_at)}</small></span><span className={`pill ${statusTone(x.status)}`}>{label(x.status).toUpperCase()}</span></div>)}</div>;
+}
+
+export function DirectiveView({ data, refresh, close }: Common & { close: () => void }) {
+  const [text, setText] = useState("");
+  const [projectId, setProjectId] = useState("");
+  const [orgId, setOrgId] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [full, setFull] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const clients = projectId ? data.clients.filter((c) => data.links.some((l) => l.project_id === projectId && l.user_id === c.id)) : data.clients;
+  const issue = async () => {
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from("directives").insert({ content: text.trim(), project_id: projectId || null, organization_id: orgId || null, client_id: clientId || null, created_by: u.user!.id });
+    if (error) { setMsg(error.message); return; }
+    if (clientId && projectId && !data.links.some((l) => l.project_id === projectId && l.user_id === clientId)) await supabase.from("project_clients").insert({ project_id: projectId, user_id: clientId });
+    await logEvent({ project_id: projectId || null, type: "DIRECTIVE_ISSUED", summary: `Directive: ${text.trim().slice(0, 120)}` });
+    setText(""); setMsg("Directive issued and recorded."); refresh();
+  };
+  const history = full ? data.directives : data.directives.slice(0, 5);
+  const who = (id: string | null) => data.clients.find((c) => c.id === id)?.email;
+  return <div className="directive-wrap"><div className="directive-head"><div><div className="eyebrow gold">INTENT FRAMING / CEO OFFICE</div><h2><span className="brain-symbol">✦</span> Executive Directive</h2></div><Button variant="ghost" size="icon" className="icon-button" aria-label="Close directive" onClick={close}><X size={20} /></Button></div>
+    <div className="philosophy"><span>THE PRINCIPLE</span><p>The CEO does not manage tasks. The CEO sets direction, resolves ambiguity, and authorizes consequential action.</p></div>
+    <div className="directive-form"><label htmlFor="directive-text">WHAT DIRECTION WOULD YOU LIKE TO SET?</label>
+      <textarea id="directive-text" value={text} maxLength={4000} onChange={(e) => setText(e.target.value)} placeholder="Describe the outcome you want to create, the tension you want resolved, or the principle you want the organization to follow…" />
+      <div className="directive-targets">
+        <label>PROJECT<select value={projectId} onChange={(e) => { setProjectId(e.target.value); setClientId(""); }}><option value="">Organization-wide</option>{data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+        <label>ORGANIZATION<select value={orgId} onChange={(e) => setOrgId(e.target.value)}><option value="">None</option>{data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
+        <label>ASSIGN CLIENT (OPTIONAL)<select value={clientId} onChange={(e) => setClientId(e.target.value)}><option value="">No client</option>{(projectId ? data.clients : clients).map((c) => <option key={c.id} value={c.id}>{c.email}</option>)}</select></label>
+      </div>
+      <div className="suggestions"><span>START WITH</span>{["Clarify our Q4 priorities", "Resolve an open trade-off", "Set a guiding principle"].map((s) => <Button key={s} variant="outline" onClick={() => setText(s)}>{s} <ArrowDownRight size={13} /></Button>)}</div>
+      <div className="directive-footer"><span>{msg ?? `${text.length} characters`}</span><Button className="approve-btn" disabled={!text.trim()} onClick={issue}>Issue directive <Send size={15} /></Button></div>
+    </div>
+    <div className="directive-history"><div className="section-label"><span>DIRECTIVE HISTORY</span>{data.directives.length > 5 && <button onClick={() => setFull(!full)}>{full ? "SHOW RECENT" : `SHOW ALL ${data.directives.length}`}</button>}</div>
+      {history.length === 0 ? <Empty title="No directives issued yet." /> : history.map((d) => <div key={d.id} className="resolved-row"><span>{d.content}<small>{projectName(data, d.project_id)}{who(d.client_id) ? ` · Client: ${who(d.client_id)}` : ""} · {fmtDate(d.created_at)}</small></span></div>)}
+    </div></div>;
+}
+
+export function BriefView({ data, openContracts, openComputer }: Common & { openContracts: (projectId?: string) => void; openComputer: () => void }) {
+  const [since, setSince] = useState<string | null>(null);
+  useEffect(() => { supabase.rpc("touch_owner_seen").then(({ data: d }) => setSince((d as string | null) ?? new Date(Date.now() - 7 * 864e5).toISOString())); }, []);
+  const s = since ? new Date(since).getTime() : Date.now() - 7 * 864e5;
+  const recent = useMemo(() => data.events.filter((e) => new Date(e.created_at).getTime() > s), [data.events, s]);
+  const pending = data.approvals.filter((a) => a.status === "REQUESTED");
+  const waitingDecisions = data.decisions.filter((d) => d.status === "WAITING_FOR_HUMAN" || d.status === "PROPOSED");
+  const done = data.tasks.filter((t) => t.completed_at && new Date(t.completed_at).getTime() > s);
+  const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
+  return <div className="brief-wrap"><div className="eyebrow gold"><Sparkles size={15} /> THE CEO BRIEF / {new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }).toUpperCase()}</div><h2>What happened while<br /><i>I was away?</i></h2><p className="brief-lead">Since {since ? new Date(since).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "your last visit"}: {recent.length} signal{recent.length === 1 ? "" : "s"}, {done.length} task{done.length === 1 ? "" : "s"} completed.</p><div className="brief-divider" />
+    <div className="brief-grid"><div className="brief-feature"><span>01 / NEEDS YOUR JUDGMENT</span><h3>{pending.length + waitingDecisions.length === 0 ? "Nothing awaits your judgment." : `${pending.length} authorization${pending.length === 1 ? "" : "s"}, ${waitingDecisions.length} open decision${waitingDecisions.length === 1 ? "" : "s"}.`}</h3><p>{pending.slice(0, 3).map((a) => a.title).join(" · ") || "You're clear for now."}</p>{pending.length > 0 && <Button variant="ghost" className="inline-arrow" onClick={() => openContracts()}>REVIEW AUTHORIZATIONS <ArrowRight size={16} /></Button>}</div>
+      <div className="brief-feature"><span>02 / ORGANIZATIONAL PULSE</span><h3>{blocked.length ? `${blocked.length} item${blocked.length > 1 ? "s" : ""} blocked.` : "Momentum is holding."}</h3><p>{done.length ? `Completed: ${done.slice(0, 3).map((t) => t.title).join(" · ")}` : "No tasks completed in this window."}</p><Button variant="ghost" className="inline-arrow" onClick={openComputer}>OPEN OPERATING SYSTEM <ArrowRight size={16} /></Button></div></div>
+    <div className="brief-events"><div className="section-label"><span>WHAT CHANGED</span><span>{recent.length}</span></div>{recent.length === 0 ? <Empty title="No new signals since your last visit." /> : recent.slice(0, 12).map((e) => <div key={e.id} className="resolved-row"><span>{e.summary}<small>{projectName(data, e.project_id)} · {fmtAgo(e.created_at)}</small></span><span className="pill muted">{label(e.type).toUpperCase()}</span></div>)}</div>
+    <div className="brief-signoff"><span className="live-dot" /> PREPARED BY DEVPLAYBOOK · EXECUTIVE INTELLIGENCE</div></div>;
+}
