@@ -1,0 +1,158 @@
+/*
+ * Screens the preview shipped without any styles.
+ *
+ * globals.css is a direct copy of the preview's stylesheet. The preview's later screens (sign-in,
+ * Manage, the department room's pinboard and flipbook, the directive's target row, empty states,
+ * and the Client Center) were generated after that stylesheet and never got rules, so they
+ * rendered as raw HTML. This file completes the visual system in the same language: dark glass
+ * panels, the amber accent, Cormorant Garamond for display, DM Sans for text, tracked small-caps
+ * labels, 1px borders, square corners. Nothing here overrides globals.css.
+ */
+
+/* ---- shared form controls ------------------------------------------------------------------ */
+.auth-card input:not([type="checkbox"]),
+.mform input:not([type="checkbox"]):not([type="file"]),
+.mform textarea,
+.mform select,
+.directive-targets select,
+.pd-head select,
+.resolved-row select {
+  width: 100%;
+  background: oklch(0.11 0.005 270);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 11px 13px;
+  font: 13px/1.5 "DM Sans", sans-serif;
+  outline: none;
+}
+.auth-card input:focus,
+.mform input:focus,
+.mform textarea:focus,
+.mform select:focus,
+.directive-targets select:focus,
+.pd-head select:focus,
+.resolved-row select:focus { border-color: var(--primary); }
+.auth-card input::placeholder,
+.mform input::placeholder,
+.mform textarea::placeholder { color: var(--muted-foreground); }
+.mform input[type="file"] { color: var(--muted-foreground); font-size: 12px; }
+.resolved-row select { width: auto; min-width: 150px; padding: 8px 10px; font-size: 12px; }
+
+/* ---- sign-in / reset password -------------------------------------------------------------- */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: radial-gradient(ellipse at 80% 0%, oklch(0.23 0.025 75 / 16%), transparent 40%), var(--background);
+}
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 40px;
+  background: linear-gradient(180deg, oklch(0.16 0.005 270 / 92%), oklch(0.12 0.005 270 / 88%));
+  border: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+}
+.auth-card .brand { margin-bottom: 8px; }
+.auth-card h1 { font: 400 48px/1 "Cormorant Garamond", Georgia, serif; margin: 4px 0 0; }
+.auth-sub { margin: 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.7; }
+.auth-sub b { color: var(--foreground); font-weight: 500; }
+.auth-card label { display: flex; flex-direction: column; gap: 8px; font-size: 9px; font-weight: 700; letter-spacing: .17em; color: var(--primary); }
+.auth-msg { padding: 12px 14px; font-size: 12px; line-height: 1.6; color: var(--primary); background: oklch(0.76 0.146 76 / 10%); border-left: 2px solid var(--primary); }
+.auth-links { display: flex; flex-wrap: wrap; gap: 18px; }
+.auth-links button { background: none; border: 0; padding: 0; color: var(--muted-foreground); font-size: 11px; letter-spacing: .06em; cursor: pointer; }
+.auth-links button:hover { color: var(--foreground); }
+
+/* ---- empty states, rows, lists ------------------------------------------------------------- */
+.empty-state { display: flex; gap: 14px; align-items: flex-start; margin: 14px 0; padding: 26px; border: 1px dashed var(--border); color: var(--muted-foreground); font-size: 13px; }
+.empty-state b { display: block; color: var(--foreground); font-weight: 500; }
+.empty-state p { margin: 6px 0 0; font-size: 12px; line-height: 1.7; }
+.empty-state .pulse-dot { margin-top: 5px; flex: none; }
+.resolved-list { border-top: 1px solid var(--border); }
+.resolved-row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 16px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.resolved-row > span:first-child { display: block; min-width: 0; }
+.resolved-row small { display: block; margin-top: 6px; color: var(--muted-foreground); font-size: 11px; line-height: 1.6; }
+.resolved-row .approve-btn, .resolved-row .reject-btn { height: 34px; font-size: 11px; }
+.mmsg { margin: 0; color: var(--primary); font-size: 12px; }
+
+/* ---- directive: targets and history, brief ------------------------------------------------- */
+.directive-targets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 0 0 22px; }
+.directive-targets label { display: flex; flex-direction: column; gap: 8px; font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--primary); }
+.directive-history { margin-top: 55px; }
+.brief-events { margin-top: 36px; }
+
+/* ---- Manage -------------------------------------------------------------------------------- */
+.manage-wrap { max-width: 1120px; margin: 44px auto; }
+.manage-title { margin: 14px 0 6px; font: 400 clamp(40px, 4.4vw, 64px)/1 "Cormorant Garamond", Georgia, serif; }
+.manage-grid { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 34px; margin-top: 34px; align-items: start; }
+.mform { display: flex; flex-direction: column; gap: 12px; padding: 22px; border: 1px solid var(--border); background: oklch(0.15 0.005 270 / 70%); }
+.mform h4 { margin: 0 0 4px; font: 700 9px "DM Sans", sans-serif; letter-spacing: .17em; text-transform: uppercase; color: var(--primary); }
+.mform textarea { min-height: 84px; resize: vertical; }
+.mform label { display: flex; flex-direction: column; gap: 6px; font-size: 10px; letter-spacing: .08em; color: var(--muted-foreground); }
+.mform .check, .checks label { flex-direction: row; align-items: center; gap: 9px; font-size: 12px; letter-spacing: 0; color: var(--foreground); }
+.mform input[type="checkbox"] { width: auto; accent-color: var(--primary); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mlist { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+.proj-pick { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; text-align: left; background: transparent; color: var(--foreground); border: 1px solid var(--border); font-size: 13px; cursor: pointer; }
+.proj-pick:hover, .proj-pick.active { border-color: var(--primary); background: oklch(0.76 0.146 76 / 6%); }
+.project-detail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pd-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.pd-head h3 { margin: 0; font: 400 34px/1.1 "Cormorant Garamond", Georgia, serif; }
+.pd-head select { width: auto; min-width: 200px; }
+.pd-sub { margin: 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.7; }
+.pd-forms { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.pd-label { margin-top: 22px; }
+.checks { display: flex; flex-direction: column; gap: 8px; max-height: 170px; overflow: auto; padding: 4px 0; }
+.checks label { display: flex; font-size: 12px; }
+.checks input { accent-color: var(--primary); }
+.client-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--border); background: oklch(0.15 0.005 270 / 70%); }
+.client-card b { font-weight: 500; font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 9px; font-size: 10px; letter-spacing: .06em; color: var(--muted-foreground); border: 1px solid var(--border); }
+.chip button { background: none; border: 0; padding: 0; color: var(--primary); cursor: pointer; }
+
+/* ---- contracts: approval queue (only appears with more than one pending) -------------------- */
+.approval-queue { display: flex; overflow-x: auto; border-bottom: 1px solid var(--border); }
+.approval-queue button { flex: 1 1 0; min-width: 190px; display: flex; gap: 12px; align-items: baseline; text-align: left; padding: 14px 20px; background: transparent; color: var(--muted-foreground); border: 0; border-right: 1px solid var(--border); font: 500 12px "DM Sans", sans-serif; cursor: pointer; }
+.approval-queue button span { font: 16px "Cormorant Garamond", serif; color: var(--primary); }
+.approval-queue button:hover { color: var(--foreground); }
+.approval-queue button.active { color: var(--foreground); background: oklch(0.76 0.146 76 / 8%); box-shadow: inset 0 -2px 0 var(--primary); }
+
+/* ---- department room: pinboard and work calendar ------------------------------------------- */
+.room-wrap.room-full { max-width: 1180px; }
+.room-walls { display: grid; grid-template-columns: 1.15fr 1fr; gap: 26px; margin-top: 38px; align-items: start; }
+.room-wall { min-height: 380px; padding: 24px; border: 1px solid var(--border); background: linear-gradient(145deg, oklch(0.16 0.008 60 / 80%), oklch(0.12 0.004 270 / 90%)); }
+.wall-empty { padding: 30px 6px; color: var(--muted-foreground); font-size: 12px; font-style: italic; }
+.pin-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; padding: 8px 4px; }
+.pin-card { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 24px 16px 16px; text-align: left; color: var(--foreground); background: oklch(0.2 0.012 75 / 92%); border: 1px solid oklch(0.76 0.146 76 / 22%); box-shadow: 0 10px 24px oklch(0 0 0 / 40%); transform: rotate(var(--tilt, 0deg)); transition: transform .2s, border-color .2s; cursor: pointer; }
+.pin-card:hover { transform: rotate(0deg) translateY(-4px); border-color: var(--primary); }
+.pin { position: absolute; top: 8px; left: 50%; width: 9px; height: 9px; margin-left: -4px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 3px oklch(0.76 0.146 76 / 20%); }
+.pin-card b { font-size: 14px; font-weight: 500; line-height: 1.3; }
+.pin-card small { color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
+.flipbook { position: relative; margin-top: 14px; padding: 36px 24px 16px; background: oklch(0.21 0.012 78); border: 1px solid oklch(0.76 0.146 76 / 18%); box-shadow: 0 14px 30px oklch(0 0 0 / 45%); perspective: 900px; }
+.flipbook-rings { position: absolute; top: -8px; left: 0; right: 0; display: flex; justify-content: space-evenly; }
+.flipbook-rings i { width: 9px; height: 17px; border-radius: 5px; background: oklch(0.35 0.01 270); border: 1px solid oklch(0.5 0.01 270); }
+.flip-page { min-height: 190px; transform-origin: top center; animation: flip-in .45s ease both; }
+@keyframes flip-in { from { transform: rotateX(-65deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.flip-month { margin-bottom: 14px; font: 400 32px/1 "Cormorant Garamond", Georgia, serif; color: var(--primary); }
+.flip-page ul { display: flex; flex-direction: column; gap: 10px; max-height: 260px; margin: 0; padding: 0; overflow: auto; list-style: none; }
+.flip-page li { display: grid; grid-template-columns: 34px 1fr; gap: 10px; font-size: 12px; line-height: 1.5; }
+.flip-page li span { text-align: right; font: 19px/1.1 "Cormorant Garamond", serif; color: var(--primary); }
+.flip-done span { color: oklch(0.78 0.14 157); }
+.flip-start span { color: oklch(0.82 0.1 230); }
+.flip-controls { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
+
+/* ---- Client Center ------------------------------------------------------------------------- */
+.client-wrap { max-width: 980px; margin: 44px auto 0; }
+
+@media (max-width: 860px) {
+  .manage-grid, .room-walls { grid-template-columns: 1fr; }
+  .directive-targets { grid-template-columns: 1fr; }
+  .auth-card { padding: 28px; }
+}
+@media (prefers-reduced-motion: reduce) { .flip-page { animation: none; } .pin-card { transition: none; } }
