@@ -47,7 +47,7 @@ test("a client sends a request with a file and a link, answers the questions, se
 
   await card.getByRole("button", { name: /More sales or sign-ups/ }).click();
   await card.getByRole("button", { name: /Within the quarter/ }).click();
-  await expect(card.locator(".pill")).toHaveText("UNDERSTOOD");
+  await expect(card.locator(".pill")).toHaveText("PLANNED");
   await expect(card.locator(".question")).toHaveCount(0);
 
   // Settle the materials list, each in a different way.
@@ -82,7 +82,7 @@ test("the CEO sends a directive for a client, answers its questions, and sees wh
   // The client's request is in the console, with the project it opened.
   const overview = await (await page.request.get("/api/v4/v1/console/overview")).json();
   const theirs = overview.intents.find((i: { text: string }) => /better website/.test(i.text));
-  expect(theirs.status).toBe("UNDERSTOOD");
+  expect(theirs.status).toBe("PLANNED");
   expect(theirs.project_id).toBeTruthy();
 
   await page.getByRole("button", { name: "Preview Directive" }).click();
@@ -98,5 +98,5 @@ test("the CEO sends a directive for a client, answers its questions, and sees wh
   await expect(card.getByText("from the agency")).toBeVisible();
   await card.getByRole("button", { name: /More sales or sign-ups/ }).click();
   await card.getByRole("button", { name: /As soon as possible/ }).click();
-  await expect(card.locator(".pill")).toHaveText("UNDERSTOOD");
+  await expect(card.locator(".pill")).toHaveText("PLANNED");
 });

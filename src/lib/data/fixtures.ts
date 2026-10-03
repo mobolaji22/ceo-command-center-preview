@@ -332,7 +332,7 @@ export function createFixturesDataSource(): DataSource {
         const s = load();
         const id_ = id();
         s.data.intents.unshift({
-          id: id_, organization_id: input.organizationId, project_id: null, source: currentUserId() === "u-ceo" ? "CEO_DIRECTIVE" : "CLIENT_INTENT", status: clear ? "UNDERSTOOD" : "CLARIFYING",
+          id: id_, organization_id: input.organizationId, project_id: null, source: currentUserId() === "u-ceo" ? "CEO_DIRECTIVE" : "CLIENT_INTENT", status: clear ? "PLANNED" : "CLARIFYING",
           text: input.text.trim(), initiator_id: currentUserId() ?? "u-ceo", rejection_reason: null, created_at: new Date().toISOString(), understood_at: clear ? new Date().toISOString() : null,
           questions: clear ? [] : [{ id: id(), question: "What result would tell you this worked?", why: "Without a result to aim at we cannot tell a good plan from a merely busy one.", decision: "Which approach we propose, and how we measure success.", options: [{ id: "revenue", label: "More sales or sign-ups", tradeoff: "We design around conversion." }, { id: "trust", label: "More trust and a clearer image", tradeoff: "Slower to measure." }], default_option_id: null }],
           assumptions: [], answers: [], materials: [],
@@ -343,7 +343,7 @@ export function createFixturesDataSource(): DataSource {
           s.data.intents[0]!.project_id = pid;
         }
         save(s);
-        return ok({ status: clear ? "UNDERSTOOD" : "CLARIFYING", projectId: s.data.intents[0]!.project_id });
+        return ok({ status: clear ? "PLANNED" : "CLARIFYING", projectId: s.data.intents[0]!.project_id });
       },
       async answer(intentId, clarificationId, answer) {
         return mutate((s) => {
@@ -352,7 +352,7 @@ export function createFixturesDataSource(): DataSource {
           if (!i || !q) return;
           i.answers.push({ id: q.id, question: q.question, answer: answer.text ?? q.options.find((o) => o.id === answer.optionId)?.label ?? "our usual choice" });
           i.questions = i.questions.filter((x) => x.id !== clarificationId);
-          if (i.questions.length === 0) { i.status = "UNDERSTOOD"; i.understood_at = new Date().toISOString(); }
+          if (i.questions.length === 0) { i.status = "PLANNED"; i.understood_at = new Date().toISOString(); }
         });
       },
       async respond(requirementId) {

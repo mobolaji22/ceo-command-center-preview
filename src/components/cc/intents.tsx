@@ -37,7 +37,7 @@ export function Composer({ organizations, fixedOrganizationId, onSubmitted }: { 
     setBusy(false);
     if (r.error || !r.data) { setMsg(r.error?.message ?? "Couldn't send that."); return; }
     setText(""); setItems([]);
-    setMsg(r.data.status === "UNDERSTOOD" ? "Understood. The work has begun." : r.data.status === "CLARIFYING" ? "Received. A few questions below will make it sharper." : "Received.");
+    setMsg(r.data.status === "UNDERSTOOD" || r.data.status === "PLANNED" ? "Understood. A plan is being prepared for your approval." : r.data.status === "CLARIFYING" ? "Received. A few questions below will make it sharper." : "Received.");
     onSubmitted();
   };
 
@@ -71,7 +71,7 @@ export function IntentCard({ intent, canAnswer, refresh }: { intent: Intent; can
     if (r.error) { setMsg(r.error.message); return; }
     setMsg(done); refresh();
   };
-  const open = intent.status === "CLARIFYING" || intent.status === "UNDERSTOOD";
+  const open = intent.status === "CLARIFYING" || intent.status === "UNDERSTOOD" || intent.status === "PLANNED";
 
   return <div className="intent-card" data-status={intent.status}>
     <div className="resolved-row"><span>{intent.text}<small>{fmtAgo(intent.created_at)}{intent.source === "CEO_DIRECTIVE" ? " · from the agency" : ""}</small></span><span className={`pill ${tone(intent.status)}`}>{(STATUS_WORDS[intent.status] ?? label(intent.status)).toUpperCase()}</span></div>
@@ -93,7 +93,7 @@ export function IntentCard({ intent, canAnswer, refresh }: { intent: Intent; can
     {open && intent.assumptions.length > 0 && <div className="ask-block"><div className="section-label"><span>WE ASSUMED</span><span>{intent.assumptions.length}</span></div>
       {intent.assumptions.map((a) => <div key={a.id} className="resolved-row"><span>{a.question}<small>We are going with: {a.assumed}{a.forced ? " (we ran out of questions on this one, so please check it)" : ""}</small></span></div>)}</div>}
 
-    {intent.status === "UNDERSTOOD" && intent.questions.length === 0 && intent.materials.length === 0 && <p className="mmsg">Nothing more is needed from you right now.</p>}
+    {(intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && intent.questions.length === 0 && intent.materials.length === 0 && <p className="mmsg">Nothing more is needed from you right now.</p>}
   </div>;
 }
 
