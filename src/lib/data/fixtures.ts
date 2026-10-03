@@ -1,5 +1,6 @@
 import type {
   Approval,
+  Asset,
   ClientData,
   OwnerData,
   Profile,
@@ -20,31 +21,32 @@ import { fail, ok, type DataSource, type Result } from "./types";
  * client visibility is decided here the way the API will decide it.
  */
 
-const STORE_KEY = "dpl.fixtures.v1";
+const STORE_KEY = "dpl.fixtures.v2";
 const SESSION_KEY = "dpl.fixtures.session";
 const CHANGE_EVENT = "dpl:fixtures-change";
 
 const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
 const id = () => crypto.randomUUID();
 
-type User = { id: string; email: string; displayName: string; role: "owner" | "client" };
+type Membership = { organizationId: string; role: "CLIENT_OWNER" | "CLIENT_MEMBER" };
+type User = { id: string; email: string; displayName: string; role: "owner" | "client"; memberships: Membership[] };
 
-type Store = { data: OwnerData; users: User[]; lastSeen: string | null };
+type Store = { data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null };
 
 function seed(): Store {
   const users: User[] = [
-    { id: "u-ceo", email: "ceo@example.com", displayName: "Ola", role: "owner" },
-    { id: "u-amara", email: "amara@northwind.example", displayName: "Amara Eze", role: "client" },
-    { id: "u-tunde", email: "tunde@lumen.example", displayName: "Tunde Bello", role: "client" },
+    { id: "u-ceo", email: "ceo@example.com", displayName: "Ola", role: "owner", memberships: [] },
+    { id: "u-amara", email: "amara@northwind.example", displayName: "Amara Eze", role: "client", memberships: [{ organizationId: "o-1", role: "CLIENT_OWNER" }] },
+    { id: "u-tunde", email: "tunde@lumen.example", displayName: "Tunde Bello", role: "client", memberships: [{ organizationId: "o-2", role: "CLIENT_OWNER" }] },
   ];
   const clients: Profile[] = users
     .filter((u) => u.role === "client")
-    .map((u) => ({ id: u.id, email: u.email, display_name: u.displayName, created_at: ago(24 * 40) }));
+    .map((u) => ({ id: u.id, email: u.email, display_name: u.displayName, created_at: ago(24 * 40), memberships: u.memberships.map((m) => ({ organization_id: m.organizationId, role: m.role })) }));
 
   const projects: Project[] = [
-    { id: "p-1", organization_id: "o-1", name: "Northwind storefront redesign", description: "Redesign the online storefront and ordering flow.", objective: "Lift online orders by 25% in a quarter", status: "IN_PROGRESS", priority: 80, domains: ["Brand", "Design", "Engineering"], created_at: ago(24 * 18), started_at: ago(24 * 16), completed_at: null },
-    { id: "p-2", organization_id: "o-2", name: "Lumen patient onboarding flow", description: "A calmer, shorter intake for new patients.", objective: "Cut intake abandonment in half", status: "WAITING_FOR_HUMAN", priority: 70, domains: ["Strategy", "Design", "Content"], created_at: ago(24 * 11), started_at: ago(24 * 9), completed_at: null },
-    { id: "p-3", organization_id: "o-3", name: "Portfolio v2", description: "The agency's own portfolio.", objective: "Win two inbound enquiries a month", status: "PLANNED", priority: 50, domains: ["Design", "Engineering"], created_at: ago(24 * 5), started_at: null, completed_at: null },
+    { id: "p-1", organization_id: "o-1", name: "Northwind storefront redesign", description: "Redesign the online storefront and ordering flow.", objective: "Lift online orders by 25% in a quarter", status: "ACTIVE", priority: 80, domains: ["Brand", "Design", "Engineering"], created_at: ago(24 * 18), started_at: ago(24 * 16), completed_at: null },
+    { id: "p-2", organization_id: "o-2", name: "Lumen patient onboarding flow", description: "A calmer, shorter intake for new patients.", objective: "Cut intake abandonment in half", status: "WAITING", wait_reason: "APPROVAL", priority: 70, domains: ["Strategy", "Design", "Content"], created_at: ago(24 * 11), started_at: ago(24 * 9), completed_at: null },
+    { id: "p-3", organization_id: "o-3", name: "Portfolio v2", description: "The agency's own portfolio.", objective: "Win two inbound enquiries a month", status: "PROPOSED", priority: 50, domains: ["Design", "Engineering"], created_at: ago(24 * 5), started_at: null, completed_at: null },
     { id: "p-4", organization_id: "o-1", name: "Northwind brand audit", description: "Audit of the existing brand system.", objective: "Know what to keep and what to retire", status: "COMPLETED", priority: 40, domains: ["Brand"], created_at: ago(24 * 60), started_at: ago(24 * 58), completed_at: ago(24 * 35) },
   ];
 
@@ -56,7 +58,7 @@ function seed(): Store {
       { id: "t-3", project_id: "p-1", title: "Build the storefront composition", domain: "Engineering", status: "RUNNING", risk: 2, reversibility: 4, approval_required: false, description: null, created_at: ago(24 * 6), started_at: ago(24 * 3), completed_at: null },
       { id: "t-4", project_id: "p-1", title: "Connect checkout to payments", domain: "Engineering", status: "BLOCKED", risk: 4, reversibility: 2, approval_required: true, description: null, created_at: ago(24 * 2), started_at: null, completed_at: null },
       { id: "t-5", project_id: "p-2", title: "Map the current intake journey", domain: "Strategy", status: "COMPLETED", risk: 1, reversibility: 5, approval_required: false, description: null, created_at: ago(24 * 8), started_at: ago(24 * 8), completed_at: ago(24 * 7) },
-      { id: "t-6", project_id: "p-2", title: "Publish the new intake form", domain: "Engineering", status: "WAITING_FOR_HUMAN", risk: 4, reversibility: 2, approval_required: true, description: null, created_at: ago(24 * 1), started_at: null, completed_at: null },
+      { id: "t-6", project_id: "p-2", title: "Publish the new intake form", domain: "Engineering", status: "WAITING", risk: 4, reversibility: 2, approval_required: true, description: null, created_at: ago(24 * 1), started_at: null, completed_at: null },
       { id: "t-7", project_id: "p-3", title: "Draft the portfolio narrative", domain: "Content", status: "READY", risk: 1, reversibility: 5, approval_required: false, description: null, created_at: ago(24 * 2), started_at: null, completed_at: null },
     ],
     decisions: [
@@ -113,13 +115,8 @@ function seed(): Store {
       { id: "o-3", name: "DevPlaybook (internal)", mission: "The agency's own work.", created_at: ago(24 * 90) },
     ],
     clients,
-    links: [
-      { project_id: "p-1", user_id: "u-amara", created_at: ago(24 * 18) },
-      { project_id: "p-4", user_id: "u-amara", created_at: ago(24 * 60) },
-      { project_id: "p-2", user_id: "u-tunde", created_at: ago(24 * 11) },
-    ],
   };
-  return { data, users, lastSeen: ago(24 * 2) };
+  return { data, users, assets: [], lastSeen: ago(24 * 2) };
 }
 
 function load(): Store {
@@ -144,9 +141,17 @@ function save(s: Store) {
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
-const toSession = (u: User): Session => ({ userId: u.id, email: u.email, displayName: u.displayName, role: u.role });
+const toSession = (u: User): Session => ({ userId: u.id, email: u.email, displayName: u.displayName, role: u.role, memberships: u.memberships });
+
+const DEMO_CODE = "123456";
 
 export function createFixturesDataSource(): DataSource {
+  let steppedUp = false;
+  const signIn = (u: User): Result<Session> => {
+    window.localStorage.setItem(SESSION_KEY, u.id);
+    window.dispatchEvent(new Event(CHANGE_EVENT));
+    return ok(toSession(u));
+  };
   const mutate = (fn: (s: Store) => void): Result => {
     const s = load();
     fn(s);
@@ -161,7 +166,7 @@ export function createFixturesDataSource(): DataSource {
 
   return {
     kind: "fixtures",
-    capabilities: {},
+    capabilities: { approvalNotes: true, timelineUpdates: true },
 
     auth: {
       async getSession() {
@@ -170,27 +175,31 @@ export function createFixturesDataSource(): DataSource {
         const u = load().users.find((x) => x.id === uid);
         return u ? toSession(u) : null;
       },
-      async signInWithPassword(email, password) {
-        if (password.length < 8) return fail("Password must be at least 8 characters.");
-        const u = load().users.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
-        if (!u) return fail("No demo account for that email. Try ceo@example.com or amara@northwind.example.");
-        window.localStorage.setItem(SESSION_KEY, u.id);
-        window.dispatchEvent(new Event(CHANGE_EVENT));
-        return ok(toSession(u));
+      async requestSignIn(email) {
+        if (!email.includes("@")) return fail("That doesn't look like an email address.", "INVALID_EMAIL");
+        return ok(undefined as void); // like the real thing: the answer never reveals whether the address has an account
       },
-      async requestPasswordReset() {
+      async verifyLink(token) {
+        const u = load().users.find((x) => x.id === token);
+        if (!u) return fail("That link or code has expired or was already used. Ask for a new one.", "INVALID_OR_EXPIRED");
+        return signIn(u);
+      },
+      async verifyCode(email, code) {
+        const u = load().users.find((x) => x.email === email.trim().toLowerCase());
+        if (!u || code !== DEMO_CODE) return fail("That link or code has expired or was already used. Ask for a new one.", "INVALID_OR_EXPIRED");
+        return signIn(u);
+      },
+      async acceptInvitation(token) {
+        const u = load().users.find((x) => x.id === token);
+        return u ? signIn(u) : fail("That link or code has expired or was already used. Ask for a new one.", "INVALID_OR_EXPIRED");
+      },
+      async requestStepUp() {
         return ok(undefined as void);
       },
-      async hasRecoverySession() {
-        return true;
-      },
-      async setPassword(password) {
-        if (password.length < 8) return fail("Password must be at least 8 characters.");
-        const uid = currentUserId();
-        const u = uid ? load().users.find((x) => x.id === uid) : load().users[0];
-        if (!u) return fail("No account.");
-        window.localStorage.setItem(SESSION_KEY, u.id);
-        return ok(toSession(u));
+      async verifyStepUp(code) {
+        if (code !== DEMO_CODE) return fail("That link or code has expired or was already used. Ask for a new one.", "INVALID_OR_EXPIRED");
+        steppedUp = true;
+        return ok(undefined as void);
       },
       async signOut() {
         window.localStorage.removeItem(SESSION_KEY);
@@ -214,7 +223,8 @@ export function createFixturesDataSource(): DataSource {
       async clientData(): Promise<ClientData> {
         const s = load();
         const uid = currentUserId();
-        const mine = new Set(s.data.links.filter((l) => l.user_id === uid).map((l) => l.project_id));
+        const orgs = new Set((s.users.find((u) => u.id === uid)?.memberships ?? []).map((m) => m.organizationId));
+        const mine = new Set(s.data.projects.filter((p) => p.organization_id && orgs.has(p.organization_id)).map((p) => p.id));
         return structuredClone({
           projects: s.data.projects.filter((p) => mine.has(p.id)),
           events: s.data.events.filter((e) => e.client_visible && e.project_id && mine.has(e.project_id)),
@@ -266,10 +276,7 @@ export function createFixturesDataSource(): DataSource {
 
       async issueDirective(input) {
         return mutate((s) => {
-          s.data.directives.unshift({ id: id(), content: input.content, project_id: input.projectId, organization_id: input.organizationId, client_id: input.clientId, created_by: currentUserId() ?? "u-ceo", created_at: new Date().toISOString() });
-          if (input.clientId && input.projectId && !s.data.links.some((l) => l.project_id === input.projectId && l.user_id === input.clientId)) {
-            s.data.links.push({ project_id: input.projectId, user_id: input.clientId, created_at: new Date().toISOString() });
-          }
+          s.data.directives.unshift({ id: id(), content: input.content, project_id: input.projectId, organization_id: input.organizationId, client_id: null, created_by: currentUserId() ?? "u-ceo", created_at: new Date().toISOString() });
           addEvent(s, { project_id: input.projectId, type: "DIRECTIVE_ISSUED", summary: `Directive: ${input.content.slice(0, 120)}`, client_visible: false });
         });
       },
@@ -287,34 +294,30 @@ export function createFixturesDataSource(): DataSource {
           s.data.organizations.push({ id: id(), name: input.name, mission: input.mission, created_at: new Date().toISOString() });
         });
       },
-      async inviteClient(input) {
+      async invitePerson(input) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
         const s = load();
         const email = input.email.trim().toLowerCase();
+        if (!email.includes("@")) return fail("That doesn't look like an email address.", "INVALID_EMAIL");
         let u = s.users.find((x) => x.email === email);
-        const invited = !u;
         if (u?.role === "owner") return fail("That email belongs to the owner account.");
         if (!u) {
-          u = { id: id(), email, displayName: email.split("@")[0] ?? email, role: "client" };
+          u = { id: id(), email, displayName: email.split("@")[0] ?? email, role: "client", memberships: [] };
           s.users.push(u);
-          s.data.clients.push({ id: u.id, email, display_name: u.displayName, created_at: new Date().toISOString() });
+          s.data.clients.push({ id: u.id, email, display_name: u.displayName, created_at: new Date().toISOString(), memberships: [] });
         }
-        for (const pid of input.projectIds) {
-          if (!s.data.links.some((l) => l.project_id === pid && l.user_id === u!.id)) {
-            s.data.links.push({ project_id: pid, user_id: u.id, created_at: new Date().toISOString() });
-          }
-        }
+        if (!u.memberships.some((m) => m.organizationId === input.organizationId)) u.memberships.push({ organizationId: input.organizationId, role: input.role });
+        const c = s.data.clients.find((x) => x.id === u!.id);
+        if (c && !c.memberships.some((m) => m.organization_id === input.organizationId)) c.memberships.push({ organization_id: input.organizationId, role: input.role });
         save(s);
-        return ok({ invited });
+        return ok(undefined as void);
       },
-      async unlinkClient(projectId, userId) {
+      async removePerson(organizationId, userId) {
         return mutate((s) => {
-          s.data.links = s.data.links.filter((l) => !(l.project_id === projectId && l.user_id === userId));
-        });
-      },
-      async addDeliverable(projectId, input) {
-        return mutate((s) => {
-          s.data.artifacts.unshift({ id: id(), project_id: projectId, type: "deliverable", name: input.name, description: input.description, storage_path: input.file ? `demo/${input.file.name}` : null, status: "FINAL", client_visible: input.share, created_at: new Date().toISOString() });
-          addEvent(s, { project_id: projectId, type: "DELIVERABLE_SHARED", summary: `Deliverable: ${input.name}`, client_visible: input.share });
+          const u = s.users.find((x) => x.id === userId);
+          if (u) u.memberships = u.memberships.filter((m) => m.organizationId !== organizationId);
+          const c = s.data.clients.find((x) => x.id === userId);
+          if (c) c.memberships = c.memberships.filter((m) => m.organization_id !== organizationId);
         });
       },
       async postUpdate(projectId, input) {
@@ -323,6 +326,35 @@ export function createFixturesDataSource(): DataSource {
         });
       },
 
+    },
+
+    assets: {
+      async list({ organizationId, projectId }) {
+        const excluded = new Set<string>();
+        return ok(structuredClone(load().assets.filter((a) => a.organization_id === organizationId && !excluded.has(a.id) && (a.scope === "ORGANIZATION" || a.project_id === projectId))));
+      },
+      async upload(input) {
+        if (input.file.size > 50 * 1024 * 1024) return fail("That file is too large.", "TOO_LARGE");
+        const asset: Asset = {
+          id: id(), organization_id: input.organizationId, scope: input.scope, project_id: input.projectId, kind: input.kind, name: input.name,
+          provenance: input.provenance, rights: input.rights, created_at: new Date().toISOString(),
+          versions: [{ version: 1, mime: input.file.type || "application/octet-stream", size_bytes: input.file.size, scan_status: "CLEAN", scan_detail: "Demo data: not actually scanned.", created_at: new Date().toISOString() }],
+        };
+        const s = load(); s.assets.unshift(asset); save(s);
+        return ok(structuredClone(asset));
+      },
+      async downloadLink() {
+        return fail("Demo data has no stored files to download.");
+      },
+      async promote(assetId) {
+        return mutate((s) => {
+          const a = s.assets.find((x) => x.id === assetId);
+          if (a && a.scope === "PROJECT") s.assets.unshift({ ...structuredClone(a), id: id(), scope: "ORGANIZATION", project_id: null });
+        });
+      },
+      async exclude() {
+        return ok(undefined as void);
+      },
     },
   };
 }
