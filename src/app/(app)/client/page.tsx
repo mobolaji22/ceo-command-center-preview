@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
 import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
 import { Library } from "@/components/cc/library";
+import { Composer, IntentList } from "@/components/cc/intents";
 
 /**
  * Client Center (shell). A client sees only their own organization's projects and what was shared with
@@ -26,7 +27,9 @@ export default function ClientCenter() {
 
   useEffect(() => { if (!auth.loading && auth.user && auth.isOwner) router.replace("/"); }, [auth, router]);
   const q = useQuery({ queryKey: ["client-data"], queryFn: () => ds.queries.clientData(), enabled: auth.isClient });
-  const refresh = () => qc.invalidateQueries({ queryKey: ["client-data"] });
+  // The library lives beside the data but loads its own; bumping the tick makes it look again whenever something changed.
+  const [tick, setTick] = useState(0);
+  const refresh = () => { setTick((t) => t + 1); return qc.invalidateQueries({ queryKey: ["client-data"] }); };
   const signOut = async () => { await qc.cancelQueries(); qc.clear(); await ds.auth.signOut(); router.replace("/auth"); };
 
   const decide = async (id: string, approved: boolean) => {
@@ -57,7 +60,14 @@ export default function ClientCenter() {
       {q.isError && <div className="empty-state"><b>Couldn't load your projects.</b><p>{(q.error as Error).message}</p></div>}
       {!data && !q.isError && <div className="empty-state"><span className="pulse-dot" /><b>Loading…</b></div>}
       {data && <>
-        <div className="section-label"><span>PROJECTS</span><span>{data.projects.length}</span></div>
+        {auth.user?.memberships[0] && <>
+          {isOwner && <><div className="section-label"><span>NEW REQUEST</span></div>
+            <Composer organizations={[]} fixedOrganizationId={auth.user.memberships[0].organizationId} onSubmitted={refresh} /></>}
+          <div className="section-label pd-label"><span>YOUR REQUESTS</span><span>{data.intents.length}</span></div>
+          <IntentList intents={data.intents} canAnswer={(i) => isOwner && i.source === "CLIENT_INTENT"} refresh={refresh} empty="No requests yet." />
+        </>}
+
+        <div className="section-label pd-label"><span>PROJECTS</span><span>{data.projects.length}</span></div>
         {data.projects.length === 0 ? <Empty title="No projects yet.">Projects appear here once the agency starts work for you.</Empty> :
           data.projects.map((p) => <div key={p.id} className="resolved-row"><span>{p.name}<small>{p.objective ?? p.description ?? ""}</small></span><span className={`pill ${statusTone(p.status)}`}>{label(p.status).toUpperCase()}</span></div>)}
 
@@ -77,7 +87,7 @@ export default function ClientCenter() {
 
         {auth.user && auth.user.memberships[0] && <>
           <div className="section-label pd-label"><span>YOUR LIBRARY</span></div>
-          <Library organizationId={auth.user.memberships[0].organizationId} canWrite={auth.user.memberships[0].role === "CLIENT_OWNER"} canPromote={auth.user.memberships[0].role === "CLIENT_OWNER"} uploadedBy="CLIENT_PROVIDED" />
+          <Library key={tick} organizationId={auth.user.memberships[0].organizationId} canWrite={auth.user.memberships[0].role === "CLIENT_OWNER"} canPromote={auth.user.memberships[0].role === "CLIENT_OWNER"} uploadedBy="CLIENT_PROVIDED" />
         </>}
 
         <div className="section-label pd-label"><span>TIMELINE</span><span>{data.events.length}</span></div>

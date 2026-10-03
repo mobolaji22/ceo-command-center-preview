@@ -115,19 +115,19 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
   await expect(owner).toHaveURL(/\/client$/);
 
   // They add a file to their library; it is scanned before it can be downloaded.
-  await owner.getByLabel("Add a file").getByRole("textbox").count();
-  await owner.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: PNG });
-  await owner.getByRole("button", { name: "Upload" }).click();
-  await expect(owner.getByRole("status")).toContainText("passed its safety scan");
+  const library = owner.locator(".library");
+  await library.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: PNG });
+  await library.getByRole("button", { name: "Upload" }).click();
+  await expect(library.getByRole("status")).toContainText("passed its safety scan");
   const row = owner.locator(".resolved-row", { hasText: "logo.png" });
   await expect(row.getByText("CLEAN")).toBeVisible();
   const [download] = await Promise.all([owner.waitForEvent("download"), row.getByRole("button", { name: "Download" }).click()]);
   expect(download.suggestedFilename()).toBe("logo.png");
 
   // A file that is not what it claims to be is refused, and nothing is left behind to download.
-  await owner.locator('input[type="file"]').setInputFiles({ name: "fake.png", mimeType: "image/png", buffer: Buffer.from("this is text, not a picture") });
-  await owner.getByRole("button", { name: "Upload" }).click();
-  await expect(owner.getByRole("status")).toContainText(/not accepted/);
+  await library.locator('input[type="file"]').setInputFiles({ name: "fake.png", mimeType: "image/png", buffer: Buffer.from("this is text, not a picture") });
+  await library.getByRole("button", { name: "Upload" }).click();
+  await expect(library.getByRole("status")).toContainText(/not accepted/);
   await expect(owner.locator(".resolved-row", { hasText: "fake.png" })).toHaveCount(0);
 
   // The CEO sees the new client in the console, with its owner.

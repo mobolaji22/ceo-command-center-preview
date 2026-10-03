@@ -156,3 +156,20 @@
   .auth-card { padding: 28px; }
 }
 @media (prefers-reduced-motion: reduce) { .flip-page { animation: none; } .pin-card { transition: none; } }
+
+/* Requests: the composer's attachments, a request's questions and its materials list. */
+.intent-list { display: grid; gap: 14px; }
+.intent-card { border: 1px solid var(--line, rgba(255,255,255,.12)); border-radius: 10px; padding: 6px 14px 12px; }
+.ask-block { margin-top: 10px; }
+.question, .material { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line, rgba(255,255,255,.08)); }
+.question small, .material small { display: block; opacity: .7; }
+.question .options { display: grid; gap: 8px; }
+.question .option { height: auto; justify-content: flex-start; text-align: left; flex-direction: column; align-items: flex-start; gap: 2px; white-space: normal; }
+.question .option small { font-weight: 400; opacity: .7; }
+.free { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.free input, .free select { flex: 1 1 200px; }
+.material-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.attach { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; border: 1px solid var(--line, rgba(255,255,255,.2)); border-radius: 8px; padding: 6px 10px; }
+.attach input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.req { color: var(--gold, #c9a45c); font-style: normal; font-size: .75em; }
+.who { display: block; margin: 8px 0 2px; opacity: .6; }

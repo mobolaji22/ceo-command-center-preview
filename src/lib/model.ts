@@ -148,14 +148,33 @@ export type V4Event = {
   type: string
 };
 
-export type Directive = {
-  client_id: string | null
-  content: string
-  created_at: string
-  created_by: string
+export type IntentStatus = "PROPOSED" | "RECEIVED" | "CLARIFYING" | "UNDERSTOOD" | "PLANNED" | "SUPERSEDED" | "REJECTED";
+export type MaterialWay = "UPLOAD" | "LINK" | "CONNECT" | "NONE" | "SOURCE";
+
+/** What someone asked for, where it stands, and what we are asking back (at most three questions and one materials list). */
+export type Intent = {
   id: string
-  organization_id: string | null
+  organization_id: string
   project_id: string | null
+  source: "CEO_DIRECTIVE" | "CLIENT_INTENT" | "AGENCY_PROPOSED"
+  status: IntentStatus
+  text: string
+  initiator_id: string
+  rejection_reason: string | null
+  created_at: string
+  understood_at: string | null
+  questions: Array<{
+    id: string
+    question: string
+    why: string
+    decision: string
+    options: Array<{ id: string; label: string; tradeoff: string }>
+    default_option_id: string | null
+  }>
+  /** Things we settled by assuming instead of asking. */
+  assumptions: Array<{ id: string; question: string; assumed: string; forced: boolean }>
+  answers: Array<{ id: string; question: string; answer: string }>
+  materials: Array<{ requirement_id: string; name: string; why: string; if_missing: string; required: boolean; ways: MaterialWay[]; sourcing: boolean }>
 };
 
 export type Organization = {
@@ -206,14 +225,14 @@ export type OwnerData = {
   requirements: Requirement[];
   outcomes: Outcome[];
   events: V4Event[];
-  directives: Directive[];
+  intents: Intent[];
   organizations: Organization[];
   /** People in client organizations, with their roles. */
   clients: Profile[];
 };
 
 /** What a client may see: only their own projects and what was shared with them. */
-export type ClientData = Pick<OwnerData, "projects" | "events" | "artifacts" | "approvals" | "requirements">;
+export type ClientData = Pick<OwnerData, "projects" | "events" | "artifacts" | "approvals" | "requirements" | "intents">;
 
 export type Session = {
   userId: string;
