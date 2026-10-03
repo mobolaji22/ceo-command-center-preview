@@ -1,7 +1,10 @@
+"use client";
+
 import { useMemo, useState } from "react";
 import { Activity, ArrowLeft, ArrowRight, BookOpen, ChevronLeft, ChevronRight, Fingerprint, LayoutGrid, MoreHorizontal, Search, Compass, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { type OwnerData, label, statusTone, pad, fmtDate } from "@/lib/v4";
+import type { OwnerData } from "@/lib/model";
+import { label, statusTone, pad, fmtDate } from "@/lib/format";
 import { Empty } from "./views";
 
 const ICONS = [LayoutGrid, Activity, Fingerprint, BookOpen, Search, Compass, Layers];

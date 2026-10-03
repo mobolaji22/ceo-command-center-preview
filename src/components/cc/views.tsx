@@ -1,8 +1,12 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowDownRight, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, MoreHorizontal, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { type OwnerData, type Approval, label, riskLabel, reversibilityLabel, statusTone, fmtDate, fmtAgo, pad, logEvent } from "@/lib/v4";
+import type { OwnerData, Approval } from "@/lib/model";
+import { label, riskLabel, reversibilityLabel, statusTone, fmtDate, fmtAgo, pad } from "@/lib/format";
+import { useDataSource } from "@/lib/data";
+import { useAuth } from "@/lib/auth";
 
 type Common = { data: OwnerData; refresh: () => void };
 const CLOSED = ["COMPLETED", "CANCELLED", "ARCHIVED", "SUPERSEDED"];
@@ -13,6 +17,7 @@ export function Empty({ title, children }: { title: string; children?: React.Rea
 }
 
 export function ComputerView({ data, openContracts, openBrief, openManage }: Common & { openContracts: (projectId?: string) => void; openBrief: () => void; openManage: (projectId?: string) => void }) {
+  const ds = useDataSource();
   const [tab, setTab] = useState("Cases & Engagements");
   const active = data.projects.filter((p) => !CLOSED.includes(p.status));
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
@@ -20,7 +25,7 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
   const exceptions = pending.length + blocked.length;
   return <div className="computer-frame">
     <div className="window-bar"><div className="traffic-dots"><i /><i /><i /></div><span>&gt; DevPlaybook V4 Core Canonical Operating System <span className="window-muted">//</span> State: <strong>Synchronized DPL-01</strong></span><MoreHorizontal size={18} /></div>
-    <div className="computer-body"><div className="computer-heading"><div><div className="eyebrow gold">THE ORGANIZATIONAL NERVOUS SYSTEM</div><h2>Operating overview<span className="period">.</span></h2><p>{data.projects.length} projects · {data.tasks.length} tasks · {data.decisions.length} decisions on record.</p></div><div className="system-time"><Radio size={15} /> LIVE FROM LOVABLE CLOUD</div></div>
+    <div className="computer-body"><div className="computer-heading"><div><div className="eyebrow gold">THE ORGANIZATIONAL NERVOUS SYSTEM</div><h2>Operating overview<span className="period">.</span></h2><p>{data.projects.length} projects · {data.tasks.length} tasks · {data.decisions.length} decisions on record.</p></div><div className="system-time"><Radio size={15} /> {ds.kind === "api" ? "LIVE FROM DEVPLAYBOOK V4" : "DEMO FIXTURES"}</div></div>
       <div className="computer-tabs" role="tablist">{["Cases & Engagements", "Decision Ledger", "Security/Gov"].map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</div>
       {tab === "Cases & Engagements" && <div className="computer-content"><div className="section-label"><span>ACTIVE DOSSIERS</span><span>{pad(active.length)} IN MOTION</span></div>
         {active.length === 0 ? <Empty title="No active projects yet.">Create your first project to start the ledger. <Button variant="ghost" className="inline-arrow" onClick={() => openManage()}>OPEN MANAGEMENT <ArrowRight size={14} /></Button></Empty> :
@@ -40,6 +45,7 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
 }
 
 export function PhoneView({ data, openBrief, openContracts }: Common & { openBrief: () => void; openContracts: (projectId?: string) => void }) {
+  const auth = useAuth();
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
   const latest = data.events[0];
@@ -48,7 +54,7 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
   return <div className="phone-layout"><div className="phone-intro"><div className="eyebrow gold">AGENCY PULSE / MOBILE CHANNEL</div><h2>Clarity in<br /><i>your pocket.</i></h2><p>The essentials, wherever the day takes you.</p><div className="phone-intro-rule" /><span>01 &nbsp; / &nbsp; EXECUTIVE ATTENTION</span></div>
     <div className="phone-shell"><div className="phone-hardware"><span className="speaker" /><span className="camera" /></div><div className="phone-screen"><div className="phone-top"><span>{now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span><span>●●● &nbsp; ▰</span></div><div className="phone-content">
       <div className="phone-app-head"><span className="phone-app-logo">D/</span><span className="pill amber">● AGENCY PULSE CHANNEL</span></div>
-      <div className="phone-greeting">Good {hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}, Ola.</div>
+      <div className="phone-greeting">Good {hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}, {auth.user?.displayName ?? "there"}.</div>
       <h3>Executive<br />Attention<span className="period">.</span></h3>
       <div className="phone-meta">{now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "long" }).toUpperCase()} <span>{pad(pending.length + blocked.length)} ITEMS NEED YOU</span></div>
       <div className="phone-card brief-card"><div className="phone-card-top"><Sparkles size={16} /><span>DAILY EXECUTIVE BRIEF</span><ArrowRight size={15} /></div><p>What happened while I was away?</p><Button variant="ghost" className="phone-card-link" onClick={openBrief}>READ YOUR BRIEF <ArrowRight size={14} /></Button></div>
@@ -63,7 +69,8 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
     </div><div className="phone-home" /></div></div></div>;
 }
 
-export function ContractsView({ data, refresh, focusProjectId }: Common & { focusProjectId?: string }) {
+export function ContractsView({ data, refresh, focusProjectId }: Common & { focusProjectId?: string | undefined }) {
+  const ds = useDataSource();
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const ordered = focusProjectId ? [...pending].sort((a, b) => (a.project_id === focusProjectId ? -1 : 0) - (b.project_id === focusProjectId ? -1 : 0)) : pending;
   const [selectedId, setSelectedId] = useState<string | null>(ordered[0]?.id ?? null);
@@ -81,16 +88,14 @@ export function ContractsView({ data, refresh, focusProjectId }: Common & { focu
     {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}</div></div>;
 
   const evidence = data.evidence.filter((e) => e.approval_id === a.id || (!e.approval_id && e.project_id === a.project_id));
-  const run = async (fn: () => PromiseLike<{ error: { message: string } | null }>, ev: string, done: string) => {
+  const run = async (fn: () => PromiseLike<{ error: { message: string } | null }>, done: string) => {
     setBusy(true); setMsg(null);
     const { error } = await fn();
     if (error) { setMsg(error.message); setBusy(false); return; }
-    await logEvent({ project_id: a.project_id, type: "APPROVAL_UPDATED", summary: ev, client_visible: a.requires_client });
     setMsg(done); setBusy(false); refresh();
   };
   const resolve = async (approved: boolean) => {
-    const { data: u } = await supabase.auth.getUser();
-    await run(() => supabase.from("approvals").update({ status: approved ? "GRANTED" : "REJECTED", resolved_by: u.user?.id, resolved_at: new Date().toISOString() }).eq("id", a.id), `CEO ${approved ? "approved" : "rejected"}: ${a.title}`, `Decision ${approved ? "approved" : "rejected"} and recorded in the governance ledger.`);
+    await run(() => ds.commands.resolveApproval(a.id, approved), `Decision ${approved ? "approved" : "rejected"} and recorded in the governance ledger.`);
     const next = pending.find((x) => x.id !== a.id); setSelectedId(next?.id ?? null);
   };
   const projectRef = `DPL-AC-${a.id.slice(0, 4).toUpperCase()}`;
@@ -111,8 +116,8 @@ export function ContractsView({ data, refresh, focusProjectId }: Common & { focu
         <textarea aria-label={tab} value={text} maxLength={4000} onChange={(e) => setText(e.target.value)} placeholder={tab === "Request Evidence" ? "What additional evidence would help you make this decision?" : "e.g. Limit the discovery phase to 60 days…"} />
         {msg && <p>{msg}</p>}
         <Button className="approve-btn" disabled={busy || !text.trim()} onClick={() => tab === "Request Evidence"
-          ? run(() => supabase.from("approvals").update({ evidence_request: text.trim() }).eq("id", a.id), `Evidence requested on: ${a.title}`, "Evidence request recorded.")
-          : run(() => supabase.from("approvals").update({ constraints: text.trim() }).eq("id", a.id), `Constraints set on: ${a.title}`, "Constraints saved.")}>{tab === "Request Evidence" ? "Record request" : "Save constraints"} <ArrowRight size={16} /></Button></div>}
+          ? run(() => ds.commands.requestApprovalEvidence(a.id, text.trim()), "Evidence request recorded.")
+          : run(() => ds.commands.setApprovalConstraints(a.id, text.trim()), "Constraints saved.")}>{tab === "Request Evidence" ? "Record request" : "Save constraints"} <ArrowRight size={16} /></Button></div>}
       {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}
     </div></div>;
 }
@@ -122,6 +127,7 @@ function ResolvedList({ data, items }: { data: OwnerData; items: Approval[] }) {
 }
 
 export function DirectiveView({ data, refresh, close }: Common & { close: () => void }) {
+  const ds = useDataSource();
   const [text, setText] = useState("");
   const [projectId, setProjectId] = useState("");
   const [orgId, setOrgId] = useState("");
@@ -130,11 +136,8 @@ export function DirectiveView({ data, refresh, close }: Common & { close: () => 
   const [msg, setMsg] = useState<string | null>(null);
   const clients = projectId ? data.clients.filter((c) => data.links.some((l) => l.project_id === projectId && l.user_id === c.id)) : data.clients;
   const issue = async () => {
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("directives").insert({ content: text.trim(), project_id: projectId || null, organization_id: orgId || null, client_id: clientId || null, created_by: u.user!.id });
+    const { error } = await ds.commands.issueDirective({ content: text.trim(), projectId: projectId || null, organizationId: orgId || null, clientId: clientId || null });
     if (error) { setMsg(error.message); return; }
-    if (clientId && projectId && !data.links.some((l) => l.project_id === projectId && l.user_id === clientId)) await supabase.from("project_clients").insert({ project_id: projectId, user_id: clientId });
-    await logEvent({ project_id: projectId || null, type: "DIRECTIVE_ISSUED", summary: `Directive: ${text.trim().slice(0, 120)}` });
     setText(""); setMsg("Directive issued and recorded."); refresh();
   };
   const history = full ? data.directives : data.directives.slice(0, 5);
@@ -157,8 +160,9 @@ export function DirectiveView({ data, refresh, close }: Common & { close: () => 
 }
 
 export function BriefView({ data, openContracts, openComputer }: Common & { openContracts: (projectId?: string) => void; openComputer: () => void }) {
+  const ds = useDataSource();
   const [since, setSince] = useState<string | null>(null);
-  useEffect(() => { supabase.rpc("touch_owner_seen").then(({ data: d }) => setSince((d as string | null) ?? new Date(Date.now() - 7 * 864e5).toISOString())); }, []);
+  useEffect(() => { void ds.commands.markSeen().then((d) => setSince(d ?? new Date(Date.now() - 7 * 864e5).toISOString())); }, [ds]);
   const s = since ? new Date(since).getTime() : Date.now() - 7 * 864e5;
   const recent = useMemo(() => data.events.filter((e) => new Date(e.created_at).getTime() > s), [data.events, s]);
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
