@@ -14,14 +14,14 @@ cp .env.example .env.local      # NEXT_PUBLIC_DATA_SOURCE=fixtures by default
 npm run dev
 ```
 
-Demo sign-ins (fixtures mode, any password of 8+ characters): `ceo@example.com`,
-`amara@northwind.example`, `tunde@lumen.example`.
+Demo sign-ins (fixtures mode, code `123456`): `ceo@example.com`,
+`amara@northwind.example`, `tunde@lumen.example`. There are no passwords; real sign-in is an emailed link or code.
 
 ## Modes
 
 - `fixtures`: in-browser demo data (persisted in localStorage). Blocked in production builds unless
   `NEXT_PUBLIC_ALLOW_FIXTURES=true`.
-- `api`: talks to the v4 API at `NEXT_PUBLIC_V4_API_URL`. See `docs/INTEGRATION.md` for the endpoints.
+- `api`: talks to the v4 API at `V4_API_URL`, through this app's own server (the session lives in an httpOnly cookie the browser cannot read). See `docs/INTEGRATION.md`.
 
 ## Checks
 

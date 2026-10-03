@@ -6,6 +6,9 @@ import type { OwnerData } from "@/lib/model";
 import { label, statusTone, fmtDate } from "@/lib/format";
 import { useDataSource } from "@/lib/data";
 import { Empty } from "./views";
+import { Library } from "./library";
+import { useStepUp } from "./step-up";
+import type { OrgRole } from "@/lib/model";
 
 type P = { data: OwnerData; refresh: () => void; initialProjectId?: string | undefined };
 
@@ -21,12 +24,13 @@ function useAction(refresh: () => void) {
 }
 
 export function ManageView({ data, refresh, initialProjectId }: P) {
-  const [tab, setTab] = useState<"Projects" | "Clients" | "Organizations">("Projects");
+  const [tab, setTab] = useState<"Projects" | "People" | "Organizations" | "Library">("Projects");
   return <div className="manage-wrap"><div className="eyebrow gold">CEO OFFICE / MANAGEMENT</div><h2 className="manage-title">Records & access<span className="period">.</span></h2>
-    <div className="computer-tabs" role="tablist">{(["Projects", "Clients", "Organizations"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</div>
+    <div className="computer-tabs" role="tablist">{(["Projects", "People", "Organizations", "Library"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</div>
     {tab === "Projects" && <Projects data={data} refresh={refresh} initialProjectId={initialProjectId} />}
-    {tab === "Clients" && <Clients data={data} refresh={refresh} />}
+    {tab === "People" && <People data={data} refresh={refresh} />}
     {tab === "Organizations" && <Orgs data={data} refresh={refresh} />}
+    {tab === "Library" && <OrgLibrary data={data} />}
   </div>;
 }
 
@@ -39,27 +43,40 @@ function Orgs({ data, refresh }: P) {
     <div className="mlist">{data.organizations.length === 0 ? <Empty title="No organizations yet." /> : data.organizations.map((o) => <div key={o.id} className="resolved-row"><span>{o.name}<small>{o.mission ?? "No mission set"} · {data.projects.filter((p) => p.organization_id === o.id).length} projects</small></span></div>)}</div></div>;
 }
 
-function Clients({ data, refresh }: P) {
+function People({ data, refresh }: P) {
   const ds = useDataSource();
-  const [email, setEmail] = useState(""); const [ids, setIds] = useState<string[]>([]);
-  const [msg, setMsg] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  const { guard, panel } = useStepUp();
+  const [email, setEmail] = useState("");
+  const [orgId, setOrgId] = useState(data.organizations[0]?.id ?? "");
+  const [role, setRole] = useState<OrgRole>("CLIENT_OWNER");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setMsg(null);
-    try {
-      const res = await ds.commands.inviteClient({ email, projectIds: ids, redirectTo: window.location.origin + "/reset-password" });
-      if (res.error || !res.data) throw new Error(res.error?.message ?? "Invite failed.");
-      const r = res.data;
-      setMsg(r.invited ? `Invitation emailed to ${email}.` : `${email} already has an account — project access updated.`);
-      setEmail(""); setIds([]); refresh();
-    } catch (err) { setMsg(err instanceof Error ? err.message : "Invite failed."); }
-    finally { setBusy(false); }
+    await guard(() => ds.commands.invitePerson({ organizationId: orgId, email: email.trim(), role }), (r) => {
+      setBusy(false);
+      if (r.error) { setMsg(r.error.message); return; }
+      setMsg(`Invitation emailed to ${email.trim()}. It works once and signs them in.`); setEmail(""); refresh();
+    });
+    setBusy(false);
   };
-  const unlink = async (project_id: string, user_id: string) => { await ds.commands.unlinkClient(project_id, user_id); refresh(); };
-  return <div className="manage-grid"><form className="mform" onSubmit={submit}><h4>Invite a client</h4>
-    <input type="email" required maxLength={255} placeholder="client@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-    <div className="checks">{data.projects.length === 0 ? <small>Create a project first to give access.</small> : data.projects.map((p) => <label key={p.id}><input type="checkbox" checked={ids.includes(p.id)} onChange={(e) => setIds(e.target.checked ? [...ids, p.id] : ids.filter((x) => x !== p.id))} /> {p.name}</label>)}</div>
-    <Button className="approve-btn" type="submit" disabled={busy}>{busy ? "Sending…" : "Send invitation"}</Button>{msg && <p className="mmsg">{msg}</p>}</form>
-    <div className="mlist">{data.clients.length === 0 ? <Empty title="No clients yet." /> : data.clients.map((c) => <div key={c.id} className="client-card"><b>{c.email}</b><div className="chips">{data.links.filter((l) => l.user_id === c.id).map((l) => <span key={l.project_id} className="chip">{data.projects.find((p) => p.id === l.project_id)?.name}<button aria-label="Remove access" onClick={() => unlink(l.project_id, c.id)}>×</button></span>)}{!data.links.some((l) => l.user_id === c.id) && <small>No project access</small>}</div></div>)}</div></div>;
+  const remove = async (organizationId: string, userId: string) => { await ds.commands.removePerson(organizationId, userId); refresh(); };
+  const orgName = (id: string) => data.organizations.find((o) => o.id === id)?.name ?? "Unknown";
+  return <div className="manage-grid"><div>
+    <form className="mform" onSubmit={submit}><h4>Invite someone</h4>
+      <input type="email" required maxLength={255} placeholder="person@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <select aria-label="Organization" required value={orgId} onChange={(e) => setOrgId(e.target.value)}>{data.organizations.length === 0 && <option value="">Add an organization first</option>}{data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
+      <select aria-label="Role" value={role} onChange={(e) => setRole(e.target.value as OrgRole)}><option value="CLIENT_OWNER">Owner (decides, invites, adds files)</option><option value="CLIENT_MEMBER">Member (read only)</option></select>
+      <Button className="approve-btn" type="submit" disabled={busy || !orgId}>{busy ? "Sending…" : "Send invitation"}</Button>{msg && <p className="mmsg">{msg}</p>}</form>
+    {panel}</div>
+    <div className="mlist">{data.clients.length === 0 ? <Empty title="No clients yet." /> : data.clients.map((c) => <div key={c.id} className="client-card"><b>{c.email}</b><div className="chips">{c.memberships.map((m) => <span key={m.organization_id} className="chip">{orgName(m.organization_id)} · {m.role === "CLIENT_OWNER" ? "Owner" : "Member"}<button aria-label={`Remove from ${orgName(m.organization_id)}`} onClick={() => remove(m.organization_id, c.id)}>×</button></span>)}{c.memberships.length === 0 && <small>No access</small>}</div></div>)}</div></div>;
+}
+
+function OrgLibrary({ data }: { data: OwnerData }) {
+  const [orgId, setOrgId] = useState(data.organizations[0]?.id ?? "");
+  if (data.organizations.length === 0) return <Empty title="Add an organization first." />;
+  return <div><select aria-label="Organization library" value={orgId} onChange={(e) => setOrgId(e.target.value)}>{data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
+    <Library key={orgId} organizationId={orgId} canWrite uploadedBy="CEO_PROVIDED" /></div>;
 }
 
 function Projects({ data, refresh, initialProjectId }: P) {
@@ -80,26 +97,18 @@ function ProjectDetail({ data, refresh, projectId }: P & { projectId: string }) 
   const { msg, run } = useAction(refresh);
   const pid = p.id;
   const [upd, setUpd] = useState({ summary: "", share: true });
-  const [del, setDel] = useState({ name: "", description: "", share: true, file: null as File | null });
-
-  const uploadDeliverable = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (await run(() => ds.commands.addDeliverable(pid, { name: del.name.trim(), description: del.description.trim() || null, share: del.share, file: del.file }), "Deliverable added."))
-      setDel({ name: "", description: "", share: true, file: null });
-  };
 
   const tasks = data.tasks.filter((t) => t.project_id === pid);
   return <div className="project-detail">
     <div className="pd-head"><h3>{p.name}</h3>
       <span className={`pill ${statusTone(p.status)}`}>{label(p.status)}</span></div>
-    <p className="pd-sub">{p.description || "No description"} · Departments: {p.domains.join(", ") || "none"} · Clients: {data.links.filter((l) => l.project_id === pid).length}</p>
+    <p className="pd-sub">{p.wait_reason ? `Waiting: ${label(p.wait_reason)} · ` : ""}{p.description || "No description"} · Departments: {p.domains.join(", ") || "none"}</p>
     {msg && <p className="mmsg">{msg}</p>}
     <div className="pd-forms">
-      <form className="mform" onSubmit={uploadDeliverable}>
-        <h4>Deliverable</h4><input required maxLength={200} placeholder="Name" value={del.name} onChange={(e) => setDel({ ...del, name: e.target.value })} /><input maxLength={1000} placeholder="Description" value={del.description} onChange={(e) => setDel({ ...del, description: e.target.value })} /><input type="file" onChange={(e) => setDel({ ...del, file: e.target.files?.[0] ?? null })} /><label className="check"><input type="checkbox" checked={del.share} onChange={(e) => setDel({ ...del, share: e.target.checked })} /> Share with client</label><Button className="approve-btn" type="submit">Add deliverable</Button></form>
-      <form className="mform" onSubmit={async (e) => { e.preventDefault(); if (await run(() => ds.commands.postUpdate(pid, { summary: upd.summary.trim(), share: upd.share }), "Update posted.")) setUpd({ ...upd, summary: "" }); }}>
-        <h4>Timeline update</h4><textarea required maxLength={2000} placeholder="What happened?" value={upd.summary} onChange={(e) => setUpd({ ...upd, summary: e.target.value })} /><label className="check"><input type="checkbox" checked={upd.share} onChange={(e) => setUpd({ ...upd, share: e.target.checked })} /> Share with client</label><Button className="approve-btn" type="submit">Post update</Button></form>
+      {ds.capabilities.timelineUpdates && <form className="mform" onSubmit={async (e) => { e.preventDefault(); if (await run(() => ds.commands.postUpdate(pid, { summary: upd.summary.trim(), share: upd.share }), "Update posted.")) setUpd({ ...upd, summary: "" }); }}>
+        <h4>Timeline update</h4><textarea required maxLength={2000} placeholder="What happened?" value={upd.summary} onChange={(e) => setUpd({ ...upd, summary: e.target.value })} /><label className="check"><input type="checkbox" checked={upd.share} onChange={(e) => setUpd({ ...upd, share: e.target.checked })} /> Share with client</label><Button className="approve-btn" type="submit">Post update</Button></form>}
     </div>
+    {p.organization_id && <><div className="section-label pd-label"><span>FILES</span></div><Library organizationId={p.organization_id} projectId={pid} canWrite uploadedBy="CEO_PROVIDED" /></>}
     <div className="section-label pd-label"><span>TASKS</span><span>{tasks.length}</span></div>
     {tasks.length === 0 ? <Empty title="No tasks yet." /> : tasks.map((t) => <div key={t.id} className="resolved-row"><span>{t.title}<small>{t.domain} · created {fmtDate(t.created_at)}{t.completed_at ? ` · done ${fmtDate(t.completed_at)}` : ""}</small></span>
 </div>)}

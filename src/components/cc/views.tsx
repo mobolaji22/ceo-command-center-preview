@@ -9,7 +9,7 @@ import { useDataSource } from "@/lib/data";
 import { useAuth } from "@/lib/auth";
 
 type Common = { data: OwnerData; refresh: () => void };
-const CLOSED = ["COMPLETED", "CANCELLED", "ARCHIVED", "SUPERSEDED"];
+const CLOSED = ["COMPLETED", "CANCELLED", "ARCHIVED"];
 const projectName = (data: OwnerData, id: string | null) => data.projects.find((p) => p.id === id)?.name ?? "Organization-wide";
 
 export function Empty({ title, children }: { title: string; children?: React.ReactNode }) {
@@ -102,7 +102,7 @@ export function ContractsView({ data, refresh, focusProjectId }: Common & { focu
 
   return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span><span className="protocol-id">{projectRef}</span></div>
     {ordered.length > 1 && <div className="approval-queue">{ordered.map((x, i) => <button key={x.id} className={x.id === a.id ? "active" : ""} onClick={() => { setSelectedId(x.id); setTab("Contract Review"); setMsg(null); }}><span>{pad(i + 1)}</span>{x.title}</button>)}</div>}
-    <div className="contract-tabs" role="tablist">{(["Contract Review", "Modify Constraints & Scope", "Request Evidence"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>{t}</Button>)}</div>
+    {ds.capabilities.approvalNotes && <div className="contract-tabs" role="tablist">{(["Contract Review", "Modify Constraints & Scope", "Request Evidence"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>{t}</Button>)}</div>}
     <div className="contract-body"><div className="classification"><span><LockKeyhole size={15} /> CLASSIFICATION: {label(a.target_type).toUpperCase()} · {projectName(data, a.project_id).toUpperCase()}</span><strong>{a.requires_client ? "CLIENT & CEO APPROVAL" : "CEO APPROVAL REQUIRED"}</strong></div>
       {tab === "Contract Review" && <><div className="contract-columns"><div className="contract-main"><div className="eyebrow gold">01 / PROPOSED ACTION</div><h2>{a.title}<span className="period">.</span></h2>{a.recommendation && <p className="contract-lead">{a.recommendation}</p>}<div className="contract-rule" /><div className="eyebrow gold">02 / ORGANIZATIONAL REASONING</div><p className="reasoning">{a.reason}</p>
         {a.consequences && <><div className="eyebrow gold">03 / CONSEQUENCES</div><p className="reasoning">{a.consequences}</p></>}
@@ -110,7 +110,7 @@ export function ContractsView({ data, refresh, focusProjectId }: Common & { focu
         {a.evidence_request && <p className="reasoning"><b>Evidence requested:</b> {a.evidence_request}</p>}
         <Button variant="ghost" className="evidence-trigger" onClick={() => setEvidenceOpen(!evidenceOpen)}><FileText size={17} /> Substantiating Evidence Trail ({evidence.length}) <ChevronDown size={16} className={evidenceOpen ? "rotated" : ""} /></Button>
         {evidenceOpen && <div className="evidence-list">{evidence.length === 0 ? <div>No evidence attached yet.</div> : evidence.map((e, i) => <div key={e.id}><span>{pad(i + 1)}</span> {e.claim} <small>{e.source} · {Math.round(e.confidence * 100)}% confidence</small></div>)}</div>}</div>
-        <aside className="contract-aside"><div className="eyebrow">DECISION PROFILE</div><div className="aside-stat"><span>RISK LEVEL</span><strong>{riskLabel(a.risk)}</strong></div><div className="aside-stat"><span>REVERSIBILITY</span><strong>{reversibilityLabel(a.reversibility)}</strong></div><div className="aside-stat"><span>DECISION OWNER</span><strong>{a.requires_client ? "CEO + Client" : "Chief Executive Officer"}</strong></div><div className="aside-stat"><span>RAISED</span><strong>{fmtDate(a.created_at)}</strong></div><div className="aside-note"><ShieldCheck size={17} /> Your decision is recorded in the governance ledger.</div></aside></div>
+        <aside className="contract-aside"><div className="eyebrow">DECISION PROFILE</div><div className="aside-stat"><span>RISK LEVEL</span><strong>{riskLabel(a.risk)}</strong></div><div className="aside-stat"><span>REVERSIBILITY</span><strong>{reversibilityLabel(a.reversibility)}</strong></div><div className="aside-stat"><span>DECISION OWNER</span><strong>{a.requires_client ? "CEO + Client" : "Chief Executive Officer"}</strong></div><div className="aside-stat"><span>RAISED</span><strong>{fmtDate(a.created_at)}</strong></div><div className="aside-note"><ShieldCheck size={17} /> {a.requires_client ? "This is the client's decision. You can make it only with the permission their owner has given you; every use is recorded for them to see." : "Your decision is recorded in the governance ledger."}</div></aside></div>
         <div className="contract-actions"><span>{msg ?? "Review the evidence before resolving this authorization."}</span><div><Button variant="outline" className="reject-btn" disabled={busy} onClick={() => resolve(false)}>Reject proposal</Button><Button className="approve-btn" disabled={busy} onClick={() => resolve(true)}><Check size={16} /> Approve authorization</Button></div></div></>}
       {tab !== "Contract Review" && <div className="tab-pane"><div className="eyebrow gold">{tab === "Request Evidence" ? "ASK FOR CLARITY" : "CONTROL THE BOUNDARIES"}</div><h2>{tab === "Request Evidence" ? "Request evidence" : "Shape the scope"}<span className="period">.</span></h2><p>{tab === "Request Evidence" ? "Ask the organization to substantiate a part of this proposal before you decide." : "Specify the limits that must be met before authorization proceeds."}</p>
         <textarea aria-label={tab} value={text} maxLength={4000} onChange={(e) => setText(e.target.value)} placeholder={tab === "Request Evidence" ? "What additional evidence would help you make this decision?" : "e.g. Limit the discovery phase to 60 days…"} />
@@ -131,31 +131,30 @@ export function DirectiveView({ data, refresh, close }: Common & { close: () => 
   const [text, setText] = useState("");
   const [projectId, setProjectId] = useState("");
   const [orgId, setOrgId] = useState("");
-  const [clientId, setClientId] = useState("");
   const [full, setFull] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const clients = projectId ? data.clients.filter((c) => data.links.some((l) => l.project_id === projectId && l.user_id === c.id)) : data.clients;
   const issue = async () => {
-    const { error } = await ds.commands.issueDirective({ content: text.trim(), projectId: projectId || null, organizationId: orgId || null, clientId: clientId || null });
+    const project = data.projects.find((p) => p.id === projectId);
+    const organizationId = project?.organization_id ?? (orgId || null);
+    if (!organizationId && ds.kind === "api") { setMsg("Choose the organization this direction is for."); return; }
+    const { error } = await ds.commands.issueDirective({ content: text.trim(), projectId: projectId || null, organizationId });
     if (error) { setMsg(error.message); return; }
     setText(""); setMsg("Directive issued and recorded."); refresh();
   };
   const history = full ? data.directives : data.directives.slice(0, 5);
-  const who = (id: string | null) => data.clients.find((c) => c.id === id)?.email;
   return <div className="directive-wrap"><div className="directive-head"><div><div className="eyebrow gold">INTENT FRAMING / CEO OFFICE</div><h2><span className="brain-symbol">✦</span> Executive Directive</h2></div><Button variant="ghost" size="icon" className="icon-button" aria-label="Close directive" onClick={close}><X size={20} /></Button></div>
     <div className="philosophy"><span>THE PRINCIPLE</span><p>The CEO does not manage tasks. The CEO sets direction, resolves ambiguity, and authorizes consequential action.</p></div>
     <div className="directive-form"><label htmlFor="directive-text">WHAT DIRECTION WOULD YOU LIKE TO SET?</label>
       <textarea id="directive-text" value={text} maxLength={4000} onChange={(e) => setText(e.target.value)} placeholder="Describe the outcome you want to create, the tension you want resolved, or the principle you want the organization to follow…" />
       <div className="directive-targets">
-        <label>PROJECT<select value={projectId} onChange={(e) => { setProjectId(e.target.value); setClientId(""); }}><option value="">Organization-wide</option>{data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-        <label>ORGANIZATION<select value={orgId} onChange={(e) => setOrgId(e.target.value)}><option value="">None</option>{data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
-        <label>ASSIGN CLIENT (OPTIONAL)<select value={clientId} onChange={(e) => setClientId(e.target.value)}><option value="">No client</option>{(projectId ? data.clients : clients).map((c) => <option key={c.id} value={c.id}>{c.email}</option>)}</select></label>
+        <label>PROJECT<select value={projectId} onChange={(e) => setProjectId(e.target.value)}><option value="">Organization-wide</option>{data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+        <label>ORGANIZATION<select value={orgId} onChange={(e) => setOrgId(e.target.value)} disabled={!!projectId}><option value="">{ds.kind === "api" ? "Choose…" : "None"}</option>{data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
       </div>
       <div className="suggestions"><span>START WITH</span>{["Clarify our Q4 priorities", "Resolve an open trade-off", "Set a guiding principle"].map((s) => <Button key={s} variant="outline" onClick={() => setText(s)}>{s} <ArrowDownRight size={13} /></Button>)}</div>
       <div className="directive-footer"><span>{msg ?? `${text.length} characters`}</span><Button className="approve-btn" disabled={!text.trim()} onClick={issue}>Issue directive <Send size={15} /></Button></div>
     </div>
     <div className="directive-history"><div className="section-label"><span>DIRECTIVE HISTORY</span>{data.directives.length > 5 && <button onClick={() => setFull(!full)}>{full ? "SHOW RECENT" : `SHOW ALL ${data.directives.length}`}</button>}</div>
-      {history.length === 0 ? <Empty title="No directives issued yet." /> : history.map((d) => <div key={d.id} className="resolved-row"><span>{d.content}<small>{projectName(data, d.project_id)}{who(d.client_id) ? ` · Client: ${who(d.client_id)}` : ""} · {fmtDate(d.created_at)}</small></span></div>)}
+      {history.length === 0 ? <Empty title="No directives issued yet." /> : history.map((d) => <div key={d.id} className="resolved-row"><span>{d.content}<small>{projectName(data, d.project_id)} · {fmtDate(d.created_at)}</small></span></div>)}
     </div></div>;
 }
 

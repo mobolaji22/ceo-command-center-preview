@@ -9,9 +9,10 @@ import { Empty } from "@/components/cc/views";
 import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
 import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
+import { Library } from "@/components/cc/library";
 
 /**
- * Client Center (shell). A client sees only the projects linked to them and what was shared with
+ * Client Center (shell). A client sees only their own organization's projects and what was shared with
  * them. The preview only planned this screen; this is a faithful minimal version built on the same
  * visual classes. It grows with CC-1/CC-2 (comments, requirement responses, uploads, handoff).
  */
@@ -39,6 +40,7 @@ export default function ClientCenter() {
   const data = q.data;
   const name = (pid: string | null) => data?.projects.find((p) => p.id === pid)?.name ?? "";
   const pending = data?.approvals.filter((a) => a.status === "REQUESTED") ?? [];
+  const isOwner = auth.user?.memberships[0]?.role === "CLIENT_OWNER";
 
   return <main className="command-center">
     <header className="topbar">
@@ -56,14 +58,14 @@ export default function ClientCenter() {
       {!data && !q.isError && <div className="empty-state"><span className="pulse-dot" /><b>Loading…</b></div>}
       {data && <>
         <div className="section-label"><span>PROJECTS</span><span>{data.projects.length}</span></div>
-        {data.projects.length === 0 ? <Empty title="No projects yet.">Projects appear here once you have been linked to them.</Empty> :
+        {data.projects.length === 0 ? <Empty title="No projects yet.">Projects appear here once the agency starts work for you.</Empty> :
           data.projects.map((p) => <div key={p.id} className="resolved-row"><span>{p.name}<small>{p.objective ?? p.description ?? ""}</small></span><span className={`pill ${statusTone(p.status)}`}>{label(p.status).toUpperCase()}</span></div>)}
 
         <div className="section-label pd-label"><span>NEEDS YOUR SIGNATURE</span><span>{pending.length}</span></div>
         {msg && <p className="mmsg">{msg}</p>}
         {pending.length === 0 ? <Empty title="Nothing awaits your signature." /> :
           pending.map((a) => <div key={a.id} className="resolved-row"><span>{a.title}<small>{name(a.project_id)} · {a.reason}</small></span>
-            <span><Button variant="outline" className="reject-btn" disabled={busy === a.id} onClick={() => decide(a.id, false)}>Reject</Button> <Button className="approve-btn" disabled={busy === a.id} onClick={() => decide(a.id, true)}>Approve</Button></span></div>)}
+            {isOwner ? <span><Button variant="outline" className="reject-btn" disabled={busy === a.id} onClick={() => decide(a.id, false)}>Reject</Button> <Button className="approve-btn" disabled={busy === a.id} onClick={() => decide(a.id, true)}>Approve</Button></span> : <small>Your organization&apos;s owner decides this.</small>}</div>)}
 
         <div className="section-label pd-label"><span>WHAT WE NEED FROM YOU</span><span>{data.requirements.filter((r) => r.status !== "RECEIVED").length}</span></div>
         {data.requirements.length === 0 ? <Empty title="Nothing outstanding." /> :
@@ -72,6 +74,11 @@ export default function ClientCenter() {
         <div className="section-label pd-label"><span>DELIVERABLES</span><span>{data.artifacts.length}</span></div>
         {data.artifacts.length === 0 ? <Empty title="No deliverables shared yet." /> :
           data.artifacts.map((f) => <div key={f.id} className="resolved-row"><span>{f.name}<small>{name(f.project_id)} · {f.description ?? ""} · {fmtDate(f.created_at)}</small></span><span className={`pill ${statusTone(f.status)}`}>{label(f.status).toUpperCase()}</span></div>)}
+
+        {auth.user && auth.user.memberships[0] && <>
+          <div className="section-label pd-label"><span>YOUR LIBRARY</span></div>
+          <Library organizationId={auth.user.memberships[0].organizationId} canWrite={auth.user.memberships[0].role === "CLIENT_OWNER"} canPromote={auth.user.memberships[0].role === "CLIENT_OWNER"} uploadedBy="CLIENT_PROVIDED" />
+        </>}
 
         <div className="section-label pd-label"><span>TIMELINE</span><span>{data.events.length}</span></div>
         {data.events.length === 0 ? <Empty title="No updates yet." /> :

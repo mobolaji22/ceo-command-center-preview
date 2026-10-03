@@ -8,17 +8,16 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+/** The ten project statuses of the v4 lifecycle (ADR-0006). What a project is waiting for is `wait_reason`, not a status. */
 export type ProjectStatus =
-  | "DORMANT" | "INTENT" | "DISCOVERY" | "DEFINED" | "PLANNED" | "IN_PROGRESS" | "REVIEW"
-  | "WAITING_FOR_HUMAN" | "BLOCKED" | "APPROVAL" | "EXECUTION" | "VALIDATION" | "COMPLETED"
-  | "MONITORING" | "PAUSED" | "CANCELLED" | "SUPERSEDED" | "ARCHIVED";
+  | "INTAKE" | "PROPOSED" | "ACTIVE" | "WAITING" | "DELIVERED" | "MONITORING" | "COMPLETED" | "PAUSED" | "CANCELLED" | "ARCHIVED";
 export type ContextStatus =
   | "MISSING" | "REQUESTED" | "PARTIALLY_RECEIVED" | "RECEIVED" | "ASSUMED" | "VALIDATED" | "REJECTED" | "EXPIRED";
 export type AppRole = "owner" | "client";
 export type ApprovalStatus = "REQUESTED" | "GRANTED" | "REJECTED" | "EXPIRED";
 export type ArtifactStatus = "DRAFT" | "PROPOSED" | "APPROVED" | "REJECTED" | "SUPERSEDED" | "FINAL";
 export type DecisionStatus = "PROPOSED" | "WAITING_FOR_HUMAN" | "ACCEPTED" | "REJECTED" | "DEFERRED" | "SUPERSEDED";
-export type TaskStatus = "PENDING" | "READY" | "RUNNING" | "WAITING" | "WAITING_FOR_HUMAN" | "BLOCKED" | "FAILED" | "COMPLETED" | "CANCELLED";
+export type TaskStatus = "PENDING" | "READY" | "RUNNING" | "WAITING" | "BLOCKED" | "FAILED" | "COMPLETED" | "CANCELLED";
 
 export type Project = {
   completed_at: string | null
@@ -32,6 +31,8 @@ export type Project = {
   priority: number
   started_at: string | null
   status: ProjectStatus
+  /** Why a WAITING project is waiting (for example CLIENT_INPUT or APPROVAL). */
+  wait_reason?: string | null
 };
 
 export type Task = {
@@ -81,6 +82,8 @@ export type Approval = {
   reversibility: number
   risk: number
   status: ApprovalStatus
+  /** True when the CEO decided this for the client, using a permission the client owner gave. */
+  on_behalf?: boolean
   target_type: string
   title: string
 };
@@ -162,17 +165,34 @@ export type Organization = {
   name: string
 };
 
+export type OrgRole = "CLIENT_OWNER" | "CLIENT_MEMBER";
+
 export type Profile = {
   created_at: string
   display_name: string | null
   email: string | null
   id: string
+  /** The client organizations this person belongs to, and their role in each. */
+  memberships: Array<{ organization_id: string; role: OrgRole }>
 };
 
-export type ProjectClient = {
+export type AssetKind =
+  | "DOCUMENT" | "IMAGE" | "VIDEO" | "AUDIO" | "LOGO" | "FONT" | "BRAND_GUIDE" | "COPY_DECK" | "DESIGN_FILE" | "DATA_EXPORT" | "SITE_SNAPSHOT" | "OTHER";
+export type ScanStatus = "PENDING_UPLOAD" | "PENDING_SCAN" | "CLEAN" | "INFECTED" | "REJECTED";
+
+/** A stored file in an organization's library or one project. Only a CLEAN version can be downloaded. */
+export type Asset = {
+  id: string
+  organization_id: string
+  scope: "ORGANIZATION" | "PROJECT"
+  project_id: string | null
+  kind: string
+  name: string
+  provenance: string
+  rights: string
   created_at: string
-  project_id: string
-  user_id: string
+  /** Newest first. */
+  versions: Array<{ version: number; mime: string; size_bytes: number; scan_status: ScanStatus; scan_detail: string | null; created_at: string }>
 };
 
 /** Everything the CEO view renders from, in one read model. */
@@ -188,8 +208,8 @@ export type OwnerData = {
   events: V4Event[];
   directives: Directive[];
   organizations: Organization[];
+  /** People in client organizations, with their roles. */
   clients: Profile[];
-  links: ProjectClient[];
 };
 
 /** What a client may see: only their own projects and what was shared with them. */
@@ -200,4 +220,6 @@ export type Session = {
   email: string;
   displayName: string;
   role: AppRole;
+  /** Client organizations this person belongs to (empty for the CEO, who reaches all of them). */
+  memberships: Array<{ organizationId: string; role: OrgRole }>;
 };

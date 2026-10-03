@@ -2,15 +2,15 @@ import type { Project, Task } from "./model";
 
 // Pure presentation helpers, copied from the preview's lib/v4.ts. No data access here.
 
-export const PROJECT_STATUSES: Project["status"][] = ["DORMANT","INTENT","DISCOVERY","DEFINED","PLANNED","IN_PROGRESS","REVIEW","WAITING_FOR_HUMAN","BLOCKED","APPROVAL","EXECUTION","VALIDATION","COMPLETED","MONITORING","PAUSED","CANCELLED","SUPERSEDED","ARCHIVED"];
-export const TASK_STATUSES: Task["status"][] = ["PENDING","READY","RUNNING","WAITING","WAITING_FOR_HUMAN","BLOCKED","FAILED","COMPLETED","CANCELLED"];
+export const PROJECT_STATUSES: Project["status"][] = ["INTAKE","PROPOSED","ACTIVE","WAITING","DELIVERED","MONITORING","COMPLETED","PAUSED","CANCELLED","ARCHIVED"];
+export const TASK_STATUSES: Task["status"][] = ["PENDING","READY","RUNNING","WAITING","BLOCKED","FAILED","COMPLETED","CANCELLED"];
 
 export const label = (s: string) => s.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
 export const riskLabel = (n: number | null | undefined) => (n == null ? "Unrated" : n <= 2 ? "Low" : n === 3 ? "Medium" : "High");
 export const reversibilityLabel = (n: number | null | undefined) => (n == null ? "Unrated" : n >= 4 ? "High" : n === 3 ? "Medium" : "Low");
 export const statusTone = (s: string) =>
-  ["COMPLETED","GRANTED","ACCEPTED","RECEIVED","VALIDATED","FINAL","APPROVED","MONITORING","IN_PROGRESS","EXECUTION","RUNNING"].includes(s) ? "green"
-  : ["BLOCKED","FAILED","REJECTED","WAITING_FOR_HUMAN","REQUESTED","APPROVAL","REVIEW","PROPOSED","MISSING"].includes(s) ? "amber" : "muted";
+  ["COMPLETED","GRANTED","ACCEPTED","RECEIVED","VALIDATED","FINAL","APPROVED","MONITORING","ACTIVE","DELIVERED","RUNNING","CLEAN"].includes(s) ? "green"
+  : ["BLOCKED","FAILED","REJECTED","INFECTED","WAITING_FOR_HUMAN","WAITING","REQUESTED","PROPOSED","PENDING_SCAN","PENDING_UPLOAD","MISSING"].includes(s) ? "amber" : "muted";
 export const fmtDate = (d: string | null | undefined) => (d ? new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "—");
 export const fmtAgo = (d: string) => {
   const m = Math.round((Date.now() - new Date(d).getTime()) / 60000);

@@ -10,10 +10,10 @@ Rules:
 - The `DataSource` interface (`src/lib/data/types.ts`) is the only door to data. Components call
   `useDataSource()`; they never `fetch` directly. New capability means: extend the interface, then
   implement it in both `fixtures.ts` and `api.ts`.
-- Identity is never sent by the browser. The session is an httpOnly cookie owned by v4.
+- Identity is never sent by the browser. The session is an httpOnly cookie set by this app's own server (`src/app/api`, the BFF); the browser never calls v4 directly and never sees the session secret. There are no passwords: sign-in is an emailed link or code.
 - Fixtures are demo-only and blocked in production unless `NEXT_PUBLIC_ALLOW_FIXTURES=true`.
 - `src/components/ui/*` are direct copies of the preview's shadcn files; do not restyle them.
 - Visual system lives in `src/app/globals.css` (preview, unchanged but for `@source`) and
   `src/app/screens.css` (completions for screens the preview never styled).
-- Checks before commit: `npm run typecheck && npm run lint && npm run build`.
+- Checks before commit: `npm run typecheck && npm run lint && npm run build`; `npm run test:e2e` when auth, the proxy or the asset flow changed.
 - Do not force-push or rewrite published history.

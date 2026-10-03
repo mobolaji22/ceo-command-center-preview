@@ -8,7 +8,7 @@ import { label, statusTone, pad, fmtDate } from "@/lib/format";
 import { Empty } from "./views";
 
 const ICONS = [LayoutGrid, Activity, Fingerprint, BookOpen, Search, Compass, Layers];
-const CLOSED = ["COMPLETED", "CANCELLED", "ARCHIVED", "SUPERSEDED"];
+const CLOSED = ["COMPLETED", "CANCELLED", "ARCHIVED"];
 
 export function departments(data: OwnerData) {
   const set = new Set<string>();
