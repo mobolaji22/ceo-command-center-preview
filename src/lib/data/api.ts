@@ -175,14 +175,15 @@ export function createApiDataSource(): DataSource {
 
       async upload(input) {
         const mime = input.file.type || "application/octet-stream";
-        const started = await call<{ asset: { id: string }; version: { version: number }; upload: { url: string; headers: Record<string, string> } }>("POST", "/v1/assets", {
+        const started = await call<{ asset: { id: string }; version: { version: number }; upload: { url: string; headers: Record<string, string>; direct: boolean } }>("POST", "/v1/assets", {
           organizationId: input.organizationId, scope: input.scope, ...(input.projectId ? { projectId: input.projectId } : {}),
           kind: input.kind, name: input.name, provenance: input.provenance, rights: input.rights, mime, sizeBytes: input.file.size,
         });
         if (started.error || !started.data) return { data: null, error: started.error };
         const { asset, version, upload } = started.data;
-        // The bytes go to the signed link, through this app's server; they never touch the API's handlers.
-        const sent = await request<void>(`${PROXY}${pathOf(upload.url)}`, { method: "PUT", headers: { "Content-Type": upload.headers["content-type"] ?? mime }, body: input.file });
+        // The bytes go to the signed link and never touch the API's handlers. A link to the object store (production) is used
+        // as is; a link to the API itself (development storage) goes through this app's server.
+        const sent = await request<void>(upload.direct ? upload.url : `${PROXY}${pathOf(upload.url)}`, { method: "PUT", headers: { "Content-Type": upload.headers["content-type"] ?? mime }, body: input.file });
         if (sent.error) return { data: null, error: sent.error };
         const done = await call<{ scanStatus: string; scanDetail: string | null }>("POST", `/v1/assets/${asset.id}/versions/${version.version}/complete`);
         if (done.error) return { data: null, error: done.error };
@@ -194,8 +195,8 @@ export function createApiDataSource(): DataSource {
       },
 
       async downloadLink(assetId) {
-        const r = await call<{ url: string }>("GET", `/v1/assets/${assetId}/download`);
-        return r.error || !r.data ? { data: null, error: r.error } : ok({ url: `${PROXY}${pathOf(r.data.url)}` });
+        const r = await call<{ url: string; direct: boolean }>("GET", `/v1/assets/${assetId}/download`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ url: r.data.direct ? r.data.url : `${PROXY}${pathOf(r.data.url)}` });
       },
       async promote(assetId) {
         return voidResult(await call("POST", `/v1/assets/${assetId}/promote`));
