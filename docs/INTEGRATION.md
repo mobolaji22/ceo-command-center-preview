@@ -24,14 +24,11 @@ These are the endpoints the v4 API must provide. Until one exists the call fails
 | commands.createOrganization                               | POST /v1/organizations                         |
 | commands.inviteClient                                     | POST /v1/invitations                           |
 | commands.unlinkClient                                     | DELETE /v1/projects/:id/members/:userId        |
-| commands.createProject / setProjectStatus                 | POST /v1/projects, PATCH /v1/projects/:id      |
 | commands.addDeliverable                                   | POST /v1/projects/:id/deliverables (multipart) |
 | commands.postUpdate                                       | POST /v1/projects/:id/updates                  |
 
 Every non-GET request carries an `Idempotency-Key`. Requests use `credentials: "include"`; the
-browser never holds a token. Seeding commands (tasks, evidence, outcomes, ...) are records the
-runtime creates, so they return an error in `api` mode and their forms are hidden
-(`capabilities.seedRecords`).
+browser never holds a token. Projects are never created or status-edited by hand: they begin only as intents or directives (`POST /v1/intents`), and tasks, approvals, decisions, evidence and outcomes are created by the runtime. The UI has no create-project screen.
 
 The read models (`src/lib/model.ts`) are "read-model v0", derived from the preview. They are to be
 replaced by types generated from `packages/contracts` in v4 (phase P0/CC-1).
@@ -39,7 +36,7 @@ replaced by types generated from `packages/contracts` in v4 (phase P0/CC-1).
 ## Deviations from the preview
 
 - Framework: TanStack Start to Next.js App Router; Supabase and server functions removed.
-- No self sign-up: access is by invitation only.
+- No self sign-up (invitation only) and no project-creation, status or record-seeding screens: projects begin only from intents/directives.
 - `approval-queue` and other screens (auth, Manage, room pinboard/flipbook, empty states, client)
   had no CSS in the preview; `src/app/screens.css` completes them.
 - A Client Center shell (`/client`) was added; clients are redirected there and cannot reach `/`.

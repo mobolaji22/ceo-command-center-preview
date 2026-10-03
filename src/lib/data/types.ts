@@ -28,39 +28,14 @@ export const fail = <T = never>(message: string): Result<T> => ({ data: null, er
 
 export type DataSourceKind = "fixtures" | "api";
 
-export type Capabilities = {
-  /**
-   * "Manage" can hand-create tasks, approvals, decisions, evidence, outcomes and requirements.
-   * That is a seeding tool for demos. In the real system the runtime creates those records, so
-   * the api implementation reports false and the forms are hidden.
-   */
-  seedRecords: boolean;
-};
+/** Reserved for features an implementation may not support. Empty today. */
+export type Capabilities = Record<string, never>;
 
 export type DirectiveInput = {
   content: string;
   projectId: string | null;
   organizationId: string | null;
   clientId: string | null;
-};
-
-export type ProjectInput = {
-  name: string;
-  description: string | null;
-  objective: string | null;
-  priority: number;
-  organization_id: string | null;
-  domains: string[];
-};
-
-export type ApprovalInput = {
-  title: string;
-  reason: string;
-  recommendation: string;
-  consequences: string;
-  risk: number;
-  reversibility: number;
-  requires_client: boolean;
 };
 
 export type DeliverableInput = {
@@ -108,21 +83,11 @@ export interface DataSource {
     createOrganization(input: { name: string; mission: string | null }): Promise<Result>;
     inviteClient(input: { email: string; projectIds: string[]; redirectTo: string }): Promise<Result<{ invited: boolean }>>;
     unlinkClient(projectId: string, userId: string): Promise<Result>;
-    createProject(input: ProjectInput): Promise<Result<Project>>;
-    setProjectStatus(projectId: string, status: ProjectStatus): Promise<Result>;
 
     // Shared with the client
     addDeliverable(projectId: string, input: DeliverableInput): Promise<Result>;
     postUpdate(projectId: string, input: { summary: string; share: boolean }): Promise<Result>;
 
-    // Seeding tools (capabilities.seedRecords)
-    createTask(projectId: string, input: { title: string; domain: string; risk: number; approval_required: boolean }): Promise<Result>;
-    setTaskStatus(taskId: string, status: TaskStatus): Promise<Result>;
-    requestApproval(projectId: string, input: ApprovalInput): Promise<Result>;
-    recordDecision(projectId: string, input: { question: string; options: string[]; recommendation: string | null }): Promise<Result>;
-    addRequirement(projectId: string, input: { name: string; description: string; assigned_to_client: boolean }): Promise<Result>;
-    addEvidence(projectId: string, input: { claim: string; source: string; confidence: number }): Promise<Result>;
-    recordOutcome(projectId: string, input: { metric: string; expected_value: string; actual_value: string }): Promise<Result>;
   };
 }
 

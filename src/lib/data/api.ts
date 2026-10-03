@@ -56,13 +56,10 @@ const must = <T>(r: Result<T>): T => {
 
 const voidResult = (r: Result<unknown>): Result => (r.error ? fail(r.error.message) : ok(undefined as void));
 
-const createdByRuntime = (): Promise<Result> =>
-  Promise.resolve(fail("This record is created by the runtime, not by hand."));
-
 export function createApiDataSource(): DataSource {
   return {
     kind: "api",
-    capabilities: { seedRecords: false },
+    capabilities: {},
 
     auth: {
       async getSession() {
@@ -128,10 +125,6 @@ export function createApiDataSource(): DataSource {
       async unlinkClient(projectId, userId) {
         return voidResult(await call("DELETE", `/v1/projects/${projectId}/members/${userId}`));
       },
-      createProject: (input) => call<Project>("POST", "/v1/projects", input),
-      async setProjectStatus(projectId, status) {
-        return voidResult(await call("PATCH", `/v1/projects/${projectId}`, { status }));
-      },
 
       async addDeliverable(projectId, input) {
         const form = new FormData();
@@ -144,15 +137,6 @@ export function createApiDataSource(): DataSource {
       async postUpdate(projectId, input) {
         return voidResult(await call("POST", `/v1/projects/${projectId}/updates`, input));
       },
-
-      // Seeding tools: records the runtime creates itself. Hidden in the UI (capabilities.seedRecords).
-      createTask: () => createdByRuntime(),
-      setTaskStatus: () => createdByRuntime(),
-      requestApproval: () => createdByRuntime(),
-      recordDecision: () => createdByRuntime(),
-      addRequirement: () => createdByRuntime(),
-      addEvidence: () => createdByRuntime(),
-      recordOutcome: () => createdByRuntime(),
     },
   };
 }

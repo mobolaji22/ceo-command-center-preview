@@ -161,7 +161,7 @@ export function createFixturesDataSource(): DataSource {
 
   return {
     kind: "fixtures",
-    capabilities: { seedRecords: true },
+    capabilities: {},
 
     auth: {
       async getSession() {
@@ -311,25 +311,6 @@ export function createFixturesDataSource(): DataSource {
           s.data.links = s.data.links.filter((l) => !(l.project_id === projectId && l.user_id === userId));
         });
       },
-      async createProject(input) {
-        const s = load();
-        const p: Project = { id: id(), organization_id: input.organization_id, name: input.name, description: input.description, objective: input.objective, priority: input.priority, domains: input.domains, status: "INTENT", created_at: new Date().toISOString(), started_at: null, completed_at: null };
-        s.data.projects.unshift(p);
-        addEvent(s, { project_id: p.id, type: "PROJECT_CREATED", summary: `Project opened: ${p.name}`, client_visible: true });
-        save(s);
-        return ok(p);
-      },
-      async setProjectStatus(projectId, status) {
-        return mutate((s) => {
-          const p = s.data.projects.find((x) => x.id === projectId);
-          if (!p) return;
-          p.status = status;
-          if (status === "COMPLETED") p.completed_at = new Date().toISOString();
-          if (status === "IN_PROGRESS" && !p.started_at) p.started_at = new Date().toISOString();
-          addEvent(s, { project_id: p.id, type: "PROJECT_STATUS", summary: `${p.name} is now ${status.replace(/_/g, " ").toLowerCase()}`, client_visible: true });
-        });
-      },
-
       async addDeliverable(projectId, input) {
         return mutate((s) => {
           s.data.artifacts.unshift({ id: id(), project_id: projectId, type: "deliverable", name: input.name, description: input.description, storage_path: input.file ? `demo/${input.file.name}` : null, status: "FINAL", client_visible: input.share, created_at: new Date().toISOString() });
@@ -342,51 +323,6 @@ export function createFixturesDataSource(): DataSource {
         });
       },
 
-      async createTask(projectId, input) {
-        return mutate((s) => {
-          s.data.tasks.unshift({ id: id(), project_id: projectId, title: input.title, domain: input.domain, risk: input.risk, reversibility: 3, approval_required: input.approval_required, status: "PENDING", description: null, created_at: new Date().toISOString(), started_at: null, completed_at: null });
-          addEvent(s, { project_id: projectId, type: "TASK_CREATED", summary: `Task: ${input.title}`, client_visible: false });
-        });
-      },
-      async setTaskStatus(taskId, status) {
-        return mutate((s) => {
-          const t = s.data.tasks.find((x) => x.id === taskId);
-          if (!t) return;
-          t.status = status;
-          if (status === "RUNNING" && !t.started_at) t.started_at = new Date().toISOString();
-          if (status === "COMPLETED") t.completed_at = new Date().toISOString();
-          addEvent(s, { project_id: t.project_id, type: "TASK_STATUS", summary: `${t.title}: ${status.replace(/_/g, " ").toLowerCase()}`, client_visible: status === "COMPLETED" });
-        });
-      },
-      async requestApproval(projectId, input) {
-        return mutate((s) => {
-          s.data.approvals.unshift({ id: id(), project_id: projectId, target_type: "PROJECT", title: input.title, reason: input.reason, recommendation: input.recommendation || null, consequences: input.consequences || null, risk: input.risk, reversibility: input.reversibility, requires_client: input.requires_client, status: "REQUESTED", constraints: null, evidence_request: null, resolution_note: null, resolved_at: null, resolved_by: null, created_at: new Date().toISOString() });
-          addEvent(s, { project_id: projectId, type: "APPROVAL_REQUESTED", summary: `Approval requested: ${input.title}`, client_visible: input.requires_client });
-        });
-      },
-      async recordDecision(projectId, input) {
-        return mutate((s) => {
-          s.data.decisions.unshift({ id: id(), project_id: projectId, question: input.question, options: input.options, recommendation: input.recommendation, status: "WAITING_FOR_HUMAN", confidence: null, risk: null, reversibility: null, rationale: null, selected_option: null, created_at: new Date().toISOString(), resolved_at: null });
-          addEvent(s, { project_id: projectId, type: "DECISION_PROPOSED", summary: `Decision raised: ${input.question}`, client_visible: false });
-        });
-      },
-      async addRequirement(projectId, input) {
-        return mutate((s) => {
-          s.data.requirements.unshift({ id: id(), project_id: projectId, name: input.name, description: input.description, category: "general", required: true, status: "REQUESTED", reason: "", assigned_to_client: input.assigned_to_client, deadline: null, resolved_at: null, response: null, response_file_path: null, created_at: new Date().toISOString() });
-          addEvent(s, { project_id: projectId, type: "CONTEXT_REQUESTED", summary: `Requirement requested: ${input.name}`, client_visible: input.assigned_to_client });
-        });
-      },
-      async addEvidence(projectId, input) {
-        return mutate((s) => {
-          s.data.evidence.unshift({ id: id(), project_id: projectId, approval_id: null, claim: input.claim, source: input.source, source_type: "HUMAN", confidence: input.confidence, created_at: new Date().toISOString() });
-        });
-      },
-      async recordOutcome(projectId, input) {
-        return mutate((s) => {
-          s.data.outcomes.unshift({ id: id(), project_id: projectId, metric: input.metric, expected_value: input.expected_value, actual_value: input.actual_value, interpretation: null, created_at: new Date().toISOString() });
-          addEvent(s, { project_id: projectId, type: "OUTCOME", summary: `Outcome: ${input.metric}`, client_visible: true });
-        });
-      },
     },
   };
 }

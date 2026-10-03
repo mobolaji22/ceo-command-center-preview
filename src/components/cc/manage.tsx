@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { OwnerData } from "@/lib/model";
-import { PROJECT_STATUSES, TASK_STATUSES, label, statusTone, fmtDate } from "@/lib/format";
+import { label, statusTone, fmtDate } from "@/lib/format";
 import { useDataSource } from "@/lib/data";
 import { Empty } from "./views";
 
@@ -66,26 +66,11 @@ function Projects({ data, refresh, initialProjectId }: P) {
   const ds = useDataSource();
   const [selected, setSelected] = useState<string | null>(initialProjectId ?? data.projects[0]?.id ?? null);
   const { msg, run } = useAction(refresh);
-  const [f, setF] = useState({ name: "", description: "", objective: "", domains: "", priority: 50, organization_id: "" });
-  const create = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await ds.commands.createProject({ name: f.name.trim(), description: f.description.trim() || null, objective: f.objective.trim() || null, priority: f.priority, organization_id: f.organization_id || null, domains: f.domains.split(",").map((d) => d.trim()).filter(Boolean) });
-    if (res.error || !res.data) { await run(async () => res, ""); return; }
-    const row = res.data;
-    setF({ name: "", description: "", objective: "", domains: "", priority: 50, organization_id: "" }); setSelected(row.id); refresh();
-  };
   const p = data.projects.find((x) => x.id === selected);
   return <div className="manage-grid">
-    <div><form className="mform" onSubmit={create}><h4>New project</h4>
-      <input required maxLength={200} placeholder="Project name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-      <textarea maxLength={2000} placeholder="Description" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
-      <input maxLength={500} placeholder="Objective" value={f.objective} onChange={(e) => setF({ ...f, objective: e.target.value })} />
-      <input maxLength={300} placeholder="Departments, comma separated (e.g. Strategy, Design)" value={f.domains} onChange={(e) => setF({ ...f, domains: e.target.value })} />
-      <div className="row2"><label>Priority<input type="number" min={0} max={100} value={f.priority} onChange={(e) => setF({ ...f, priority: Number(e.target.value) })} /></label>
-      <label>Organization<select value={f.organization_id} onChange={(e) => setF({ ...f, organization_id: e.target.value })}><option value="">None</option>{data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label></div>
-      <Button className="approve-btn" type="submit">Create project</Button>{msg && <p className="mmsg">{msg}</p>}</form>
+    <div><p className="pd-sub">Projects begin as intents or directives. Issue one from the Directive desk.</p>
       <div className="mlist">{data.projects.map((x) => <button key={x.id} className={`proj-pick ${x.id === selected ? "active" : ""}`} onClick={() => setSelected(x.id)}>{x.name}<span className={`pill ${statusTone(x.status)}`}>{label(x.status).toUpperCase()}</span></button>)}</div></div>
-    {p ? <ProjectDetail key={p.id} data={data} refresh={refresh} projectId={p.id} /> : <Empty title="Select or create a project." />}
+    {p ? <ProjectDetail key={p.id} data={data} refresh={refresh} projectId={p.id} /> : <Empty title="Select a project." />}
   </div>;
 }
 
@@ -94,12 +79,6 @@ function ProjectDetail({ data, refresh, projectId }: P & { projectId: string }) 
   const p = data.projects.find((x) => x.id === projectId)!;
   const { msg, run } = useAction(refresh);
   const pid = p.id;
-  const [task, setTask] = useState({ title: "", domain: p.domains[0] ?? "general", risk: 1, approval_required: false });
-  const [appr, setAppr] = useState({ title: "", reason: "", recommendation: "", consequences: "", risk: 2, reversibility: 3, requires_client: false });
-  const [dec, setDec] = useState({ question: "", options: "", recommendation: "" });
-  const [req, setReq] = useState({ name: "", description: "", assigned_to_client: true });
-  const [ev, setEv] = useState({ claim: "", source: "", confidence: 70 });
-  const [out, setOut] = useState({ metric: "", expected_value: "", actual_value: "" });
   const [upd, setUpd] = useState({ summary: "", share: true });
   const [del, setDel] = useState({ name: "", description: "", share: true, file: null as File | null });
 
@@ -112,32 +91,18 @@ function ProjectDetail({ data, refresh, projectId }: P & { projectId: string }) 
   const tasks = data.tasks.filter((t) => t.project_id === pid);
   return <div className="project-detail">
     <div className="pd-head"><h3>{p.name}</h3>
-      <select value={p.status} onChange={(e) => run(() => ds.commands.setProjectStatus(pid, e.target.value as typeof p.status), "Status updated.")}>{PROJECT_STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}</select></div>
+      <span className={`pill ${statusTone(p.status)}`}>{label(p.status)}</span></div>
     <p className="pd-sub">{p.description || "No description"} · Departments: {p.domains.join(", ") || "none"} · Clients: {data.links.filter((l) => l.project_id === pid).length}</p>
     {msg && <p className="mmsg">{msg}</p>}
     <div className="pd-forms">
-      {ds.capabilities.seedRecords && <form className="mform" onSubmit={async (e) => { e.preventDefault(); if (await run(() => ds.commands.createTask(pid, { ...task, title: task.title.trim() }), "Task added.")) setTask({ ...task, title: "" }); }}>
-        <h4>Task</h4><input required maxLength={300} placeholder="Title" value={task.title} onChange={(e) => setTask({ ...task, title: e.target.value })} /><input maxLength={80} placeholder="Department" value={task.domain} onChange={(e) => setTask({ ...task, domain: e.target.value })} /><Button className="approve-btn" type="submit">Add task</Button></form>}
-      {ds.capabilities.seedRecords && <form className="mform" onSubmit={async (e) => { e.preventDefault(); if (await run(() => ds.commands.requestApproval(pid, { ...appr, title: appr.title.trim(), reason: appr.reason.trim() }), "Approval requested.")) setAppr({ ...appr, title: "", reason: "", recommendation: "", consequences: "" }); }}>
-        <h4>Approval request</h4><input required maxLength={300} placeholder="Proposed action" value={appr.title} onChange={(e) => setAppr({ ...appr, title: e.target.value })} /><textarea required maxLength={3000} placeholder="Reasoning" value={appr.reason} onChange={(e) => setAppr({ ...appr, reason: e.target.value })} /><input maxLength={1000} placeholder="Summary / recommendation" value={appr.recommendation} onChange={(e) => setAppr({ ...appr, recommendation: e.target.value })} /><input maxLength={1000} placeholder="Consequences" value={appr.consequences} onChange={(e) => setAppr({ ...appr, consequences: e.target.value })} />
-        <div className="row2"><label>Risk 1–5<input type="number" min={1} max={5} value={appr.risk} onChange={(e) => setAppr({ ...appr, risk: Number(e.target.value) })} /></label><label>Reversibility 1–5<input type="number" min={1} max={5} value={appr.reversibility} onChange={(e) => setAppr({ ...appr, reversibility: Number(e.target.value) })} /></label></div>
-        <label className="check"><input type="checkbox" checked={appr.requires_client} onChange={(e) => setAppr({ ...appr, requires_client: e.target.checked })} /> Client must approve too</label><Button className="approve-btn" type="submit">Request approval</Button></form>}
-      {ds.capabilities.seedRecords && <form className="mform" onSubmit={async (e) => { e.preventDefault(); if (await run(() => ds.commands.recordDecision(pid, { question: dec.question.trim(), options: dec.options.split(",").map((o) => o.trim()).filter(Boolean), recommendation: dec.recommendation.trim() || null }), "Decision recorded.")) setDec({ question: "", options: "", recommendation: "" }); }}>
-        <h4>Decision</h4><input required maxLength={500} placeholder="Question" value={dec.question} onChange={(e) => setDec({ ...dec, question: e.target.value })} /><input maxLength={500} placeholder="Options, comma separated" value={dec.options} onChange={(e) => setDec({ ...dec, options: e.target.value })} /><input maxLength={500} placeholder="Recommendation" value={dec.recommendation} onChange={(e) => setDec({ ...dec, recommendation: e.target.value })} /><Button className="approve-btn" type="submit">Record decision</Button></form>}
-      {ds.capabilities.seedRecords && <form className="mform" onSubmit={async (e) => { e.preventDefault(); if (await run(() => ds.commands.addRequirement(pid, { name: req.name.trim(), description: req.description.trim(), assigned_to_client: req.assigned_to_client }), "Requirement added.")) setReq({ ...req, name: "", description: "" }); }}>
-        <h4>Requirement</h4><input required maxLength={200} placeholder="What's needed (e.g. Brand guidelines)" value={req.name} onChange={(e) => setReq({ ...req, name: e.target.value })} /><textarea maxLength={2000} placeholder="Details for the client" value={req.description} onChange={(e) => setReq({ ...req, description: e.target.value })} /><label className="check"><input type="checkbox" checked={req.assigned_to_client} onChange={(e) => setReq({ ...req, assigned_to_client: e.target.checked })} /> Ask the client</label><Button className="approve-btn" type="submit">Add requirement</Button></form>}
       <form className="mform" onSubmit={uploadDeliverable}>
         <h4>Deliverable</h4><input required maxLength={200} placeholder="Name" value={del.name} onChange={(e) => setDel({ ...del, name: e.target.value })} /><input maxLength={1000} placeholder="Description" value={del.description} onChange={(e) => setDel({ ...del, description: e.target.value })} /><input type="file" onChange={(e) => setDel({ ...del, file: e.target.files?.[0] ?? null })} /><label className="check"><input type="checkbox" checked={del.share} onChange={(e) => setDel({ ...del, share: e.target.checked })} /> Share with client</label><Button className="approve-btn" type="submit">Add deliverable</Button></form>
       <form className="mform" onSubmit={async (e) => { e.preventDefault(); if (await run(() => ds.commands.postUpdate(pid, { summary: upd.summary.trim(), share: upd.share }), "Update posted.")) setUpd({ ...upd, summary: "" }); }}>
         <h4>Timeline update</h4><textarea required maxLength={2000} placeholder="What happened?" value={upd.summary} onChange={(e) => setUpd({ ...upd, summary: e.target.value })} /><label className="check"><input type="checkbox" checked={upd.share} onChange={(e) => setUpd({ ...upd, share: e.target.checked })} /> Share with client</label><Button className="approve-btn" type="submit">Post update</Button></form>
-      {ds.capabilities.seedRecords && <form className="mform" onSubmit={async (e) => { e.preventDefault(); if (await run(() => ds.commands.addEvidence(pid, { claim: ev.claim.trim(), source: ev.source.trim(), confidence: ev.confidence / 100 }), "Evidence added.")) setEv({ claim: "", source: "", confidence: 70 }); }}>
-        <h4>Evidence</h4><input required maxLength={1000} placeholder="Claim" value={ev.claim} onChange={(e) => setEv({ ...ev, claim: e.target.value })} /><input required maxLength={300} placeholder="Source" value={ev.source} onChange={(e) => setEv({ ...ev, source: e.target.value })} /><label>Confidence %<input type="number" min={0} max={100} value={ev.confidence} onChange={(e) => setEv({ ...ev, confidence: Number(e.target.value) })} /></label><Button className="approve-btn" type="submit">Add evidence</Button></form>}
-      {ds.capabilities.seedRecords && <form className="mform" onSubmit={async (e) => { e.preventDefault(); if (await run(() => ds.commands.recordOutcome(pid, out), "Outcome recorded.")) setOut({ metric: "", expected_value: "", actual_value: "" }); }}>
-        <h4>Outcome</h4><input required maxLength={200} placeholder="Metric" value={out.metric} onChange={(e) => setOut({ ...out, metric: e.target.value })} /><div className="row2"><input required maxLength={100} placeholder="Expected" value={out.expected_value} onChange={(e) => setOut({ ...out, expected_value: e.target.value })} /><input required maxLength={100} placeholder="Actual" value={out.actual_value} onChange={(e) => setOut({ ...out, actual_value: e.target.value })} /></div><Button className="approve-btn" type="submit">Record outcome</Button></form>}
     </div>
     <div className="section-label pd-label"><span>TASKS</span><span>{tasks.length}</span></div>
     {tasks.length === 0 ? <Empty title="No tasks yet." /> : tasks.map((t) => <div key={t.id} className="resolved-row"><span>{t.title}<small>{t.domain} · created {fmtDate(t.created_at)}{t.completed_at ? ` · done ${fmtDate(t.completed_at)}` : ""}</small></span>
-      {ds.capabilities.seedRecords && <select value={t.status} onChange={(e) => { const s = e.target.value as typeof t.status; run(() => ds.commands.setTaskStatus(t.id, s), "Task updated."); }}>{TASK_STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}</select>}</div>)}
+</div>)}
     <ClientResponses data={data} projectId={pid} />
   </div>;
 }
