@@ -263,3 +263,4 @@
 .action-does p { margin: 6px 0 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.6; }
 .plan-confirm-note { display: block; margin-top: 8px; color: var(--muted-foreground); font-size: 11px; }
 .standing { display: grid; gap: 10px; text-align: left; } .standing fieldset { border: 1px solid var(--border); padding: 10px 12px; display: grid; gap: 8px; } .standing legend { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); padding: 0 6px; }
+.hotspot-badge { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--primary); color: oklch(0.15 0.01 270); font-size: 10px; font-weight: 700; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px oklch(0.15 0.006 270); pointer-events: none; }
