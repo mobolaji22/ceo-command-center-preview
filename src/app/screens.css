@@ -261,3 +261,4 @@
 .action-does { border: 1px solid var(--border); padding: 12px 14px; text-align: left; }
 .action-does b { font-size: 13px; }
 .action-does p { margin: 6px 0 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.6; }
+.plan-confirm-note { display: block; margin-top: 8px; color: var(--muted-foreground); font-size: 11px; }

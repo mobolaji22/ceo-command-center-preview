@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { allowCeoToDecideFor, forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 
@@ -11,6 +11,16 @@ import { mailCount, mailTo } from "./outbox";
 const CEO = "ceo@agency.example";
 const OWNER = "owner@orbit.example";
 const ASK = "Redesign our online checkout for our customers and write blog posts so that more orders complete, by the end of March, with a budget of 5000";
+
+/** Approving a plan commits the client's money, so the server asks for the code it just emailed. Enter it and the approval goes through. */
+async function enterStepUpCode(plan: Locator, email: string, emailsBefore: number) {
+  const form = plan.getByRole("form", { name: "Confirm it's you" });
+  await expect(form).toBeVisible();
+  await expect(plan.getByText("Approved. The work can begin.")).toHaveCount(0); // nothing is approved until the code is right
+  const mail = await mailTo(email, "step-up", emailsBefore);
+  await form.getByPlaceholder("Six-digit code").fill(mail.meta!.code!);
+  await form.getByRole("button", { name: "Confirm", exact: true }).click();
+}
 
 async function signIn(page: Page, email: string) {
   const before = mailCount();
@@ -64,7 +74,10 @@ test("a client reads the plan, asks for a change, sees what changed, approves it
   // Approve, after being told what it means.
   await plan.getByRole("button", { name: "Approve" }).click();
   await expect(plan.getByText(/without asking again, within these limits/)).toBeVisible();
+  await expect(plan.getByText("we will ask you for a six-digit code")).toBeVisible();
+  const asked = mailCount();
   await plan.getByRole("button", { name: "Confirm approval" }).click();
+  await enterStepUpCode(plan, OWNER, asked);
   await expect(plan.getByRole("status").first()).toContainText("Approved. The work can begin.");
   await expect(plan.locator(".resolved-row .pill").first()).toHaveText("APPROVED");
   const history = plan.locator(".plan-history");
@@ -111,7 +124,9 @@ test("the CEO sees the plan but cannot decide it for the client until the client
   await expect(plan.getByText(/Their owner has given you permission to decide it/)).toBeVisible();
   await plan.getByRole("button", { name: "Approve for the client" }).click();
   await expect(plan.getByText(/You are deciding for the client. They will see that you did/)).toBeVisible();
+  const askedCeo = mailCount();
   await plan.getByRole("button", { name: "Confirm approval" }).click();
+  await enterStepUpCode(plan, CEO, askedCeo);
   await expect(plan.getByRole("status").first()).toContainText("Approved");
   await expect(plan.locator(".plan-history")).toContainText("You, on the client's behalf");
 

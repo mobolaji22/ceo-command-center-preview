@@ -624,6 +624,8 @@ export function createFixturesDataSource(): DataSource {
         if (!p || !me) return fail("That couldn't be found.", "NOT_FOUND");
         const isOwner = me.memberships.some((m) => m.organizationId === p.organization_id && m.role === "CLIENT_OWNER");
         if (p.decision_owner === "CEO" ? me.role !== "owner" : !isOwner) return fail("This is the client's decision. You can make it only if their owner has given you permission.", "PERMISSION_REQUIRED");
+        // Approving commits the client's money, so it needs a fresh proof of who is deciding, as the real API does.
+        if (decision.action === "APPROVE" && !steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
         if (p.status !== "SUBMITTED") return fail("This was already decided.", "ALREADY_DECIDED");
         if (decision.action === "REQUEST_REVISION" && !decision.note?.trim()) return fail("Say what you would like changed.", "INVALID_PROPOSAL");
         const now = new Date().toISOString();

@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
 import type { DecisionEntry, DelegationView, PlanChange, PlanVersion } from "@/lib/model";
 import { fmtAgo, label } from "@/lib/format";
+import { useStepUp } from "./step-up";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 const STATUS_WORDS: Record<string, string> = {
@@ -22,6 +23,9 @@ const DECISION_WORDS: Record<string, string> = { APPROVED: "Approved", REVISION_
  */
 export function PlanPanel({ projectId, organizationId, onChanged }: { projectId: string; organizationId: string; onChanged: () => void }) {
   const ds = useDataSource();
+  // Approving commits the client's money, so the server asks for a fresh proof of who is deciding (a code emailed to them). When it
+  // does, the box appears here and the approval is repeated once the code is right. Asking for a change or declining never asks.
+  const { guard, panel: stepUpPanel } = useStepUp();
   const auth = useAuth();
   const [versions, setVersions] = useState<PlanVersion[] | null>(null);
   const [history, setHistory] = useState<DecisionEntry[]>([]);
@@ -68,11 +72,13 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
 
   const decide = async (action: "APPROVE" | "REQUEST_REVISION" | "REJECT", done: (next: number | null) => string) => {
     setBusy(true); setMsg(null);
-    const r = await ds.plans.decide(shown.id, { action, ...(text.trim() ? { note: text.trim() } : {}) });
+    await guard(() => ds.plans.decide(shown.id, { action, ...(text.trim() ? { note: text.trim() } : {}) }), async (r) => {
+      setBusy(false);
+      if (r.error || !r.data) { setMsg(r.error?.message ?? "That didn't go through."); return; }
+      setMsg(done(r.data.nextVersion)); setMode(null); setText(""); setPicked(null);
+      await load(); onChanged();
+    });
     setBusy(false);
-    if (r.error || !r.data) { setMsg(r.error?.message ?? "That didn't go through."); return; }
-    setMsg(done(r.data.nextVersion)); setMode(null); setText(""); setPicked(null);
-    await load(); onChanged();
   };
   const showChange = async () => {
     if (change) { setChangeFor(null); return; }
@@ -127,7 +133,8 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
         <Button variant="outline" className="reject-btn" onClick={() => setMode("decline")}>Decline</Button>
       </>}
       {mode === "approve" && <div className="plan-confirm"><p>{onBehalf ? "You are deciding for the client. They will see that you did, and it is recorded. " : ""}Approving lets us do this work without asking again, within these limits: nothing above medium risk, nothing hard to undo, nothing outside the list above. You can take that back at any time.</p>
-        <Button className="approve-btn" disabled={busy} onClick={() => decide("APPROVE", () => "Approved. The work can begin.")}>Confirm approval</Button> <Button variant="ghost" onClick={() => setMode(null)}>Cancel</Button></div>}
+        <Button className="approve-btn" disabled={busy} onClick={() => decide("APPROVE", () => "Approved. The work can begin.")}>Confirm approval</Button> <Button variant="ghost" onClick={() => setMode(null)}>Cancel</Button>
+        <small className="plan-confirm-note">For safety we will ask you for a six-digit code, which we email to you.</small>{stepUpPanel}</div>}
       {mode === "change" && <div className="plan-confirm"><label htmlFor="plan-change-text">WHAT WOULD YOU LIKE CHANGED?</label>
         <textarea id="plan-change-text" value={text} maxLength={2000} onChange={(e) => setText(e.target.value)} placeholder="For example: make it cheaper, or drop the blog posts." />
         <Button className="approve-btn" disabled={busy || !text.trim()} onClick={() => decide("REQUEST_REVISION", (n) => (n ? `Thank you. Version ${n} is ready for you.` : "Thank you. We will send a new version."))}>Send</Button> <Button variant="ghost" onClick={() => { setMode(null); setText(""); }}>Cancel</Button></div>}
