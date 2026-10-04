@@ -4,9 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
-import type { Session } from "@/lib/model";
-
-export const homeFor = (s: Session) => (s.role === "owner" ? "/" : "/client");
+import { landingFor } from "@/lib/destination";
 
 /**
  * Passwordless sign-in (ADR-0007). There is no password anywhere in this app: an emailed link, or the six-digit code in
@@ -22,7 +20,7 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    void ds.auth.getSession().then((s) => { if (s) router.replace(homeFor(s)); });
+    void ds.auth.getSession().then((s) => { if (s) router.replace(landingFor(s)); });
   }, [ds, router]);
 
   const send = async (e: React.FormEvent) => {
@@ -38,7 +36,7 @@ export default function AuthPage() {
     const r = await ds.auth.verifyCode(email.trim(), code.trim());
     setBusy(false);
     if (r.error || !r.data) { setMsg(r.error?.message ?? "Sign-in failed."); return; }
-    router.replace(homeFor(r.data));
+    router.replace(landingFor(r.data));
   };
 
   return <main className="auth-page">

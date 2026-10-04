@@ -45,6 +45,7 @@ spends it, so a mail scanner that fetches the link cannot use it up. There are n
 | briefs.list / get / verify                    | GET /v1/briefs[?projectId=&type=], GET /v1/briefs/:id (statements with their sources), GET /v1/briefs/:id/verify (opens every source; a client reads only what was written to their organization) |
 | notifications.list                            | GET /v1/notifications (what was sent to the signed-in person, or waits for the digest) |
 | notifications.preferences / savePreferences   | GET, PUT /v1/me/notification-preferences (timezone, quiet hours, the level that interrupts (3 to 5), email, digest) |
+| actionLinks.describe / confirm                | GET /v1/action-links/:token (changes nothing), POST /v1/action-links/:token/confirm with `{ confirm: true }` (public: the signed token is the credential; only RESUME, RETRY and REWORK; once). The page is `/act/:token`; it never answers on opening |
 | commands.markSeen                             | POST /v1/console/seen |
 | commands.createOrganization                   | POST /v1/organizations (CEO) |
 | commands.invitePerson                         | POST /v1/invitations (needs step-up: `/v1/auth/step-up/request` then `/verify`) |
@@ -87,3 +88,8 @@ See `.env.example`: `NEXT_PUBLIC_DATA_SOURCE`, `V4_API_URL` (server only), `APP_
 with email going to a file the test reads) and this app built against it, then drives Chromium through sign-in by emailed
 link and by code, a used link, step-up, an invitation, a client's first sign-in and a file upload that is scanned before
 it can be downloaded. Needs `psql`, Postgres (`E2E_PG_ADMIN`, a superuser URL) and Redis. `E2E_SKIP_BUILD=1` reuses a build.
+
+## Pages an email opens
+
+- `/act/:token` answers one low-consequence question without signing in. It describes the question and what answering would do, and answers only when the button is pressed (mail scanners open links). Its address carries a credential, so the page sends no referrer and asks not to be indexed.
+- `/briefs/:id` is a brief on a page of its own. Without a session it asks you to sign in and then brings you back to the brief: the destination is kept in local storage for 30 minutes (the sign-in link usually opens in another tab), read once, and limited to `/briefs/:id` so it can never send anyone anywhere else.

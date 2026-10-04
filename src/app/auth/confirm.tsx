@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
+import { landingFor } from "@/lib/destination";
 
 /**
  * Landing page for an emailed link. The link only opens this page; signing in needs a click. That matters: mail
@@ -24,7 +25,7 @@ export function ConfirmLink({ kind }: { kind: "sign-in" | "invitation" }) {
     const r = kind === "sign-in" ? await ds.auth.verifyLink(token) : await ds.auth.acceptInvitation(token);
     setBusy(false);
     if (r.error || !r.data) { setMsg(r.error?.message ?? "That link didn't work."); return; }
-    router.replace(r.data.role === "owner" ? "/" : "/client");
+    router.replace(landingFor(r.data));
   };
 
   return <main className="auth-page"><div className="auth-card">

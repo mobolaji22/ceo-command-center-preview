@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, CircleAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
 import { fmtAgo, fmtDate, label } from "@/lib/format";
 import type { BriefDoc, BriefStatement, BriefSummary, BriefType, DigestFrequency, NotificationPrefs, Source } from "@/lib/model";
@@ -150,4 +152,27 @@ export function NotificationSettings() {
       <label>At<input aria-label="At" type="time" value={p.digest.time} onChange={(e) => set({ digest: { ...p.digest, time: e.target.value } })} /></label></div>}
     <div className="notify-actions"><Button type="submit" disabled={busy || !draft}>{busy ? "Saving…" : "Save"}</Button>{msg && <span role={msg.ok ? "status" : "alert"} className={msg.ok ? "check-ok" : "mmsg"}>{msg.text}</span>}</div>
   </form>;
+}
+
+/** One brief on a page of its own: where a link in an email lands, once signed in. */
+export function BriefPage({ id }: { id: string }) {
+  const ds = useDataSource();
+  const auth = useAuth();
+  const q = useQuery({ queryKey: ["brief", id], queryFn: async () => { const r = await ds.briefs.get(id); if (r.error) throw new Error(r.error.message); return r.data!; } });
+  const home = auth.user?.role === "owner" ? "/" : "/client";
+  return <main className="command-center">
+    <header className="topbar">
+      <div className="brand"><span className="brand-mark"><span /></span><span>DEVPLAYBOOK <em>/</em> BRIEF</span></div>
+      <div className="topbar-right"><Link href={home} className="inline-arrow">BACK TO THE COMMAND CENTER</Link></div>
+    </header>
+    <div className="workspace"><div className="client-wrap">
+      {q.isLoading && <p className="case-none" role="status">Opening…</p>}
+      {q.isError && <div className="empty-state"><b>That brief couldn&apos;t be opened.</b><p>{(q.error as Error).message}</p></div>}
+      {q.data && <>
+        <div className="eyebrow gold">{KIND[q.data.type]} · {fmtDate(q.data.created_at)}</div>
+        <h2 className="manage-title">{q.data.title}<span className="period">.</span></h2>
+        <BriefReader id={id} />
+      </>}
+    </div></div>
+  </main>;
 }
