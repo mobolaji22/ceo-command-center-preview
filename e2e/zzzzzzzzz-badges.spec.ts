@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 /**
  * The hotspots in the office say how many things need the CEO (CC). A directive that is asking a question needs the CEO, so the
@@ -21,6 +22,7 @@ async function signIn(page: Page, email: string) {
 }
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("a directive that is asking a question puts a count on the directive desk and the phone, and the desk shows exactly that many", async ({ page }) => {
@@ -44,6 +46,7 @@ test("a directive that is asking a question puts a count on the directive desk a
   // the brief and the door carry no count
   await expect(page.getByRole("button", { name: "Preview Brief" }).locator(".hotspot-badge")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Preview Door" }).locator(".hotspot-badge")).toHaveCount(0);
+  await shot(page, "The office: a count on the places that need the CEO");
 
   await directive.click();
   await page.getByRole("button", { name: "Compose directive" }).click();

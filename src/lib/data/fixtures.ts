@@ -621,7 +621,11 @@ export function createFixturesDataSource(): DataSource {
       async grant(input) {
         const s = load();
         const me = s.users.find((u) => u.id === currentUserId());
-        if (!me?.memberships.some((m) => m.organizationId === input.organizationId && m.role === "CLIENT_OWNER")) return fail("You don't have access to do that.", "FORBIDDEN");
+        const isOwner = me?.memberships.some((m) => m.organizationId === input.organizationId && m.role === "CLIENT_OWNER");
+        // The CEO grants one directly for the agency's own work; for a client it is the client's decision, so only under their permission (the demo has none).
+        const agencyOwn = me?.role === "owner" && input.organizationId === "o-3";
+        if (me?.role === "owner" && !agencyOwn) return fail("This is the client's decision. You can make it only if their owner has given you permission.", "PERMISSION_REQUIRED");
+        if (!isOwner && !agencyOwn) return fail("You don't have access to do that.", "FORBIDDEN");
         if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
         if (!input.scopes.length || input.validDays < 1 || input.validDays > 90) return fail("Something needed for that is missing or not valid.", "INVALID_PROPOSAL");
         const now = new Date();

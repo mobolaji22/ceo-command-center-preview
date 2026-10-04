@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 /**
  * What people are told (CC-5). A client reads what was written to them, opens the records behind a statement and has every one of
@@ -22,6 +23,7 @@ async function signIn(page: Page, email: string) {
 }
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("a client reads a brief, opens the records behind a statement, and has every source checked", async ({ page }) => {
@@ -39,6 +41,7 @@ test("a client reads a brief, opens the records behind a statement, and has ever
   await expect(fact.getByLabel("Where this comes from", { exact: true })).toHaveCount(0);
   await fact.getByRole("button", { name: /^Show where this comes from/ }).click();
   await expect(fact.getByLabel("Where this comes from", { exact: true }).locator("li").first()).toBeVisible();
+  await shot(page, "A brief: each statement has the records it comes from a click away");
   await fact.getByRole("button", { name: /^Hide where this comes from/ }).click();
   await expect(fact.getByLabel("Where this comes from", { exact: true })).toHaveCount(0);
 
@@ -48,6 +51,7 @@ test("a client reads a brief, opens the records behind a statement, and has ever
 
   await brief.getByRole("button", { name: "Check every source" }).click();
   await expect(brief.getByRole("status")).toContainText("Every statement matches its records");
+  await shot(page, "Every source of the brief is opened again and checked");
   await kickoff.getByRole("button", { name: /^Close / }).click();
   await expect(kickoff.getByRole("article")).toHaveCount(0);
 });

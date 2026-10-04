@@ -18,7 +18,8 @@ const ALWAYS_ASKS = new Set(["publish", "send", "delete", "pay", "transact", "ex
 const DAYS = [7, 30, 90];
 const kindWords = (scope: string) => { const [dom, cap] = scope.split(":"); return `${label(dom ?? "")}: ${(cap ?? "").replace(/[-_.]/g, " ")}`; };
 
-export function StandingPermission({ organizationId, projectIds }: { organizationId: string; projectIds: string[] }) {
+export function StandingPermission({ organizationId, projectIds, actingAs = "owner", orgName }: { organizationId: string; projectIds: string[]; actingAs?: "owner" | "ceo"; orgName?: string }) {
+  const ceo = actingAs === "ceo";
   const ds = useDataSource();
   const qc = useQueryClient();
   const { guard, panel } = useStepUp();
@@ -45,14 +46,15 @@ export function StandingPermission({ organizationId, projectIds }: { organizatio
   const now = Date.now();
   const rows: DelegationView[] = current.data ?? [];
   const inForce = rows.find((d) => !d.revoked_at && (!d.expires_at || new Date(d.expires_at).getTime() > now));
-  const refresh = () => qc.invalidateQueries({ queryKey: ["standing", organizationId] });
+  // The governance tab lists what is in force and each client's audit chain from the same records, so they look again too.
+  const refresh = () => Promise.all([["standing", organizationId], ["governance-delegations"], ["governance-chains"]].map((queryKey) => qc.invalidateQueries({ queryKey })));
 
   const grant = async () => {
     setBusy(true); setMsg(null);
     await guard(() => ds.standing.grant({ organizationId, scopes: picked, validDays: days }), async (r) => {
       setBusy(false);
       if (r.error) { setMsg(r.error.message); return; }
-      setOpen(false); setPicked([]); setMsg("Done. The agency will not ask about these kinds of work until it ends.");
+      setOpen(false); setPicked([]); setMsg(ceo ? "Done. These kinds of work will not be asked about until it ends." : "Done. The agency will not ask about these kinds of work until it ends.");
       await refresh();
     });
     setBusy(false);
@@ -66,16 +68,17 @@ export function StandingPermission({ organizationId, projectIds }: { organizatio
     await refresh();
   };
 
-  return <section className="standing" aria-label="Standing permission">
+  return <section className="standing" aria-label={ceo ? `Standing permission for ${orgName ?? "this client"}` : "Standing permission"}>
     {inForce
       ? <div className="resolved-row"><span>In force, until {fmtDate(inForce.expires_at)}
           <small>{inForce.scopes.map(kindWords).join(" · ")}</small>
-          <small>Never above risk {inForce.max_risk} or hard to undo, and nothing that publishes, sends, deletes or pays. It adds no spending of its own.</small></span>
+          <small>Never above risk {inForce.max_risk} or hard to undo, and nothing that publishes, sends, deletes or pays. It adds no spending of its own.</small>
+          {inForce.on_behalf && <small>{ceo ? "Granted by you, on the client's behalf, under the permission they gave." : "Granted for you by the agency's CEO, under the permission you gave."}</small>}</span>
           {revoking === inForce.id
             ? <span className="plan-confirm"><input aria-label="Why (optional)" placeholder="Why? (optional)" value={why} onChange={(e) => setWhy(e.target.value)} />
                 <Button className="reject-btn" variant="outline" disabled={busy} onClick={() => revoke(inForce)}>Confirm: take it back</Button> <Button variant="ghost" onClick={() => setRevoking(null)}>Cancel</Button></span>
             : <Button variant="outline" className="reject-btn" onClick={() => setRevoking(inForce.id)}>Take this back</Button>}</div>
-      : <p className="case-none">The agency asks you about any kind of work a plan does not name.</p>}
+      : <p className="case-none">{ceo ? "The agency asks about any kind of work a plan does not name." : "The agency asks you about any kind of work a plan does not name."}</p>}
     {rows.filter((d) => d.revoked_at).slice(0, 2).map((d) => <small key={d.id} className="case-none">Taken back {fmtAgo(d.revoked_at!)}{d.revoked_reason ? `: “${d.revoked_reason}”` : ""}.</small>)}
     {msg && <p className="mmsg" role="status">{msg}</p>}
     {!open
@@ -85,7 +88,7 @@ export function StandingPermission({ organizationId, projectIds }: { organizatio
             {(kinds.data ?? []).length === 0 && <p className="case-none">Kinds of work appear here once a plan names them.</p>}
             {(kinds.data ?? []).map((k) => <label key={k} className="inline-check"><input type="checkbox" checked={picked.includes(k)} onChange={(e) => setPicked(e.target.checked ? [...picked, k] : picked.filter((x) => x !== k))} /> {kindWords(k)}</label>)}</fieldset>
           <label>For how long<select aria-label="For how long" value={days} onChange={(e) => setDays(Number(e.target.value))}>{DAYS.map((d) => <option key={d} value={d}>{d} days</option>)}</select></label>
-          <small className="plan-confirm-note">For safety we will ask you for a six-digit code, which we email to you. You can take this back at any time.</small>
+          <small className="plan-confirm-note">For safety we will ask you for a six-digit code, which we email to you.{ceo ? " For a client this is their decision: it goes through only under the permission their owner gave you." : ""} It can be taken back at any time.</small>
           <Button className="approve-btn" disabled={busy || picked.length === 0} onClick={grant}>Allow these without asking</Button> <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
           {panel}
         </div>}

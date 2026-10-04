@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 const CEO = "ceo@agency.example";
 const OWNER = "owner@orbit.example";
@@ -17,6 +18,7 @@ async function requestLink(page: Page, email: string) {
 }
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("there are no passwords anywhere", async ({ page }) => {
@@ -32,6 +34,7 @@ test("the CEO signs in through an emailed link, and the session is not readable 
   await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: /The command center/ })).toBeVisible();
+  await shot(page, "The CEO signs in with an emailed code and arrives in the office");
 
   const cookies = await context.cookies();
   const session = cookies.find((c) => c.name === "dpb_session");
@@ -88,6 +91,7 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
   await page.getByPlaceholder("Name").fill("Orbit");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByText("Organization added.")).toBeVisible();
+  await shot(page, "The CEO adds a client organization");
 
   await page.getByRole("tab", { name: "People" }).click();
   await page.getByPlaceholder("person@company.com").fill(OWNER);
@@ -96,6 +100,7 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
 
   // Inviting is sensitive: the server asks the CEO to prove it is still them.
   await expect(page.getByRole("form", { name: "Confirm it's you" })).toBeVisible();
+  await shot(page, "Inviting someone is sensitive, so the CEO is asked for a fresh emailed code");
   const stepUp = await mailTo(CEO, "step-up", beforeInvite);
   await page.getByPlaceholder("Six-digit code").fill(stepUp.meta!.code!);
   await page.getByRole("button", { name: "Confirm" }).click();
@@ -109,6 +114,7 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
   await owner.goto(invite.meta!.link!);
   await owner.getByRole("button", { name: "Accept invitation" }).click();
   await expect(owner.getByRole("heading", { name: /Your projects/ })).toBeVisible();
+  await shot(owner, "The invited owner signs in from the invitation and lands in their own room");
 
   // A client cannot reach the CEO's office.
   await owner.goto("/");
@@ -121,6 +127,7 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
   await expect(library.getByRole("status")).toContainText("passed its safety scan");
   const row = owner.locator(".resolved-row", { hasText: "logo.png" });
   await expect(row.getByText("CLEAN")).toBeVisible();
+  await shot(owner, "The owner adds a file to their library; it is scanned before it can be downloaded");
   const [download] = await Promise.all([owner.waitForEvent("download"), row.getByRole("button", { name: "Download" }).click()]);
   expect(download.suggestedFilename()).toBe("logo.png");
 
