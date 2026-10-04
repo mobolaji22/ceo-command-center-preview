@@ -46,6 +46,7 @@ spends it, so a mail scanner that fetches the link cannot use it up. There are n
 | notifications.list                            | GET /v1/notifications (what was sent to the signed-in person, or waits for the digest) |
 | notifications.preferences / savePreferences   | GET, PUT /v1/me/notification-preferences (timezone, quiet hours, the level that interrupts (3 to 5), email, digest) |
 | actionLinks.describe / confirm                | GET /v1/action-links/:token (changes nothing), POST /v1/action-links/:token/confirm with `{ confirm: true }` (public: the signed token is the credential; only RESUME, RETRY and REWORK; once). The page is `/act/:token`; it never answers on opening |
+| standing.list / grant                         | GET, POST /v1/organizations/:id/standing-policies (the client's owner; needs the emailed code; named kinds of work for 7, 30 or 90 days; never above risk 3, hard to undo, or publishing, sending, deleting, paying; no spending of its own). Taken back with plans.revokeDelegation |
 | commands.markSeen                             | POST /v1/console/seen |
 | commands.createOrganization                   | POST /v1/organizations (CEO) |
 | commands.invitePerson                         | POST /v1/invitations (needs step-up: `/v1/auth/step-up/request` then `/verify`) |

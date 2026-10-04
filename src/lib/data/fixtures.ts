@@ -600,6 +600,31 @@ export function createFixturesDataSource(): DataSource {
       },
     },
 
+    standing: {
+      async list(organizationId) {
+        const s = load();
+        const me = s.users.find((u) => u.id === currentUserId());
+        if (!me || (me.role !== "owner" && !me.memberships.some((m) => m.organizationId === organizationId))) return fail("That couldn't be found.", "NOT_FOUND");
+        return ok(structuredClone(s.delegations.filter((d) => d.basis === "STANDING_POLICY" && d.organization_id === organizationId)));
+      },
+      async grant(input) {
+        const s = load();
+        const me = s.users.find((u) => u.id === currentUserId());
+        if (!me?.memberships.some((m) => m.organizationId === input.organizationId && m.role === "CLIENT_OWNER")) return fail("You don't have access to do that.", "FORBIDDEN");
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        if (!input.scopes.length || input.validDays < 1 || input.validDays > 90) return fail("Something needed for that is missing or not valid.", "INVALID_PROPOSAL");
+        const now = new Date();
+        for (const d of s.delegations) if (d.basis === "STANDING_POLICY" && d.organization_id === input.organizationId && !d.revoked_at) { d.revoked_at = now.toISOString(); d.revoked_reason = "Replaced by a new standing policy"; }
+        const made: DelegationView = {
+          id: id(), basis: "STANDING_POLICY", organization_id: input.organizationId, proposal_id: null, project_id: null, expires_at: new Date(now.getTime() + input.validDays * 864e5).toISOString(),
+          approval_level: "L1", max_autonomy_mode: 3, scopes: input.scopes, max_risk: 3, budget_max_usd: null, on_behalf: false, created_at: now.toISOString(), revoked_at: null, revoked_reason: null,
+        };
+        s.delegations.push(made);
+        save(s);
+        return ok(structuredClone(made));
+      },
+    },
+
     plans: {
       async list(projectId) {
         const s = load();
@@ -638,7 +663,7 @@ export function createFixturesDataSource(): DataSource {
         let nextVersion: number | null = null;
         if (decision.action === "APPROVE") {
           const project = s.data.projects.find((x) => x.id === p.project_id); if (project) project.status = "ACTIVE";
-          s.delegations.push({ id: id(), proposal_id: p.id, approval_level: "L1", max_autonomy_mode: 3, scopes: [...new Set(p.plan.tasks.map((t) => `${t.domain}:${t.capability}`.toLowerCase()))], max_risk: 3, budget_max_usd: p.plan.budget.high_usd, on_behalf: false, created_at: now, revoked_at: null, revoked_reason: null });
+          s.delegations.push({ id: id(), basis: "PLAN_APPROVAL", organization_id: p.organization_id, project_id: p.project_id, expires_at: null, proposal_id: p.id, approval_level: "L1", max_autonomy_mode: 3, scopes: [...new Set(p.plan.tasks.map((t) => `${t.domain}:${t.capability}`.toLowerCase()))], max_risk: 3, budget_max_usd: p.plan.budget.high_usd, on_behalf: false, created_at: now, revoked_at: null, revoked_reason: null });
         }
         if (decision.action === "REQUEST_REVISION") {
           p.status = "SUPERSEDED";
@@ -661,7 +686,8 @@ export function createFixturesDataSource(): DataSource {
       async delegations(projectId) {
         const s = load();
         const ids = new Set(s.plans.filter((p) => p.project_id === projectId).map((p) => p.id));
-        return ok(structuredClone(s.delegations.filter((d) => ids.has(d.proposal_id))));
+        const org = s.data.projects.find((x) => x.id === projectId)?.organization_id;
+        return ok(structuredClone(s.delegations.filter((d) => (d.proposal_id !== null && ids.has(d.proposal_id)) || (d.basis === "STANDING_POLICY" && d.organization_id === org && (d.project_id === null || d.project_id === projectId)))));
       },
       async revokeDelegation(delegationId, reason) {
         return mutate((s) => { const d = s.delegations.find((x) => x.id === delegationId); if (d && !d.revoked_at) { d.revoked_at = new Date().toISOString(); d.revoked_reason = reason || "Revoked"; } });

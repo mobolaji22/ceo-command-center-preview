@@ -13,6 +13,7 @@ import { Library } from "@/components/cc/library";
 import { Composer, IntentList } from "@/components/cc/intents";
 import { ProjectRoom, QuestionsList } from "@/components/cc/runs";
 import { BriefArchive, NotificationSettings } from "@/components/cc/briefs";
+import { StandingPermission } from "@/components/cc/standing";
 
 /**
  * Client Center (shell). A client sees only their own organization's projects and what was shared with
@@ -72,6 +73,9 @@ export default function ClientCenter() {
         <div className="section-label pd-label"><span>PROJECTS</span><span>{data.projects.length}</span></div>
         {data.projects.length === 0 ? <Empty title="No projects yet.">Projects appear here once the agency starts work for you.</Empty> :
           data.projects.map((p) => <ProjectRoom key={p.id} project={p} canControl={isOwner} />)}
+
+        {isOwner && auth.user?.memberships[0] && <><div className="section-label pd-label"><span>STANDING PERMISSION</span></div>
+          <StandingPermission organizationId={auth.user.memberships[0].organizationId} projectIds={data.projects.map((p) => p.id)} /></>}
 
         <div className="section-label pd-label"><span>QUESTIONS FROM THE WORK</span></div>
         <QuestionsList audience="client" onChanged={refresh} />
