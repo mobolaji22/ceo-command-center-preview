@@ -9,6 +9,7 @@ import officeImage from "@/assets/ceo-office.jpg";
 import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
 const ownerKey = ["owner-data"] as const;
+import { attentionCounts, needYou } from "@/lib/attention";
 import { BriefView, ComputerView, ContractsView, DirectiveView, PhoneView } from "@/components/cc/views";
 import { HallwayView, RoomView } from "@/components/cc/corridor";
 import { ManageView } from "@/components/cc/manage";
@@ -36,6 +37,8 @@ export default function Index() {
   useEffect(() => { if (!auth.loading && auth.user && !auth.isOwner) router.replace("/client"); }, [auth, router]);
   const q = useQuery({ queryKey: ownerKey, queryFn: () => ds.queries.ownerData(), enabled: auth.isOwner });
   const refresh = () => qc.invalidateQueries({ queryKey: ownerKey });
+  // The same list the phone and the contracts desk show (one shared request), so each count is what is found by opening it.
+  const asked = useQuery({ queryKey: ["questions", "all"], queryFn: async () => { const r = await ds.questions.list(); if (r.error) throw new Error(r.error.message); return r.data!; }, enabled: auth.isOwner });
 
   const [view, setView] = useState<View>("office");
   const [activeHotspot, setActiveHotspot] = useState<Hotspot | null>(null);
@@ -52,6 +55,8 @@ export default function Index() {
 
   const data = q.data;
   const pending = data?.approvals.filter((a) => a.status === "REQUESTED").length ?? 0;
+  const attention = data ? attentionCounts(data, asked.data ?? []) : null;
+  const count = (spot: Hotspot) => (attention && (spot === "contracts" || spot === "phone" || spot === "computer" || spot === "directive") ? attention[spot] : 0);
   const initials = (auth.user?.email ?? "OM").slice(0, 2).toUpperCase();
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" }).toUpperCase().replace(",", " ·");
 
@@ -70,7 +75,8 @@ export default function Index() {
       <div className="office-vignette" />
       <div className="scene-intro"><div className="eyebrow"><span className="short-line" /> YOUR PRIVATE WORKSPACE</div><h1>The command center<span className="period">.</span></h1><p>{data ? `${data.projects.length} projects · ${pending} awaiting your signature.` : "Synchronizing with the ledger…"}</p></div>
       <div className="scene-side-label">DPL — 01 <span /> EXECUTIVE OFFICE</div>
-      {(["door", "focus", "contracts", "phone", "computer", "directive", "brief"] as Hotspot[]).map((spot) => <Button key={spot} variant="ghost" size="icon" className={`hotspot hotspot-${spot} ${activeHotspot === spot ? "selected" : ""}`} aria-label={`Preview ${hotspotData[spot].label}`} title={hotspotData[spot].label} onClick={() => setActiveHotspot(activeHotspot === spot ? null : spot)}><span className="hotspot-center" /></Button>)}
+      {(["door", "focus", "contracts", "phone", "computer", "directive", "brief"] as Hotspot[]).map((spot) => <Button key={spot} variant="ghost" size="icon" className={`hotspot hotspot-${spot} ${activeHotspot === spot ? "selected" : ""}`} aria-label={`Preview ${hotspotData[spot].label}`} aria-describedby={count(spot) > 0 ? `hotspot-note-${spot}` : undefined} title={hotspotData[spot].label} onClick={() => setActiveHotspot(activeHotspot === spot ? null : spot)}><span className="hotspot-center" />
+        {count(spot) > 0 && <><span className="hotspot-badge" aria-hidden="true">{count(spot) > 9 ? "9+" : count(spot)}</span><span id={`hotspot-note-${spot}`} className="sr-only">{needYou(count(spot))}</span></>}</Button>)}
       {activeHotspot && <div className={`hotspot-preview preview-${activeHotspot}`}>
         <div className="preview-top"><span className="preview-icon">{(() => { const Icon = hotspotData[activeHotspot].icon; return <Icon size={17} />; })()}</span><Button variant="ghost" size="icon" className="icon-button tiny" aria-label="Close preview" onClick={() => setActiveHotspot(null)}><X size={15} /></Button></div>
         <div className="eyebrow gold">{hotspotData[activeHotspot].title}</div>
