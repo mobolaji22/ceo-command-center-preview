@@ -1,6 +1,7 @@
 "use client";
 
 import { BriefArchive, NotificationSettings, PhoneBriefs } from "./briefs";
+import { GovernancePanel, PlanDecisionLedger } from "./ledger";
 import { CaseFileToggle, PhoneQuestions, Standing } from "./runs";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowDownRight, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, MoreHorizontal, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
@@ -38,9 +39,13 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
         })}</div>}
         <div className="computer-lower"><div><div className="section-label">SIGNAL HEALTH</div><h3>{exceptions === 0 ? "Steady. Nothing needs you." : `Steady, with ${exceptions} exception${exceptions > 1 ? "s" : ""}.`}</h3><p>{pending.length} approval{pending.length === 1 ? "" : "s"} awaiting signature · {blocked.length} blocked or failed task{blocked.length === 1 ? "" : "s"}.</p></div><Button variant="ghost" className="inline-arrow" onClick={openBrief}>VIEW EXECUTIVE BRIEF <ArrowRight size={16} /></Button></div></div>}
       {tab === "Decision Ledger" && <div className="computer-content"><div className="section-label"><span>DECISION LEDGER</span><span>TRACEABLE BY DESIGN</span></div>
+        <PlanDecisionLedger data={data} />
+        {data.decisions.length > 0 && <div className="section-label"><span>OTHER DECISIONS</span><span>{pad(data.decisions.length)}</span></div>}
         {data.decisions.length === 0 ? <Empty title="No decisions recorded yet." /> :
         <div className="dossier-list">{data.decisions.map((d, i) => <div key={d.id} className="dossier-row"><span className="row-index">{pad(i + 1)}</span><div><b>{d.question}</b><small>{projectName(data, d.project_id)} · {d.resolved_at ? `Resolved ${fmtDate(d.resolved_at)}` : `Raised ${fmtDate(d.created_at)}`}{d.selected_option ? ` · Chose: ${d.selected_option}` : ""}</small></div><span className={`pill ${statusTone(d.status)}`}>{label(d.status).toUpperCase()}</span><span /></div>)}</div>}</div>}
-      {tab === "Security/Gov" && <div className="computer-content"><div className="section-label"><span>SECURITY & GOVERNANCE</span><span>PROTOCOL ACTIVE</span></div><div className="governance-grid">
+      {tab === "Security/Gov" && <div className="computer-content"><div className="section-label"><span>SECURITY & GOVERNANCE</span><span>PROTOCOL ACTIVE</span></div>
+        <GovernancePanel data={data} />
+        <div className="governance-grid">
         <div><ShieldCheck size={25} /><h3>Authorization controls</h3><p>{pending.length} requested · {data.approvals.filter((a) => a.status === "GRANTED").length} granted · {data.approvals.filter((a) => a.status === "REJECTED").length} rejected.</p><span className="pill green">ENFORCED</span></div>
         <div><LockKeyhole size={25} /><h3>Evidence integrity</h3><p>{data.evidence.length} evidence records across {new Set(data.evidence.map((e) => e.project_id)).size} projects.</p><span className={`pill ${data.evidence.length ? "green" : "muted"}`}>{data.evidence.length ? "RECORDED" : "NONE YET"}</span></div>
       </div></div>}

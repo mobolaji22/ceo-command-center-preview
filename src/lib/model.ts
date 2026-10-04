@@ -236,6 +236,11 @@ export type DecisionEntry = {
   decided_at: string
 };
 
+/** One entry of a client's audit chain: what was sealed, when, and by whom. The contents and hashes stay with the API. */
+export type AuditEntryView = { sequence: number; kind: string; subject_type: string; actor_id: string; created_at: string };
+/** Whether a client's audit chain is intact: every entry follows the one before it and matches what was sealed. */
+export type AuditChain = { ok: boolean; entries: AuditEntryView[]; broken_at: number | null; reason: string | null };
+
 /** What the agency may do on a project without asking again: the approved plan, within limits. */
 export type DelegationView = {
   id: string

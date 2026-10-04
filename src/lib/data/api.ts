@@ -1,4 +1,4 @@
-import type { ActionLinkView, Asset, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
+import type { ActionLinkView, AuditChain, Asset, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -351,6 +351,17 @@ export function createApiDataSource(): DataSource {
       async confirm(token) {
         const r = await call<{ done: true; option: ActionLinkView["option"] }>("POST", `/v1/action-links/${encodeURIComponent(token)}/confirm`, { confirm: true });
         return r.error || !r.data ? { data: null, error: r.error } : ok({ option: r.data.option });
+      },
+    },
+
+    audit: {
+      async chain(organizationId) {
+        const r = await call<{ verdict: { ok: boolean; entries?: number; brokenAt?: number; reason?: string }; entries: Array<{ sequence: number; kind: string; subjectType: string; actorUserId: string; createdAt: string }> }>("GET", `/v1/organizations/${organizationId}/audit`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        return ok({
+          ok: r.data.verdict.ok, broken_at: r.data.verdict.brokenAt ?? null, reason: r.data.verdict.reason ?? null,
+          entries: r.data.entries.map((e) => ({ sequence: e.sequence, kind: e.kind, subject_type: e.subjectType, actor_id: e.actorUserId, created_at: e.createdAt })),
+        } satisfies AuditChain);
       },
     },
 

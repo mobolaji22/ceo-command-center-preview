@@ -600,6 +600,17 @@ export function createFixturesDataSource(): DataSource {
       },
     },
 
+    audit: {
+      async chain(organizationId) {
+        const s = load();
+        const me = s.users.find((u) => u.id === currentUserId());
+        if (!me || (me.role !== "owner" && !me.memberships.some((m) => m.organizationId === organizationId))) return fail("That couldn't be found.", "NOT_FOUND");
+        // The demo seals what it has recorded: each decision and each delegation, in order.
+        const entries = s.delegations.filter((d) => d.organization_id === organizationId).map((d, i) => ({ sequence: i + 1, kind: "delegation.granted", subject_type: "DELEGATION", actor_id: me.id, created_at: d.created_at }));
+        return ok({ ok: true, broken_at: null, reason: null, entries });
+      },
+    },
+
     standing: {
       async list(organizationId) {
         const s = load();
