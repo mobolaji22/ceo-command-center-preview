@@ -1,4 +1,4 @@
-import type { Asset, BudgetView, ClientData, DecisionEntry, DelegationView, OwnerData, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
+import type { Asset, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -49,7 +49,11 @@ async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
   try { json = text ? JSON.parse(text) : null; } catch { /* non-JSON body */ }
   if (!res.ok) {
     const code = (json as { error?: unknown } | null)?.error;
-    if (typeof code === "string") return fail(MESSAGES[code] ?? code.replace(/_/g, " ").toLowerCase(), code);
+    if (typeof code === "string") {
+      // When the API says exactly what was wrong with what was sent, say that rather than the general sentence.
+      const issue = code === "INVALID_BODY" ? (json as { issues?: Array<{ message?: unknown }> } | null)?.issues?.[0]?.message : undefined;
+      return fail(typeof issue === "string" && issue ? `${issue.replace(/\.$/, "")}.` : MESSAGES[code] ?? code.replace(/_/g, " ").toLowerCase(), code);
+    }
     return fail(`Request failed (${res.status}).`);
   }
   return ok(json as T);
@@ -98,6 +102,11 @@ type ApiQuestion = {
   id: string; projectId: string; organizationId: string; runId: string; taskId: string | null; reason: string; routedTo: Question["routed_to"]; status: Question["status"];
   title: string; summary: string; detail?: string | null; options: Array<{ id: string }>; recommendation: { option: string; why: string } | null; deadline: string | null; createdAt: string;
 };
+type ApiBrief = { id: string; organizationId: string; projectId: string | null; type: BriefType; audience: "CLIENT" | "AGENCY"; title: string; attentionLevel: number; compiledAt: string };
+type ApiCitation = { type: string; id?: string; ids?: string[]; path?: string; expect?: string | number; expectSum?: number };
+type ApiPrefs = { timezone: string; quietHours: { start: string; end: string } | null; minInterruptLevel: number; emailEnabled: boolean; digest: NotificationPrefs["digest"] };
+const toBrief = (b: ApiBrief): BriefSummary => ({ id: b.id, organization_id: b.organizationId, project_id: b.projectId, type: b.type, audience: b.audience, title: b.title, level: b.attentionLevel, created_at: b.compiledAt });
+const toPrefs = (p: ApiPrefs): NotificationPrefs => ({ timezone: p.timezone, quiet_hours: p.quietHours, min_interrupt_level: p.minInterruptLevel, email_enabled: p.emailEnabled, digest: p.digest });
 const toQuestion = (q: ApiQuestion): Question => ({
   id: q.id, project_id: q.projectId, organization_id: q.organizationId, run_id: q.runId, task_id: q.taskId, reason: q.reason, routed_to: q.routedTo, status: q.status,
   title: q.title, summary: q.summary, detail: q.detail ?? null, options: q.options.map((o) => o.id), recommendation: q.recommendation, deadline: q.deadline, created_at: q.createdAt,
@@ -284,6 +293,45 @@ export function createApiDataSource(): DataSource {
       async answer(questionId, answer) {
         const params = { ...(answer.toUsd !== undefined ? { toUsd: answer.toUsd } : {}), ...(answer.evidence ? { evidence: answer.evidence } : {}) };
         return voidResult(await call("POST", `/v1/interventions/${questionId}/resolve`, { option: answer.option, ...(answer.note ? { note: answer.note } : {}), ...(Object.keys(params).length ? { params } : {}) }));
+      },
+    },
+
+    briefs: {
+      async list(opts) {
+        const qs = new URLSearchParams({ ...(opts?.projectId ? { projectId: opts.projectId } : {}), ...(opts?.type ? { type: opts.type } : {}), limit: "100" });
+        const r = await call<ApiBrief[]>("GET", `/v1/briefs?${qs}`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map(toBrief));
+      },
+      async get(id) {
+        const r = await call<ApiBrief & { sentences: Array<{ position: number; section: string; kind: "FACT" | "GAP"; text: string; citations: ApiCitation[] }> }>("GET", `/v1/briefs/${id}`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        return ok({
+          ...toBrief(r.data),
+          statements: r.data.sentences.map((x) => ({
+            position: x.position, section: x.section, kind: x.kind, text: x.text,
+            sources: x.citations.map((c) => ({ type: c.type, ids: c.ids ?? (c.id ? [c.id] : []), path: c.path ?? null, expect: c.expect ?? c.expectSum ?? null, sum: Boolean(c.ids) })),
+          })),
+        } satisfies BriefDoc);
+      },
+      async verify(id) {
+        const r = await call<{ ok: boolean; facts: number; gaps: number; problems: Array<{ text: string; problem: string }> }>("GET", `/v1/briefs/${id}/verify`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        return ok({ ok: r.data.ok, facts: r.data.facts, gaps: r.data.gaps, problems: r.data.problems.map((p) => `“${p.text}” — ${p.problem}`) });
+      },
+    },
+
+    notifications: {
+      async list() {
+        const r = await call<Array<{ id: string; briefId: string; title: string; type: BriefType; projectId: string | null; level: number; status: NotificationItem["status"]; reason: string | null; createdAt: string }>>("GET", "/v1/notifications?limit=50");
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map((n) => ({ id: n.id, brief_id: n.briefId, title: n.title, type: n.type, project_id: n.projectId, level: n.level, status: n.status, reason: n.reason, created_at: n.createdAt })));
+      },
+      async preferences() {
+        const r = await call<ApiPrefs>("GET", "/v1/me/notification-preferences");
+        return r.error || !r.data ? { data: null, error: r.error } : ok(toPrefs(r.data));
+      },
+      async savePreferences(p) {
+        const r = await call<ApiPrefs>("PUT", "/v1/me/notification-preferences", { timezone: p.timezone, quietHours: p.quiet_hours, minInterruptLevel: p.min_interrupt_level, emailEnabled: p.email_enabled, digest: p.digest });
+        return r.error || !r.data ? { data: null, error: r.error } : ok(toPrefs(r.data));
       },
     },
 

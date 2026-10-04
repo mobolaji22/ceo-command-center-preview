@@ -12,6 +12,7 @@ import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
 import { Library } from "@/components/cc/library";
 import { Composer, IntentList } from "@/components/cc/intents";
 import { ProjectRoom, QuestionsList } from "@/components/cc/runs";
+import { BriefArchive, NotificationSettings } from "@/components/cc/briefs";
 
 /**
  * Client Center (shell). A client sees only their own organization's projects and what was shared with
@@ -74,6 +75,10 @@ export default function ClientCenter() {
 
         <div className="section-label pd-label"><span>QUESTIONS FROM THE WORK</span></div>
         <QuestionsList audience="client" onChanged={refresh} />
+
+        <div className="section-label pd-label"><span>BRIEFS</span></div>
+        <BriefArchive limit={5} />
+        {isOwner && <><div className="section-label pd-label"><span>HOW YOU ARE TOLD</span></div><NotificationSettings /></>}
 
         <div className="section-label pd-label"><span>NEEDS YOUR SIGNATURE</span><span>{pending.length}</span></div>
         {msg && <p className="mmsg">{msg}</p>}
