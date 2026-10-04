@@ -2,7 +2,11 @@ import type {
   Approval,
   Asset,
   ClientData,
+  DecisionEntry,
+  DelegationView,
   OwnerData,
+  PlanContent,
+  PlanVersion,
   Profile,
   Project,
   Session,
@@ -21,7 +25,7 @@ import { fail, ok, type DataSource, type Result } from "./types";
  * client visibility is decided here the way the API will decide it.
  */
 
-const STORE_KEY = "dpl.fixtures.v2";
+const STORE_KEY = "dpl.fixtures.v3";
 const SESSION_KEY = "dpl.fixtures.session";
 const CHANGE_EVENT = "dpl:fixtures-change";
 
@@ -31,7 +35,25 @@ const id = () => crypto.randomUUID();
 type Membership = { organizationId: string; role: "CLIENT_OWNER" | "CLIENT_MEMBER" };
 type User = { id: string; email: string; displayName: string; role: "owner" | "client"; memberships: Membership[] };
 
-type Store = { data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null };
+type Store = { data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[] };
+
+/** A demo plan: enough to show every part of the page. */
+const demoPlan = (): PlanContent => ({
+  objective: "Clarify the Q4 priorities and drop anything that does not move online orders",
+  scope_in: ["Review of the current Q4 list", "A ranked shortlist tied to online orders"], scope_out: ["Work in any area this plan does not list"],
+  deliverables: [{ id: "d-business", name: "Business work for: Q4 priorities", domain: "BUSINESS" }, { id: "d-strategy", name: "Strategy work for: Q4 priorities", domain: "STRATEGY" }],
+  success_metrics: [{ id: "m1", metric: "The result you asked for", baseline: null, target: "A shortlist you can act on this quarter", measurement: "Agreed with you before work starts", window: "30 days after delivery", data_source: "To be agreed" }],
+  tasks: [
+    { id: "t1", title: "Clarify business objective", domain: "BUSINESS", capability: "analyze", rigor: "light", risk: 1, reversibility: 4, depends_on: [] },
+    { id: "t2", title: "Develop strategic directions", domain: "STRATEGY", capability: "strategy", rigor: "strict", risk: 3, reversibility: 3, depends_on: ["t1"] },
+    { id: "t3", title: "Rank the Q4 list against online orders", domain: "BUSINESS", capability: "analyze", rigor: "standard", risk: 2, reversibility: 4, depends_on: ["t2"] },
+  ],
+  milestones: [{ name: "Develop strategic directions: your decision", after_tasks: ["t2"] }, { name: "Delivery", after_tasks: ["t3"] }],
+  budget: { low_usd: 0.63, high_usd: 1.44, confidence: 0.4 },
+  risks: [{ risk: "\"Develop strategic directions\" shapes everything after it", mitigation: "It waits for your decision before the next step starts" }],
+  assumptions: ["Is there a spending limit we should respect? We are going with: Use the usual range for this kind of work", "Costs are estimates by effort level, not quotes."],
+  open_context_needs: ["Brand guidelines"], decision_points: [{ task_id: "t2", description: "Your decision on: Develop strategic directions" }],
+});
 
 function seed(): Store {
   const users: User[] = [
@@ -119,7 +141,11 @@ function seed(): Store {
     ],
     clients,
   };
-  return { data, users, assets: [], lastSeen: ago(24 * 2) };
+  const plans: PlanVersion[] = [{
+    id: "pl-1", project_id: "p-1", organization_id: "o-1", version: 1, status: "SUBMITTED", decision_owner: "CLIENT_OWNER", impact: 3, reversibility: 3, rationale: null,
+    submitted_at: ago(24 * 19), decided_at: null, decision: null, decision_note: null, on_behalf: false, plan: demoPlan(),
+  }];
+  return { data, users, assets: [], lastSeen: ago(24 * 2), plans, decisions: [], delegations: [] };
 }
 
 function load(): Store {
@@ -357,6 +383,75 @@ export function createFixturesDataSource(): DataSource {
       },
       async respond(requirementId) {
         return mutate((s) => { for (const i of s.data.intents) i.materials = i.materials.filter((m) => m.requirement_id !== requirementId); });
+      },
+    },
+
+    plans: {
+      async list(projectId) {
+        const s = load();
+        const me = s.users.find((u) => u.id === currentUserId());
+        return ok(structuredClone(s.plans.filter((p) => p.project_id === projectId && (me?.role === "owner" || p.status !== "DRAFT"))));
+      },
+      async changes(proposalId) {
+        const s = load();
+        const to = s.plans.find((p) => p.id === proposalId);
+        const from = to && s.plans.find((p) => p.project_id === to.project_id && p.version === to.version - 1);
+        if (!to || !from) return fail("There is no earlier version.", "NO_EARLIER_VERSION");
+        const usd = (n: number) => `$${n.toFixed(2)}`;
+        const summary: string[] = [];
+        const b = from.plan.budget, c = to.plan.budget;
+        if (b.low_usd !== c.low_usd || b.high_usd !== c.high_usd) summary.push(`Budget: ${usd(b.low_usd)} to ${usd(b.high_usd)} became ${usd(c.low_usd)} to ${usd(c.high_usd)}`);
+        for (const t of to.plan.tasks) { const old = from.plan.tasks.find((x) => x.id === t.id); if (old && old.rigor !== t.rigor) summary.push(`Task "${t.title}": rigor "${old.rigor}" became "${t.rigor}"`); }
+        for (const a of to.plan.assumptions) if (!from.plan.assumptions.includes(a)) summary.push(`New assumption: ${a}`);
+        return ok({ from_version: from.version, to_version: to.version, summary, unchanged: summary.length === 0, budget: b.low_usd !== c.low_usd || b.high_usd !== c.high_usd ? { from_low: b.low_usd, from_high: b.high_usd, to_low: c.low_usd, to_high: c.high_usd } : null });
+      },
+      async decide(proposalId, decision) {
+        const s = load();
+        const p = s.plans.find((x) => x.id === proposalId);
+        const me = s.users.find((u) => u.id === currentUserId());
+        if (!p || !me) return fail("That couldn't be found.", "NOT_FOUND");
+        const isOwner = me.memberships.some((m) => m.organizationId === p.organization_id && m.role === "CLIENT_OWNER");
+        if (p.decision_owner === "CEO" ? me.role !== "owner" : !isOwner) return fail("This is the client's decision. You can make it only if their owner has given you permission.", "PERMISSION_REQUIRED");
+        if (p.status !== "SUBMITTED") return fail("This was already decided.", "ALREADY_DECIDED");
+        if (decision.action === "REQUEST_REVISION" && !decision.note?.trim()) return fail("Say what you would like changed.", "INVALID_PROPOSAL");
+        const now = new Date().toISOString();
+        p.decided_at = now; p.decision_note = decision.note?.trim() || null;
+        p.decision = decision.action === "APPROVE" ? "APPROVED" : decision.action === "REJECT" ? "REJECTED" : "REVISION_REQUESTED";
+        p.status = p.decision;
+        s.decisions.push({ proposal_id: p.id, version: p.version, decision: p.decision, decided_by_role: me.role === "owner" ? "CEO" : "CLIENT_OWNER", on_behalf: false, note: p.decision_note, decided_at: now });
+        let nextVersion: number | null = null;
+        if (decision.action === "APPROVE") {
+          const project = s.data.projects.find((x) => x.id === p.project_id); if (project) project.status = "ACTIVE";
+          s.delegations.push({ id: id(), proposal_id: p.id, approval_level: "L1", max_autonomy_mode: 3, scopes: [...new Set(p.plan.tasks.map((t) => `${t.domain}:${t.capability}`.toLowerCase()))], max_risk: 3, budget_max_usd: p.plan.budget.high_usd, on_behalf: false, created_at: now, revoked_at: null, revoked_reason: null });
+        }
+        if (decision.action === "REQUEST_REVISION") {
+          p.status = "SUPERSEDED";
+          const cheaper = /cheaper|cost|budget/i.test(decision.note ?? "");
+          const next: PlanVersion = structuredClone(p);
+          next.id = id(); next.version = p.version + 1; next.status = "SUBMITTED"; next.decided_at = null; next.decision = null; next.decision_note = null; next.submitted_at = now;
+          next.rationale = `Revision of version ${p.version}, asked for by the decision owner: "${decision.note}"`;
+          if (cheaper) { next.plan.budget = { ...next.plan.budget, low_usd: +(next.plan.budget.low_usd * 0.7).toFixed(2), high_usd: +(next.plan.budget.high_usd * 0.7).toFixed(2) }; next.plan.tasks = next.plan.tasks.map((t) => (t.risk < 3 && t.rigor === "standard" ? { ...t, rigor: "light" } : t)); }
+          next.plan.assumptions = [...next.plan.assumptions, `Changed after your feedback: "${decision.note}"`];
+          s.plans.push(next); nextVersion = next.version;
+        }
+        save(s);
+        return ok({ nextVersion });
+      },
+      async decisions(projectId) {
+        const s = load();
+        const ids = new Set(s.plans.filter((p) => p.project_id === projectId).map((p) => p.id));
+        return ok(structuredClone(s.decisions.filter((d) => ids.has(d.proposal_id))));
+      },
+      async delegations(projectId) {
+        const s = load();
+        const ids = new Set(s.plans.filter((p) => p.project_id === projectId).map((p) => p.id));
+        return ok(structuredClone(s.delegations.filter((d) => ids.has(d.proposal_id))));
+      },
+      async revokeDelegation(delegationId, reason) {
+        return mutate((s) => { const d = s.delegations.find((x) => x.id === delegationId); if (d && !d.revoked_at) { d.revoked_at = new Date().toISOString(); d.revoked_reason = reason || "Revoked"; } });
+      },
+      async mayDecideForClient() {
+        return false; // Off by default; the demo has no screen for a client to switch it on.
       },
     },
 

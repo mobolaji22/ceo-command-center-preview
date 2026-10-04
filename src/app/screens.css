@@ -173,3 +173,22 @@
 .attach input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .req { color: var(--gold, #c9a45c); font-style: normal; font-size: .75em; }
 .who { display: block; margin: 8px 0 2px; opacity: .6; }
+
+/* ---- the plan (P3) ------------------------------------------------------------------------- */
+.plan { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+.plan-versions { display: inline-flex; gap: 6px; }
+.plan-versions button { background: none; border: 1px solid var(--border); color: var(--muted-foreground); padding: 2px 9px; font-size: 10px; letter-spacing: .08em; cursor: pointer; }
+.plan-versions button.active { color: var(--primary); border-color: var(--primary); }
+.plan-doc { display: grid; gap: 4px; padding: 6px 0 4px; }
+.plan-doc h4 { margin: 12px 0 2px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--primary); font-weight: 600; }
+.plan-doc p, .plan-doc li { font-size: 13px; line-height: 1.55; }
+.plan-doc ul, .plan-doc ol { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.plan-doc li small, .plan-cost small { display: block; opacity: .7; font-size: 11px; }
+.plan-cost b { font-size: 16px; font-weight: 600; }
+.plan-change { margin-top: 6px; }
+.plan-change ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 12px; }
+.plan-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; align-items: flex-start; }
+.plan-confirm { display: grid; gap: 8px; flex: 1 1 100%; font-size: 12px; }
+.plan-confirm textarea, .plan-confirm input { width: 100%; background: oklch(0.11 0.005 270); color: var(--foreground); border: 1px solid var(--border); border-radius: 2px; padding: 9px 11px; font: 13px/1.5 "DM Sans", sans-serif; }
+.plan-confirm textarea { min-height: 70px; }
+.plan-history, .plan-delegation { margin-top: 14px; }

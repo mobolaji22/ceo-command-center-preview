@@ -177,6 +177,81 @@ export type Intent = {
   materials: Array<{ requirement_id: string; name: string; why: string; if_missing: string; required: boolean; ways: MaterialWay[]; sourcing: boolean }>
 };
 
+export type PlanStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REVISION_REQUESTED" | "REJECTED" | "SUPERSEDED";
+export type PlanDecision = "APPROVED" | "REVISION_REQUESTED" | "REJECTED";
+
+/** What a plan says, in the order a person reads it. */
+export type PlanContent = {
+  objective: string
+  scope_in: string[]
+  scope_out: string[]
+  deliverables: Array<{ id: string; name: string; domain: string }>
+  success_metrics: Array<{ id: string; metric: string; baseline: string | null; target: string; measurement: string; window: string; data_source: string }>
+  tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; depends_on: string[] }>
+  milestones: Array<{ name: string; after_tasks: string[] }>
+  budget: { low_usd: number; high_usd: number; confidence: number }
+  risks: Array<{ risk: string; mitigation: string }>
+  assumptions: string[]
+  open_context_needs: string[]
+  decision_points: Array<{ task_id: string | null; description: string }>
+};
+
+/** One version of a project's plan. A change is a new version; earlier ones stay on record. */
+export type PlanVersion = {
+  id: string
+  project_id: string
+  organization_id: string
+  version: number
+  status: PlanStatus
+  /** Who must say yes: the client's owner, or the CEO for the agency's own work. */
+  decision_owner: "CLIENT_OWNER" | "CEO"
+  impact: number
+  reversibility: number
+  rationale: string | null
+  submitted_at: string | null
+  decided_at: string | null
+  decision: PlanDecision | null
+  decision_note: string | null
+  /** The CEO decided for the client, under a permission their owner gave. */
+  on_behalf: boolean
+  plan: PlanContent
+};
+
+/** What changed between two versions, in plain sentences, with the money called out. */
+export type PlanChange = {
+  from_version: number
+  to_version: number
+  summary: string[]
+  budget: { from_low: number; from_high: number; to_low: number; to_high: number } | null
+  unchanged: boolean
+};
+
+export type DecisionEntry = {
+  proposal_id: string
+  version: number
+  decision: PlanDecision
+  decided_by_role: "CLIENT_OWNER" | "CEO"
+  on_behalf: boolean
+  note: string | null
+  decided_at: string
+};
+
+/** What the agency may do on a project without asking again: the approved plan, within limits. */
+export type DelegationView = {
+  id: string
+  proposal_id: string
+  approval_level: string
+  max_autonomy_mode: number
+  /** "domain:capability" */
+  scopes: string[]
+  max_risk: number
+  budget_max_usd: number | null
+  on_behalf: boolean
+  created_at: string
+  revoked_at: string | null
+  revoked_reason: string | null
+};
+
 export type Organization = {
   created_at: string
   id: string

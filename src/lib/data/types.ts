@@ -1,4 +1,4 @@
-import type { AppRole, Asset, AssetKind, ClientData, OrgRole, OwnerData, Session } from "../model";
+import type { AppRole, Asset, AssetKind, ClientData, DecisionEntry, DelegationView, OrgRole, OwnerData, PlanChange, PlanVersion, Session } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -112,6 +112,28 @@ export interface DataSource {
     submit(input: IntentInput): Promise<Result<{ status: string; projectId: string | null }>>;
     answer(intentId: string, clarificationId: string, answer: { optionId?: string; text?: string; useDefault?: boolean }): Promise<Result>;
     respond(requirementId: string, answer: MaterialAnswer, organizationId: string): Promise<Result>;
+  };
+
+  /**
+   * The plan for a project (P3): read it, ask for a change, approve or decline, see what changed and what was decided, and
+   * take back what the agency may do without asking. The API decides who may; the UI only hides what would be refused.
+   */
+  plans: {
+    /** Every version, oldest first. A client sees only what has been submitted to them. */
+    list(projectId: string): Promise<Result<PlanVersion[]>>;
+    /** What changed between a version and the one it replaced. */
+    changes(proposalId: string): Promise<Result<PlanChange>>;
+    /** A request for a change is answered with the next version straight away. */
+    decide(proposalId: string, decision: { action: "APPROVE" | "REQUEST_REVISION" | "REJECT"; note?: string }): Promise<Result<{ nextVersion: number | null }>>;
+    decisions(projectId: string): Promise<Result<DecisionEntry[]>>;
+    delegations(projectId: string): Promise<Result<DelegationView[]>>;
+    /** The client's owner or the CEO. From then on every step of the project asks first. */
+    revokeDelegation(delegationId: string, reason: string): Promise<Result>;
+    /**
+     * The CEO only: has the client's owner given permission to decide this plan for them? Used to show the action or explain
+     * why it is not there; the API still refuses a decision without the permission.
+     */
+    mayDecideForClient(plan: PlanVersion): Promise<boolean>;
   };
 
   /** The asset library: files held for a client, in their organization's library or one project. */
