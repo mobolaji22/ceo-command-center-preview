@@ -1,4 +1,4 @@
-import type { ActionLinkView, Answer, AppRole, Asset, AssetKind, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
+import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -159,6 +159,10 @@ export interface DataSource {
   actionLinks: {
     describe(token: string): Promise<Result<ActionLinkView>>;
     confirm(token: string): Promise<Result<{ option: ActionLinkView["option"] }>>;
+  };
+  /** The tamper-evident record of what was decided for a client: each entry is sealed to the one before it. */
+  audit: {
+    chain(organizationId: string): Promise<Result<AuditChain>>;
   };
   /**
    * Standing permission: what the agency may do for a client without asking each time, for a limited time. It covers only the kinds of
