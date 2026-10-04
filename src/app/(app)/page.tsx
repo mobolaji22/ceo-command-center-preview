@@ -12,6 +12,7 @@ const ownerKey = ["owner-data"] as const;
 import { BriefView, ComputerView, ContractsView, DirectiveView, PhoneView } from "@/components/cc/views";
 import { HallwayView, RoomView } from "@/components/cc/corridor";
 import { ManageView } from "@/components/cc/manage";
+import { ContractsDesk } from "@/components/cc/runs";
 
 
 type Hotspot = "focus" | "computer" | "phone" | "contracts" | "directive" | "brief" | "door";
@@ -86,7 +87,7 @@ export default function Index() {
       {data && <>
         {view === "computer" && <ComputerView data={data} refresh={refresh} openContracts={(id) => openView("contracts", id)} openBrief={() => openView("brief")} openManage={(id) => openView("manage", id)} />}
         {view === "phone" && <PhoneView data={data} refresh={refresh} openBrief={() => openView("brief")} openContracts={(id) => openView("contracts", id)} />}
-        {view === "contracts" && <ContractsView data={data} refresh={refresh} focusProjectId={focusProject} />}
+        {view === "contracts" && <><ContractsView data={data} refresh={refresh} focusProjectId={focusProject} /><ContractsDesk data={data} onChanged={refresh} /></>}
         {view === "directive" && <DirectiveView data={data} refresh={refresh} close={() => openView("office")} />}
         {view === "brief" && <BriefView data={data} refresh={refresh} openContracts={(id) => openView("contracts", id)} openComputer={() => openView("computer")} />}
         {view === "hallway" && <HallwayView data={data} enter={(d) => { setDept(d); openView("room"); }} openManage={() => openView("manage")} />}

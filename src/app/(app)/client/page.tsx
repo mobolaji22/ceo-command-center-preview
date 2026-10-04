@@ -11,6 +11,7 @@ import { useDataSource } from "@/lib/data";
 import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
 import { Library } from "@/components/cc/library";
 import { Composer, IntentList } from "@/components/cc/intents";
+import { ProjectRoom, QuestionsList } from "@/components/cc/runs";
 
 /**
  * Client Center (shell). A client sees only their own organization's projects and what was shared with
@@ -69,7 +70,10 @@ export default function ClientCenter() {
 
         <div className="section-label pd-label"><span>PROJECTS</span><span>{data.projects.length}</span></div>
         {data.projects.length === 0 ? <Empty title="No projects yet.">Projects appear here once the agency starts work for you.</Empty> :
-          data.projects.map((p) => <div key={p.id} className="resolved-row"><span>{p.name}<small>{p.objective ?? p.description ?? ""}</small></span><span className={`pill ${statusTone(p.status)}`}>{label(p.status).toUpperCase()}</span></div>)}
+          data.projects.map((p) => <ProjectRoom key={p.id} project={p} canControl={isOwner} />)}
+
+        <div className="section-label pd-label"><span>QUESTIONS FROM THE WORK</span></div>
+        <QuestionsList audience="client" onChanged={refresh} />
 
         <div className="section-label pd-label"><span>NEEDS YOUR SIGNATURE</span><span>{pending.length}</span></div>
         {msg && <p className="mmsg">{msg}</p>}
