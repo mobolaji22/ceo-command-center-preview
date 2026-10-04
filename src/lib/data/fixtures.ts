@@ -2,6 +2,7 @@ import type {
   Answer,
   Approval,
   Asset,
+  ActionLinkView,
   BriefDoc,
   BudgetView,
   ClientData,
@@ -32,7 +33,7 @@ import { fail, ok, type DataSource, type Result } from "./types";
  * client visibility is decided here the way the API will decide it.
  */
 
-const STORE_KEY = "dpl.fixtures.v5";
+const STORE_KEY = "dpl.fixtures.v6";
 const SESSION_KEY = "dpl.fixtures.session";
 const CHANGE_EVENT = "dpl:fixtures-change";
 
@@ -42,7 +43,7 @@ const id = () => crypto.randomUUID();
 type Membership = { organizationId: string; role: "CLIENT_OWNER" | "CLIENT_MEMBER" };
 type User = { id: string; email: string; displayName: string; role: "owner" | "client"; memberships: Membership[] };
 
-type Store = { data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView> };
+type Store = { data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView> };
 
 /** A demo plan: enough to show every part of the page. */
 const demoPlan = (): PlanContent => ({
@@ -191,7 +192,8 @@ function seed(): Store {
     { id: "n-1", brief_id: "b-1", title: "Lumen onboarding: the budget has been reached", type: "EXCEPTION", project_id: "p-2", level: 4, status: "SENT", reason: null, created_at: ago(5) },
     { id: "n-2", brief_id: "b-2", title: "Northwind checkout: what we will do", type: "KICKOFF", project_id: "p-1", level: 2, status: "WAITING_DIGEST", reason: "WAITS_FOR_DIGEST", created_at: ago(24 * 19) },
   ];
-  return { data, users, assets: [], lastSeen: ago(24 * 2), plans, decisions: [], delegations: [], runs, questions, budgets, briefs, prefs, notifications };
+  return { data, users, assets: [], lastSeen: ago(24 * 2), plans, decisions: [], delegations: [], runs, questions, budgets, briefs, prefs, notifications,
+    links: [{ token: "demo-redo", view: { state: "READY", option: "REWORK", label: "Redo the step", does: "The step is done again from the start, within the budget already approved.", title: "A quality check did not pass", summary: "A step's result did not meet the quality bar. It can be redone.", project: "Lumen onboarding", expires_at: ago(-24 * 3) } }] };
 }
 
 /** Can the signed-in person see this project's work? The CEO reaches all of it; a client only their own organization's. */
@@ -480,6 +482,23 @@ export function createFixturesDataSource(): DataSource {
       },
       async respond(requirementId) {
         return mutate((s) => { for (const i of s.data.intents) i.materials = i.materials.filter((m) => m.requirement_id !== requirementId); });
+      },
+    },
+
+    actionLinks: {
+      async describe(token) {
+        const l = load().links.find((x) => x.token === token);
+        return l ? ok(structuredClone(l.view)) : fail("That link isn't valid.", "INVALID_OR_EXPIRED");
+      },
+      async confirm(token) {
+        const s = load();
+        const l = s.links.find((x) => x.token === token);
+        if (!l) return fail("That link isn't valid.", "INVALID_OR_EXPIRED");
+        if (l.view.state === "EXPIRED") return fail("This link has expired.", "EXPIRED");
+        if (l.view.state !== "READY") return fail("This link has already been used.", "ALREADY_USED");
+        l.view.state = "USED";
+        save(s);
+        return ok({ option: l.view.option });
       },
     },
 

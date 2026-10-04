@@ -255,3 +255,9 @@
 .notify-settings small { color: var(--muted-foreground); font-size: 11px; line-height: 1.6; }
 .notify-actions { display: flex; gap: 12px; align-items: center; }
 .phone-settings { padding: 8px 4px 14px; }
+
+/* CC-5b: the page an emailed action link opens */
+.action-card { gap: 14px; }
+.action-does { border: 1px solid var(--border); padding: 12px 14px; text-align: left; }
+.action-does b { font-size: 13px; }
+.action-does p { margin: 6px 0 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.6; }

@@ -373,3 +373,10 @@ export type NotificationItem = {
   id: string; brief_id: string; title: string; type: BriefType; project_id: string | null; level: number;
   status: "QUEUED" | "SENT" | "FAILED" | "WAITING_DIGEST" | "DIGESTED" | "SKIPPED"; reason: string | null; created_at: string;
 };
+
+/** A question that can be answered from an email, without signing in: what it is and what answering would do. */
+export type ActionLinkView = {
+  state: "READY" | "USED" | "EXPIRED" | "ANSWERED";
+  option: "RESUME" | "RETRY" | "REWORK";
+  label: string; does: string; title: string; summary: string; project: string | null; expires_at: string;
+};

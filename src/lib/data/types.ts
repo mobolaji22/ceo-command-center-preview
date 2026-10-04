@@ -1,4 +1,4 @@
-import type { Answer, AppRole, Asset, AssetKind, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
+import type { ActionLinkView, Answer, AppRole, Asset, AssetKind, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -151,6 +151,14 @@ export interface DataSource {
     list(): Promise<Result<NotificationItem[]>>;
     preferences(): Promise<Result<NotificationPrefs>>;
     savePreferences(prefs: NotificationPrefs): Promise<Result<NotificationPrefs>>;
+  };
+  /**
+   * Answering one low-consequence question from an email, without signing in. Looking never changes anything (a mail scanner may
+   * open the link); only a separate confirmation answers, once.
+   */
+  actionLinks: {
+    describe(token: string): Promise<Result<ActionLinkView>>;
+    confirm(token: string): Promise<Result<{ option: ActionLinkView["option"] }>>;
   };
   plans: {
     /** Every version, oldest first. A client sees only what has been submitted to them. */

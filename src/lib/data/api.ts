@@ -1,4 +1,4 @@
-import type { Asset, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
+import type { ActionLinkView, Asset, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -34,6 +34,9 @@ const MESSAGES: Record<string, string> = {
   INVALID_EMAIL: "That doesn't look like an email address.",
   INVALID_BODY: "Some of what you entered isn't valid.",
   NOT_FOUND: "That couldn't be found.",
+  ALREADY_USED: "This link has already been used.",
+  ALREADY_ANSWERED: "This was already answered.",
+  EXPIRED: "This link has expired.",
 };
 
 async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
@@ -332,6 +335,17 @@ export function createApiDataSource(): DataSource {
       async savePreferences(p) {
         const r = await call<ApiPrefs>("PUT", "/v1/me/notification-preferences", { timezone: p.timezone, quietHours: p.quiet_hours, minInterruptLevel: p.min_interrupt_level, emailEnabled: p.email_enabled, digest: p.digest });
         return r.error || !r.data ? { data: null, error: r.error } : ok(toPrefs(r.data));
+      },
+    },
+
+    actionLinks: {
+      async describe(token) {
+        const r = await call<{ state: ActionLinkView["state"]; option: ActionLinkView["option"]; label: string; does: string; title: string; summary: string; project: string | null; expiresAt: string }>("GET", `/v1/action-links/${encodeURIComponent(token)}`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ state: r.data.state, option: r.data.option, label: r.data.label, does: r.data.does, title: r.data.title, summary: r.data.summary, project: r.data.project, expires_at: r.data.expiresAt });
+      },
+      async confirm(token) {
+        const r = await call<{ done: true; option: ActionLinkView["option"] }>("POST", `/v1/action-links/${encodeURIComponent(token)}/confirm`, { confirm: true });
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ option: r.data.option });
       },
     },
 

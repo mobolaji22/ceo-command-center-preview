@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 
 const ADMIN = process.env["E2E_PG_ADMIN"] ?? "postgresql://lovable@localhost:5432/postgres?host=/tmp";
 
@@ -37,4 +38,28 @@ export function recordSpend(projectNamePattern: string, usd: number) {
     SELECT gen_random_uuid()::text, r."organizationId", r."projectId", r.id, (SELECT t.id FROM "Task" t WHERE t."runId" = r.id LIMIT 1), 'e2e', 'SETTLED', ${micros}, ${micros}, now()
     FROM "Run" r JOIN "Project" p ON p.id = r."projectId" WHERE p.name ILIKE '${projectNamePattern}' ORDER BY r."startedAt" DESC LIMIT 1`;
   execFileSync("psql", [u.toString(), "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio: "pipe" });
+}
+
+const V4_DIR = resolve(process.env["V4_DIR"] ?? "../dev-playbook-v4");
+
+/** The id of a brief written to a client, for a test that follows a link in an email to it. */
+export function aClientBriefId(): string {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  return execFileSync("psql", [u.toString(), "-t", "-A", "-c", `SELECT id FROM "Brief" WHERE audience = 'CLIENT' AND type = 'KICKOFF' ORDER BY "compiledAt" LIMIT 1`], { encoding: "utf8" }).trim();
+}
+
+/**
+ * Stands in for the worker emailing a brief about a stopped project: has v4 write the Exception brief for the project's open question
+ * and issue the action links that email would carry, with the real signing secret. Returns each link's answer and the token in it.
+ */
+export function actionLinksFor(projectNameFragment: string, ownerEmail: string): Array<{ option: string; token: string }> {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const out = execFileSync("npx", ["tsx", resolve("e2e/make-action-link.mjs"), projectNameFragment, ownerEmail], {
+    cwd: V4_DIR, encoding: "utf8",
+    env: { ...process.env, DATABASE_URL: u.toString(), AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-0000", APP_URL: "http://localhost:3100" },
+  });
+  const links = JSON.parse(out.trim().split("\n").at(-1)!) as Array<{ option: string; url: string }>;
+  return links.map((l) => ({ option: l.option, token: l.url.split("/act/")[1]! }));
 }
