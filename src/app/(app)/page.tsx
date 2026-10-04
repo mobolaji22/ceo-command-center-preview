@@ -11,7 +11,7 @@ import { useDataSource } from "@/lib/data";
 const ownerKey = ["owner-data"] as const;
 import { attentionCounts, needYou } from "@/lib/attention";
 import { BriefView, ComputerView, ContractsView, DirectiveView, PhoneView } from "@/components/cc/views";
-import { HallwayView, RoomView } from "@/components/cc/corridor";
+import { HallwayView, RoomView, departmentName } from "@/components/cc/corridor";
 import { ManageView } from "@/components/cc/manage";
 import { ContractsDesk } from "@/components/cc/runs";
 
@@ -87,7 +87,7 @@ export default function Index() {
     </div>}
 
     {view !== "office" && <div className="workspace">
-      <div className="workspace-heading"><Button variant="ghost" className="back-link" onClick={() => openView("office")}><ArrowLeft size={16} /> BACK TO OFFICE</Button><span className="workspace-path">DEVPLAYBOOK &nbsp; / &nbsp; {view === "room" ? dept.toUpperCase() : view.toUpperCase()}</span><span className="workspace-right"><span className="live-dot" /> LIVE LEDGER</span></div>
+      <div className="workspace-heading"><Button variant="ghost" className="back-link" onClick={() => openView("office")}><ArrowLeft size={16} /> BACK TO OFFICE</Button><span className="workspace-path">DEVPLAYBOOK &nbsp; / &nbsp; {view === "room" ? departmentName(dept).toUpperCase() : view.toUpperCase()}</span><span className="workspace-right"><span className="live-dot" /> LIVE LEDGER</span></div>
       {q.isError && <div className="empty-state"><b>Couldn't load the ledger.</b><p>{(q.error as Error).message}</p></div>}
       {!data && !q.isError && <div className="empty-state"><span className="pulse-dot" /><b>Synchronizing…</b></div>}
       {data && <>

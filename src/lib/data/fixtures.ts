@@ -33,7 +33,7 @@ import { fail, ok, type DataSource, type Result } from "./types";
  * client visibility is decided here the way the API will decide it.
  */
 
-const STORE_KEY = "dpl.fixtures.v6";
+const STORE_KEY = "dpl.fixtures.v7";
 const SESSION_KEY = "dpl.fixtures.session";
 const CHANGE_EVENT = "dpl:fixtures-change";
 
@@ -74,10 +74,10 @@ function seed(): Store {
     .map((u) => ({ id: u.id, email: u.email, display_name: u.displayName, created_at: ago(24 * 40), memberships: u.memberships.map((m) => ({ organization_id: m.organizationId, role: m.role })) }));
 
   const projects: Project[] = [
-    { id: "p-1", organization_id: "o-1", name: "Northwind storefront redesign", description: "Redesign the online storefront and ordering flow.", objective: "Lift online orders by 25% in a quarter", status: "ACTIVE", priority: 80, domains: ["Brand", "Design", "Engineering"], created_at: ago(24 * 18), started_at: ago(24 * 16), completed_at: null },
-    { id: "p-2", organization_id: "o-2", name: "Lumen patient onboarding flow", description: "A calmer, shorter intake for new patients.", objective: "Cut intake abandonment in half", status: "WAITING", wait_reason: "APPROVAL", priority: 70, domains: ["Strategy", "Design", "Content"], created_at: ago(24 * 11), started_at: ago(24 * 9), completed_at: null },
-    { id: "p-3", organization_id: "o-3", name: "Portfolio v2", description: "The agency's own portfolio.", objective: "Win two inbound enquiries a month", status: "PROPOSED", priority: 50, domains: ["Design", "Engineering"], created_at: ago(24 * 5), started_at: null, completed_at: null },
-    { id: "p-4", organization_id: "o-1", name: "Northwind brand audit", description: "Audit of the existing brand system.", objective: "Know what to keep and what to retire", status: "COMPLETED", priority: 40, domains: ["Brand"], created_at: ago(24 * 60), started_at: ago(24 * 58), completed_at: ago(24 * 35) },
+    { id: "p-1", organization_id: "o-1", name: "Northwind storefront redesign", description: "Redesign the online storefront and ordering flow.", objective: "Lift online orders by 25% in a quarter", status: "ACTIVE", priority: 80, domains: ["BRAND", "DESIGN", "ENGINEERING"], created_at: ago(24 * 18), started_at: ago(24 * 16), completed_at: null },
+    { id: "p-2", organization_id: "o-2", name: "Lumen patient onboarding flow", description: "A calmer, shorter intake for new patients.", objective: "Cut intake abandonment in half", status: "WAITING", wait_reason: "APPROVAL", priority: 70, domains: ["STRATEGY", "DESIGN", "CONTENT"], created_at: ago(24 * 11), started_at: ago(24 * 9), completed_at: null },
+    { id: "p-3", organization_id: "o-3", name: "Portfolio v2", description: "The agency's own portfolio.", objective: "Win two inbound enquiries a month", status: "PROPOSED", priority: 50, domains: ["DESIGN", "ENGINEERING"], created_at: ago(24 * 5), started_at: null, completed_at: null },
+    { id: "p-4", organization_id: "o-1", name: "Northwind brand audit", description: "Audit of the existing brand system.", objective: "Know what to keep and what to retire", status: "COMPLETED", priority: 40, domains: ["BRAND"], created_at: ago(24 * 60), started_at: ago(24 * 58), completed_at: ago(24 * 35) },
   ];
 
   const data: OwnerData = {
