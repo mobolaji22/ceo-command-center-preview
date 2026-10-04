@@ -317,3 +317,31 @@ export type Session = {
   /** Client organizations this person belongs to (empty for the CEO, who reaches all of them). */
   memberships: Array<{ organizationId: string; role: OrgRole }>;
 };
+
+/* ---- The work itself (CC-4): a run, its tasks, its budget, and what it is waiting to ask ---- */
+
+export type RunStatus = "RUNNING" | "WAITING" | "PAUSED" | "COMPLETED" | "FAILED" | "CANCELLED";
+export type RunTask = {
+  id: string; plan_task_id: string; title: string; domain: string;
+  status: "PENDING" | "READY" | "RUNNING" | "WAITING" | "WAITING_FOR_HUMAN" | "BLOCKED" | "FAILED" | "COMPLETED" | "CANCELLED";
+  wait_reason: string | null; depends_on: string[];
+  /** Something it was built on changed, so it is being done again. */
+  stale: boolean;
+};
+export type RunView = {
+  id: string; project_id: string; status: RunStatus; wait_reason: string | null; plan_version: number;
+  close_reason: string | null; started_at: string; ended_at: string | null; tasks: RunTask[];
+};
+/** How much of what the client approved has been used. Totals only. */
+export type BudgetView = { run_id: string; run_status: RunStatus; approved_usd: number | null; used_usd: number; used_percent: number | null };
+
+/** "A human is needed": what a stopped run is waiting for somebody to answer. */
+export type Question = {
+  id: string; project_id: string; organization_id: string; run_id: string; task_id: string | null;
+  reason: string; routed_to: "CLIENT_OWNER" | "CEO"; status: "OPEN" | "REMINDED" | "ESCALATED" | "EXPIRED";
+  title: string; summary: string;
+  /** The system's own account of what went wrong. Only the agency receives it. */
+  detail: string | null;
+  options: string[]; recommendation: { option: string; why: string } | null; deadline: string | null; created_at: string;
+};
+export type Answer = { option: string; note?: string; toUsd?: number; evidence?: string };

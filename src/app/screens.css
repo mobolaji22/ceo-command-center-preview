@@ -192,3 +192,43 @@
 .plan-confirm textarea, .plan-confirm input { width: 100%; background: oklch(0.11 0.005 270); color: var(--foreground); border: 1px solid var(--border); border-radius: 2px; padding: 9px 11px; font: 13px/1.5 "DM Sans", sans-serif; }
 .plan-confirm textarea { min-height: 70px; }
 .plan-history, .plan-delegation { margin-top: 14px; }
+/* ---- CC-4: the case file, and the questions the work asks ---- */
+.dossier-row.with-case { grid-template-columns: 55px 1fr 200px 70px; }
+.dossier-row.with-case .icon-button + .icon-button { margin-left: 2px; }
+.case-slot { grid-column: 1 / -1; padding: 4px 0 22px; }
+.case-file { border: 1px solid var(--border); background: oklch(0.15 0.006 270); padding: 18px 20px; display: grid; gap: 16px; text-align: left; }
+.case-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.case-head small, .case-none { color: var(--muted-foreground); font-size: 11px; }
+.case-budget-line { font-size: 12px; color: var(--muted-foreground); }
+.case-budget-line b { color: var(--foreground); font-weight: 600; }
+.case-meter { height: 5px; margin-top: 8px; background: oklch(1 0 0 / 7%); border-radius: 3px; overflow: hidden; }
+.case-meter i { display: block; height: 100%; background: oklch(0.78 0.14 157); }
+.case-meter i.high { background: var(--primary); }
+.case-meter i.full { background: oklch(0.65 0.2 25); }
+.case-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--border); }
+.case-step { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.case-step b { display: block; font-size: 13px; font-weight: 500; }
+.case-step small { display: block; color: var(--muted-foreground); font-size: 11px; margin-top: 4px; }
+.case-dot { flex: none; width: 17px; height: 17px; margin-top: 1px; border-radius: 50%; border: 1px solid var(--border); display: grid; place-items: center; color: var(--background); }
+.case-step.done .case-dot { background: oklch(0.78 0.14 157); border-color: transparent; }
+.case-step.now .case-dot { border-color: oklch(0.78 0.14 157); box-shadow: 0 0 0 3px oklch(0.78 0.14 157 / 18%); }
+.case-step.next .case-dot { border-color: var(--primary); }
+.case-step.ask .case-dot { background: var(--primary); border-color: transparent; }
+.case-step.bad .case-dot { background: oklch(0.65 0.2 25); border-color: transparent; }
+.case-step.later { opacity: .72; }
+.case-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+.questions { display: grid; gap: 12px; }
+.question { border: 1px solid oklch(0.76 0.146 76 / 28%); background: linear-gradient(145deg, oklch(0.2 0.02 76 / 40%), oklch(0.14 0.006 270)); padding: 16px 18px; display: grid; gap: 10px; text-align: left; }
+.question-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.question-head b { font: 400 21px "Cormorant Garamond", serif; }
+.question-head small, .question-asked, .question-why, .question-detail { color: var(--muted-foreground); font-size: 11px; }
+.question p { margin: 0; font-size: 13px; line-height: 1.6; }
+.question-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.question-options button.chosen { border-color: var(--primary); color: var(--primary); }
+.recommended { color: var(--primary); font-style: normal; font-size: 9px; letter-spacing: .08em; }
+.desk-plan { margin-bottom: 18px; }
+.contracts-desk { max-width: 1020px; margin: 0 auto 60px; padding: 0 24px; display: grid; gap: 14px; }
+.project-room { flex-wrap: wrap; }
+.project-room-actions { display: inline-flex; align-items: center; gap: 14px; }
+.project-room .case-slot { flex: 1 1 100%; }
+

@@ -1,6 +1,8 @@
 import type {
+  Answer,
   Approval,
   Asset,
+  BudgetView,
   ClientData,
   DecisionEntry,
   DelegationView,
@@ -9,6 +11,8 @@ import type {
   PlanVersion,
   Profile,
   Project,
+  Question,
+  RunView,
   Session,
   V4Event,
 } from "../model";
@@ -25,7 +29,7 @@ import { fail, ok, type DataSource, type Result } from "./types";
  * client visibility is decided here the way the API will decide it.
  */
 
-const STORE_KEY = "dpl.fixtures.v3";
+const STORE_KEY = "dpl.fixtures.v4";
 const SESSION_KEY = "dpl.fixtures.session";
 const CHANGE_EVENT = "dpl:fixtures-change";
 
@@ -35,7 +39,7 @@ const id = () => crypto.randomUUID();
 type Membership = { organizationId: string; role: "CLIENT_OWNER" | "CLIENT_MEMBER" };
 type User = { id: string; email: string; displayName: string; role: "owner" | "client"; memberships: Membership[] };
 
-type Store = { data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[] };
+type Store = { data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; budgets: Record<string, BudgetView> };
 
 /** A demo plan: enough to show every part of the page. */
 const demoPlan = (): PlanContent => ({
@@ -145,7 +149,64 @@ function seed(): Store {
     id: "pl-1", project_id: "p-1", organization_id: "o-1", version: 1, status: "SUBMITTED", decision_owner: "CLIENT_OWNER", impact: 3, reversibility: 3, rationale: null,
     submitted_at: ago(24 * 19), decided_at: null, decision: null, decision_note: null, on_behalf: false, plan: demoPlan(),
   }];
-  return { data, users, assets: [], lastSeen: ago(24 * 2), plans, decisions: [], delegations: [] };
+  // Lumen's onboarding work has used up the budget they approved, so it stopped and is asking Tunde whether to allow more.
+  const runs: RunView[] = [{
+    id: "r-2", project_id: "p-2", status: "WAITING", wait_reason: "BUDGET_EXCEEDED", plan_version: 1, close_reason: null, started_at: ago(24 * 6), ended_at: null,
+    tasks: [
+      { id: "r2-a", plan_task_id: "t1", title: "Map the current intake journey", domain: "Strategy", status: "COMPLETED", wait_reason: null, depends_on: [], stale: false },
+      { id: "r2-b", plan_task_id: "t2", title: "Design the calmer intake form", domain: "Design", status: "COMPLETED", wait_reason: null, depends_on: ["t1"], stale: false },
+      { id: "r2-c", plan_task_id: "t3", title: "Publish the new intake form", domain: "Engineering", status: "WAITING", wait_reason: "BUDGET_EXCEEDED", depends_on: ["t2"], stale: false },
+      { id: "r2-d", plan_task_id: "t4", title: "Measure abandonment for two weeks", domain: "Strategy", status: "PENDING", wait_reason: null, depends_on: ["t3"], stale: false },
+    ],
+  }];
+  const questions: Question[] = [{
+    id: "q-1", project_id: "p-2", organization_id: "o-2", run_id: "r-2", task_id: "r2-c", reason: "BUDGET_EXCEEDED", routed_to: "CLIENT_OWNER", status: "OPEN",
+    title: "The budget has been reached", summary: "The work has reached the budget that was approved ($1.50). Nothing more has been spent. You can allow more, or stop here.",
+    detail: "Publish the new intake form: this would take the run past the budget the client approved.", options: ["RAISE_BUDGET", "STOP_RUN"],
+    recommendation: { option: "RAISE_BUDGET", why: "Raising the limit to $1.88 lets the plan finish." }, deadline: ago(-24 * 3), created_at: ago(5),
+  }];
+  const budgets: Record<string, BudgetView> = { "p-2": { run_id: "r-2", run_status: "WAITING", approved_usd: 1.5, used_usd: 1.5, used_percent: 100 } };
+  return { data, users, assets: [], lastSeen: ago(24 * 2), plans, decisions: [], delegations: [], runs, questions, budgets };
+}
+
+/** Can the signed-in person see this project's work? The CEO reaches all of it; a client only their own organization's. */
+function mayReach(s: Store, projectId: string): boolean {
+  const uid = typeof window === "undefined" ? null : window.localStorage.getItem(SESSION_KEY);
+  const me = s.users.find((u) => u.id === uid);
+  if (!me) return false;
+  if (me.role === "owner") return true;
+  const project = s.data.projects.find((p) => p.id === projectId);
+  return Boolean(project && me.memberships.some((m) => m.organizationId === project.organization_id));
+}
+
+/** The work ends here: the run and what was unfinished are cancelled, and the project is stopped. */
+function endRunFixture(s: Store, run: RunView) {
+  run.status = "CANCELLED"; run.wait_reason = null; run.ended_at = new Date().toISOString(); run.close_reason = "STOPPED_BY_OWNER";
+  run.tasks.forEach((t) => { if (!["COMPLETED", "FAILED", "CANCELLED"].includes(t.status)) { t.status = "CANCELLED"; t.wait_reason = null; } });
+  const project = s.data.projects.find((p) => p.id === run.project_id);
+  if (project) { project.status = "CANCELLED"; project.wait_reason = null; }
+  s.questions = s.questions.filter((q) => q.run_id !== run.id);
+  if (s.budgets[run.project_id]) s.budgets[run.project_id]!.run_status = "CANCELLED";
+}
+
+/** What answering a question does, in the demo: the work goes on or ends, and the question is closed. */
+function applyAnswer(s: Store, q: Question, answer: Answer) {
+  if (!q.options.includes(answer.option)) throw new Error("That is not one of the answers offered.");
+  const run = s.runs.find((r) => r.id === q.run_id);
+  if (!run) throw new Error("This was already answered.");
+  if (answer.option === "STOP_RUN") { endRunFixture(s, run); return; }
+  if (answer.option === "RAISE_BUDGET") {
+    const b = s.budgets[q.project_id];
+    if (!answer.toUsd || !b || answer.toUsd <= (b.approved_usd ?? 0)) throw new Error("Something needed for that answer is missing or not valid.");
+    b.approved_usd = answer.toUsd; b.used_percent = Math.round((b.used_usd / answer.toUsd) * 1000) / 10;
+  }
+  if (answer.option === "ACCEPT_RISK" && !answer.note?.trim()) throw new Error("Something needed for that answer is missing or not valid.");
+  run.status = "RUNNING"; run.wait_reason = null;
+  run.tasks.forEach((t) => { if (t.status === "WAITING" && t.id === q.task_id) { t.status = "READY"; t.wait_reason = null; } });
+  const project = s.data.projects.find((p) => p.id === q.project_id);
+  if (project && ["WAITING", "PAUSED"].includes(project.status)) { project.status = "ACTIVE"; project.wait_reason = null; }
+  if (s.budgets[q.project_id]) s.budgets[q.project_id]!.run_status = "RUNNING";
+  s.questions = s.questions.filter((x) => x.id !== q.id);
 }
 
 function load(): Store {
@@ -183,7 +244,7 @@ export function createFixturesDataSource(): DataSource {
   };
   const mutate = (fn: (s: Store) => void): Result => {
     const s = load();
-    fn(s);
+    try { fn(s); } catch (e) { return fail((e as Error).message); }
     save(s);
     return ok(undefined as void);
   };
@@ -383,6 +444,64 @@ export function createFixturesDataSource(): DataSource {
       },
       async respond(requirementId) {
         return mutate((s) => { for (const i of s.data.intents) i.materials = i.materials.filter((m) => m.requirement_id !== requirementId); });
+      },
+    },
+
+    runs: {
+      async list(projectId) {
+        const s = load();
+        return ok(structuredClone(s.runs.filter((r) => r.project_id === projectId && mayReach(s, projectId)).sort((a, b) => b.started_at.localeCompare(a.started_at))));
+      },
+      async budget(projectId) {
+        const s = load();
+        return ok(mayReach(s, projectId) ? structuredClone(s.budgets[projectId] ?? null) : null);
+      },
+      async pause(projectId, note) {
+        return mutate((s) => {
+          const run = s.runs.find((r) => r.project_id === projectId && r.status === "RUNNING");
+          if (!run) throw new Error(s.runs.some((r) => r.project_id === projectId && r.status === "PAUSED") ? "The work is already paused." : "There is nothing running to pause.");
+          const by = currentUserId() === "u-ceo" && s.users.find((u) => u.id === currentUserId())?.role === "owner" ? "the agency" : "the project's owner";
+          run.status = "PAUSED";
+          const project = s.data.projects.find((p) => p.id === projectId);
+          if (project) project.status = "PAUSED";
+          s.questions.push({
+            id: id(), project_id: projectId, organization_id: project?.organization_id ?? "", run_id: run.id, task_id: null, reason: "PAUSED_BY_OWNER",
+            routed_to: by === "the agency" ? "CEO" : "CLIENT_OWNER", status: "OPEN", title: "The work is paused",
+            summary: `The work was paused by ${by}${note ? `: ${note}` : ""}. Work already under way was allowed to finish; nothing new has started and nothing will until it is resumed.`,
+            detail: null, options: ["RESUME", "STOP_RUN"], recommendation: null, deadline: null, created_at: new Date().toISOString(),
+          });
+        });
+      },
+      async resume(projectId) {
+        return mutate((s) => {
+          const q = s.questions.find((x) => x.project_id === projectId && x.reason === "PAUSED_BY_OWNER");
+          if (!q) throw new Error("The work is not paused.");
+          applyAnswer(s, q, { option: "RESUME" });
+        });
+      },
+      async cancel(projectId) {
+        return mutate((s) => {
+          const run = s.runs.find((r) => r.project_id === projectId && ["RUNNING", "WAITING", "PAUSED"].includes(r.status));
+          if (!run) throw new Error("There is no work under way to do that to.");
+          endRunFixture(s, run);
+        });
+      },
+    },
+
+    questions: {
+      async list(opts) {
+        const s = load();
+        const me = s.users.find((u) => u.id === currentUserId());
+        const agency = me?.role === "owner";
+        const mine = s.questions.filter((q) => (!opts?.projectId || q.project_id === opts.projectId) && mayReach(s, q.project_id) && (agency || q.routed_to === "CLIENT_OWNER" || q.reason === "PAUSED_BY_OWNER"));
+        return ok(structuredClone(mine).map((q) => (agency ? q : { ...q, detail: null })));
+      },
+      async answer(questionId, answer) {
+        return mutate((s) => {
+          const q = s.questions.find((x) => x.id === questionId);
+          if (!q) throw new Error("This was already answered.");
+          applyAnswer(s, q, answer);
+        });
       },
     },
 

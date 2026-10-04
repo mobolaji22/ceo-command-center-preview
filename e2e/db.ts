@@ -24,3 +24,17 @@ export function allowCeoToDecideFor(organizationName: string, ceoEmail: string, 
     FROM "Organization" o, "User" c, "User" w WHERE o.name = '${organizationName}' AND c.email = '${ceoEmail}' AND w.email = '${ownerEmail}'`;
   execFileSync("psql", [u.toString(), "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio: "pipe" });
 }
+
+/**
+ * Stands in for the engine having done some paid work: a settled cost record against the project's newest run. (Nothing in the
+ * end-to-end environment runs the worker, so the budget meter would otherwise always read zero.)
+ */
+export function recordSpend(projectNamePattern: string, usd: number) {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const micros = Math.round(usd * 1_000_000);
+  const sql = `INSERT INTO "CostRecord" (id, "organizationId", "projectId", "runId", "taskId", executor, status, "reservedMicros", "actualMicros", "settledAt")
+    SELECT gen_random_uuid()::text, r."organizationId", r."projectId", r.id, (SELECT t.id FROM "Task" t WHERE t."runId" = r.id LIMIT 1), 'e2e', 'SETTLED', ${micros}, ${micros}, now()
+    FROM "Run" r JOIN "Project" p ON p.id = r."projectId" WHERE p.name ILIKE '${projectNamePattern}' ORDER BY r."startedAt" DESC LIMIT 1`;
+  execFileSync("psql", [u.toString(), "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio: "pipe" });
+}

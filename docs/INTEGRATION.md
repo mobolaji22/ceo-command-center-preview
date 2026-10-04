@@ -37,6 +37,11 @@ spends it, so a mail scanner that fetches the link cannot use it up. There are n
 | plans.decisions                               | GET /v1/projects/:id/decisions |
 | plans.delegations / revokeDelegation          | GET /v1/projects/:id/delegations, POST /v1/delegations/:id/revoke |
 | plans.mayDecideForClient                      | GET /v1/organizations/:id/permissions (a `DECIDE_ON_BEHALF` permission naming the plan, or standing and covering it) |
+| runs.list                                     | GET /v1/projects/:id/runs (the work of an approved plan, with each step and why it is waiting) |
+| runs.budget                                   | GET /v1/projects/:id/budget (how much of the approved budget is used: totals only; the cost records are the agency's and are not read here) |
+| runs.pause / resume / cancel                  | POST /v1/projects/:id/pause, /resume, /cancel (the decision owner and the CEO; only the side that held the work can lift it; the API's refusal is shown as it is) |
+| questions.list                                | GET /v1/interventions?status=live[&projectId=] (each person gets only what is asked of them; the agency also gets `detail`) |
+| questions.answer                              | POST /v1/interventions/:id/resolve (`option`, `note`, `params.toUsd`, `params.evidence`) |
 | commands.markSeen                             | POST /v1/console/seen |
 | commands.createOrganization                   | POST /v1/organizations (CEO) |
 | commands.invitePerson                         | POST /v1/invitations (needs step-up: `/v1/auth/step-up/request` then `/verify`) |

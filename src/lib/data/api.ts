@@ -1,4 +1,4 @@
-import type { Asset, ClientData, DecisionEntry, DelegationView, OwnerData, PlanContent, PlanVersion, Session } from "../model";
+import type { Asset, BudgetView, ClientData, DecisionEntry, DelegationView, OwnerData, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -17,6 +17,13 @@ const MESSAGES: Record<string, string> = {
   FORBIDDEN: "You don't have access to do that.",
   STEP_UP_REQUIRED: "For safety, please confirm it's you first.",
   INVALID_OR_EXPIRED: "That link or code has expired or was already used. Ask for a new one.",
+  NO_LIVE_RUN: "There is no work under way to do that to.",
+  ALREADY_PAUSED: "The work is already paused.",
+  ALREADY_STOPPED: "The work is already waiting for an answer. Answer that instead.",
+  NOT_PAUSED: "The work is not paused.",
+  ALREADY_RESOLVED: "This was already answered.",
+  INVALID_OPTION: "That is not one of the answers offered.",
+  INVALID_PARAMS: "Something needed for that answer is missing or not valid.",
   PERMISSION_REQUIRED: "This is the client's decision. You can make it only if their owner has given you permission.",
   APPROVAL_ALREADY_RESOLVED: "This was already decided.",
   NOT_SCANNED: "This file hasn't passed its safety scan, so it can't be downloaded.",
@@ -84,6 +91,18 @@ type ApiProposal = {
   impact: number; reversibility: number; rationale: string | null; submittedAt: string | null; decidedAt: string | null; decision: PlanVersion["decision"];
   decisionNote: string | null; onBehalfPermissionId: string | null; content: ApiPlan;
 };
+type ApiRun = { id: string; projectId: string; status: RunView["status"]; waitReason: string | null; planVersion: number; closeReason: string | null; startedAt: string; endedAt: string | null };
+type ApiRunTask = { id: string; planTaskId: string | null; title: string; domain: string; status: RunTask["status"]; waitReason: string | null; dependencies: string[]; staleAt: string | null };
+const toRunTask = (t: ApiRunTask): RunTask => ({ id: t.id, plan_task_id: t.planTaskId ?? t.id, title: t.title, domain: t.domain, status: t.status, wait_reason: t.waitReason, depends_on: t.dependencies, stale: t.staleAt !== null });
+type ApiQuestion = {
+  id: string; projectId: string; organizationId: string; runId: string; taskId: string | null; reason: string; routedTo: Question["routed_to"]; status: Question["status"];
+  title: string; summary: string; detail?: string | null; options: Array<{ id: string }>; recommendation: { option: string; why: string } | null; deadline: string | null; createdAt: string;
+};
+const toQuestion = (q: ApiQuestion): Question => ({
+  id: q.id, project_id: q.projectId, organization_id: q.organizationId, run_id: q.runId, task_id: q.taskId, reason: q.reason, routed_to: q.routedTo, status: q.status,
+  title: q.title, summary: q.summary, detail: q.detail ?? null, options: q.options.map((o) => o.id), recommendation: q.recommendation, deadline: q.deadline, created_at: q.createdAt,
+});
+
 const toPlan = (c: ApiPlan): PlanContent => ({
   objective: c.objective, scope_in: c.scope.in, scope_out: c.scope.out, deliverables: c.deliverables,
   success_metrics: c.successMetrics.map((m) => ({ id: m.id, metric: m.metric, baseline: m.baseline, target: m.target, measurement: m.measurement, window: m.window, data_source: m.dataSource })),
@@ -235,6 +254,36 @@ export function createApiDataSource(): DataSource {
           return voidResult(await call("POST", `/v1/requirements/${requirementId}/respond`, { action: "UPLOAD", assetId: staged.data }));
         }
         return voidResult(await call("POST", `/v1/requirements/${requirementId}/respond`, answer));
+      },
+    },
+
+    runs: {
+      async list(projectId) {
+        const r = await call<Array<{ run: ApiRun; tasks: ApiRunTask[] }>>("GET", `/v1/projects/${projectId}/runs`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map(({ run, tasks }): RunView => ({
+          id: run.id, project_id: run.projectId, status: run.status, wait_reason: run.waitReason, plan_version: run.planVersion, close_reason: run.closeReason,
+          started_at: run.startedAt, ended_at: run.endedAt, tasks: tasks.map(toRunTask),
+        })));
+      },
+      async budget(projectId) {
+        const r = await call<{ runId: string | null; runStatus?: RunView["status"]; approvedUsd?: number | null; usedUsd?: number; usedPercent?: number | null }>("GET", `/v1/projects/${projectId}/budget`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        const b = r.data;
+        return ok(b.runId === null ? null : ({ run_id: b.runId, run_status: b.runStatus!, approved_usd: b.approvedUsd ?? null, used_usd: b.usedUsd ?? 0, used_percent: b.usedPercent ?? null } satisfies BudgetView));
+      },
+      async pause(projectId, note) { return voidResult(await call("POST", `/v1/projects/${projectId}/pause`, note ? { note } : {})); },
+      async resume(projectId) { return voidResult(await call("POST", `/v1/projects/${projectId}/resume`, {})); },
+      async cancel(projectId, note) { return voidResult(await call("POST", `/v1/projects/${projectId}/cancel`, note ? { note } : {})); },
+    },
+
+    questions: {
+      async list(opts) {
+        const r = await call<ApiQuestion[]>("GET", `/v1/interventions?status=live${opts?.projectId ? `&projectId=${opts.projectId}` : ""}`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map(toQuestion));
+      },
+      async answer(questionId, answer) {
+        const params = { ...(answer.toUsd !== undefined ? { toUsd: answer.toUsd } : {}), ...(answer.evidence ? { evidence: answer.evidence } : {}) };
+        return voidResult(await call("POST", `/v1/interventions/${questionId}/resolve`, { option: answer.option, ...(answer.note ? { note: answer.note } : {}), ...(Object.keys(params).length ? { params } : {}) }));
       },
     },
 

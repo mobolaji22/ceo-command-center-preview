@@ -1,5 +1,6 @@
 "use client";
 
+import { CaseFileToggle, PhoneQuestions, Standing } from "./runs";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowDownRight, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, MoreHorizontal, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,10 +30,10 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
     <div className="computer-body"><div className="computer-heading"><div><div className="eyebrow gold">THE ORGANIZATIONAL NERVOUS SYSTEM</div><h2>Operating overview<span className="period">.</span></h2><p>{data.projects.length} projects · {data.tasks.length} tasks · {data.decisions.length} decisions on record.</p></div><div className="system-time"><Radio size={15} /> {ds.kind === "api" ? "LIVE FROM DEVPLAYBOOK V4" : "DEMO FIXTURES"}</div></div>
       <div className="computer-tabs" role="tablist">{["Cases & Engagements", "Decision Ledger", "Security/Gov"].map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</div>
       {tab === "Cases & Engagements" && <div className="computer-content"><div className="section-label"><span>ACTIVE DOSSIERS</span><span>{pad(active.length)} IN MOTION</span></div>
-        {active.length === 0 ? <Empty title="No active projects yet.">Create your first project to start the ledger. <Button variant="ghost" className="inline-arrow" onClick={() => openManage()}>OPEN MANAGEMENT <ArrowRight size={14} /></Button></Empty> :
+        {active.length === 0 ? <Empty title="No active projects yet.">Projects begin when a request or a directive is sent. Open the Directive desk to send one.</Empty> :
         <div className="dossier-list">{active.map((p, i) => {
           const hasPending = pending.some((a) => a.project_id === p.id);
-          return <div key={p.id} className="dossier-row"><span className="row-index">{pad(i + 1)}</span><div><b>{p.name}</b><small>{p.domains.length ? p.domains.join(" · ") : "No department"} · Priority {p.priority}</small></div><span className={`pill ${hasPending ? "amber" : statusTone(p.status)}`}>{hasPending ? "CEO REVIEW" : label(p.status).toUpperCase()}</span><Button variant="ghost" size="icon" className="icon-button" aria-label={`Open ${p.name}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><ArrowRight size={17} /></Button></div>;
+          return <div key={p.id} className="dossier-row with-case"><span className="row-index">{pad(i + 1)}</span><div><b>{p.name}</b><small>{p.domains.length ? p.domains.join(" · ") : "No department"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /><Button variant="ghost" size="icon" className="icon-button" aria-label={`Open ${p.name}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><ArrowRight size={17} /></Button></div>;
         })}</div>}
         <div className="computer-lower"><div><div className="section-label">SIGNAL HEALTH</div><h3>{exceptions === 0 ? "Steady. Nothing needs you." : `Steady, with ${exceptions} exception${exceptions > 1 ? "s" : ""}.`}</h3><p>{pending.length} approval{pending.length === 1 ? "" : "s"} awaiting signature · {blocked.length} blocked or failed task{blocked.length === 1 ? "" : "s"}.</p></div><Button variant="ghost" className="inline-arrow" onClick={openBrief}>VIEW EXECUTIVE BRIEF <ArrowRight size={16} /></Button></div></div>}
       {tab === "Decision Ledger" && <div className="computer-content"><div className="section-label"><span>DECISION LEDGER</span><span>TRACEABLE BY DESIGN</span></div>
@@ -65,6 +66,7 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
         pending.slice(0, 3).map((a) => <Button key={a.id} variant="ghost" className="phone-decision" onClick={() => openContracts(a.project_id)}><span>{a.title}<small>{projectName(data, a.project_id)}</small><span className="risk-badges"><em>{riskLabel(a.risk)} risk</em><em>{reversibilityLabel(a.reversibility)} reversibility</em></span></span><ArrowRight size={16} /></Button>)}
       {asking.length > 0 && <><div className="phone-section-title small-title">Questions On Your Directives <span>{pad(asking.length)}</span></div>
         {asking.slice(0, 2).map((i) => <div key={i.id} className="phone-info"><CircleAlert size={15} /><span>{i.questions[0]?.question}<small>{i.text.slice(0, 60)}</small></span></div>)}</>}
+      <PhoneQuestions open={openContracts} />
       <div className="phone-section-title small-title">Exceptions Detected <span>{pad(blocked.length)}</span></div>
       {blocked.length === 0 ? <div className="phone-info"><Check size={15} /><span>No blocked work<small>All tasks flowing</small></span></div> :
         blocked.slice(0, 2).map((t) => <div key={t.id} className="phone-info"><CircleAlert size={15} /><span>{t.title}<small>{label(t.status)} · {projectName(data, t.project_id)}</small></span></div>)}

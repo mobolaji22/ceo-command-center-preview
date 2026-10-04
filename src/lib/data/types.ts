@@ -1,4 +1,4 @@
-import type { AppRole, Asset, AssetKind, ClientData, DecisionEntry, DelegationView, OrgRole, OwnerData, PlanChange, PlanVersion, Session } from "../model";
+import type { Answer, AppRole, Asset, AssetKind, BudgetView, ClientData, DecisionEntry, DelegationView, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -118,6 +118,23 @@ export interface DataSource {
    * The plan for a project (P3): read it, ask for a change, approve or decline, see what changed and what was decided, and
    * take back what the agency may do without asking. The API decides who may; the UI only hides what would be refused.
    */
+  /**
+   * The work an approved plan became (CC-4). Pausing, resuming and stopping are for the project's decision owner and the CEO; the
+   * API decides who may do what and says so plainly. The budget is totals only; cost records stay with the agency.
+   */
+  runs: {
+    /** Newest first. */
+    list(projectId: string): Promise<Result<RunView[]>>;
+    budget(projectId: string): Promise<Result<BudgetView | null>>;
+    pause(projectId: string, note?: string): Promise<Result>;
+    resume(projectId: string): Promise<Result>;
+    cancel(projectId: string, note?: string): Promise<Result>;
+  };
+  /** What stopped work is waiting for a person to answer. The API sends each person only what is asked of them. */
+  questions: {
+    list(opts?: { projectId?: string }): Promise<Result<Question[]>>;
+    answer(questionId: string, answer: Answer): Promise<Result>;
+  };
   plans: {
     /** Every version, oldest first. A client sees only what has been submitted to them. */
     list(projectId: string): Promise<Result<PlanVersion[]>>;
