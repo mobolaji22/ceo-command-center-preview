@@ -63,3 +63,17 @@ export function actionLinksFor(projectNameFragment: string, ownerEmail: string):
   const links = JSON.parse(out.trim().split("\n").at(-1)!) as Array<{ option: string; url: string }>;
   return links.map((l) => ({ option: l.option, token: l.url.split("/act/")[1]! }));
 }
+
+/**
+ * Stands in for the worker's engine reaching a project's approved budget: has v4 drive the project's live run once with an executor that
+ * reports the budget is reached, which stops it with a question for the client's owner.
+ */
+export function stopRunAtBudget(projectNameFragment: string): { reason: string; id: string } {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const out = execFileSync("npx", ["tsx", resolve("e2e/stop-run.mjs"), projectNameFragment], {
+    cwd: V4_DIR, encoding: "utf8",
+    env: { ...process.env, DATABASE_URL: u.toString(), AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-0000" },
+  });
+  return JSON.parse(out.trim().split("\n").at(-1)!) as { reason: string; id: string };
+}
