@@ -8,6 +8,7 @@ import type { NewAttachment } from "@/lib/data/types";
 import type { Asset, Intent, MaterialWay } from "@/lib/model";
 import { fmtAgo, label, statusTone } from "@/lib/format";
 import { Empty } from "./views";
+import { PlanPanel } from "./plans";
 
 const STATUS_WORDS: Record<string, string> = {
   RECEIVED: "Received", CLARIFYING: "Needs answers", UNDERSTOOD: "Understood", PLANNED: "Planned", REJECTED: "Withdrawn", SUPERSEDED: "Replaced", PROPOSED: "Proposed",
@@ -74,7 +75,7 @@ export function IntentCard({ intent, canAnswer, refresh }: { intent: Intent; can
   const open = intent.status === "CLARIFYING" || intent.status === "UNDERSTOOD" || intent.status === "PLANNED";
 
   return <div className="intent-card" data-status={intent.status}>
-    <div className="resolved-row"><span>{intent.text}<small>{fmtAgo(intent.created_at)}{intent.source === "CEO_DIRECTIVE" ? " · from the agency" : ""}</small></span><span className={`pill ${tone(intent.status)}`}>{(STATUS_WORDS[intent.status] ?? label(intent.status)).toUpperCase()}</span></div>
+    <div className="resolved-row intent-head"><span>{intent.text}<small>{fmtAgo(intent.created_at)}{intent.source === "CEO_DIRECTIVE" ? " · from the agency" : ""}</small></span><span className={`pill ${tone(intent.status)}`}>{(STATUS_WORDS[intent.status] ?? label(intent.status)).toUpperCase()}</span></div>
     {msg && <p className="mmsg" role="status">{msg}</p>}
 
     {intent.questions.length > 0 && <div className="ask-block"><div className="section-label"><span>QUESTIONS</span><span>{intent.questions.length}</span></div>
@@ -94,6 +95,8 @@ export function IntentCard({ intent, canAnswer, refresh }: { intent: Intent; can
       {intent.assumptions.map((a) => <div key={a.id} className="resolved-row"><span>{a.question}<small>We are going with: {a.assumed}{a.forced ? " (we ran out of questions on this one, so please check it)" : ""}</small></span></div>)}</div>}
 
     {(intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && intent.questions.length === 0 && intent.materials.length === 0 && <p className="mmsg">Nothing more is needed from you right now.</p>}
+
+    {intent.project_id && (intent.status === "PLANNED" || intent.status === "UNDERSTOOD") && <PlanPanel projectId={intent.project_id} organizationId={intent.organization_id} onChanged={refresh} />}
   </div>;
 }
 

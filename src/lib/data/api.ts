@@ -1,4 +1,4 @@
-import type { Asset, ClientData, OwnerData, Session } from "../model";
+import type { Asset, ClientData, DecisionEntry, DelegationView, OwnerData, PlanContent, PlanVersion, Session } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -70,6 +70,33 @@ const toAsset = (a: ApiAsset): Asset => ({
   id: a.id, organization_id: a.organizationId, scope: a.scope, project_id: a.projectId, kind: a.kind, name: a.name,
   provenance: a.provenance, rights: a.rights, created_at: a.createdAt,
   versions: a.versions.map((v) => ({ version: v.version, mime: v.mime, size_bytes: v.sizeBytes, scan_status: v.scanStatus, scan_detail: v.scanDetail ?? null, created_at: v.createdAt })),
+});
+
+type ApiPlan = {
+  objective: string; scope: { in: string[]; out: string[] }; deliverables: PlanContent["deliverables"];
+  successMetrics: Array<{ id: string; metric: string; baseline: string | null; target: string; measurement: string; window: string; dataSource: string }>;
+  tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; dependsOn: string[] }>;
+  milestones: Array<{ name: string; afterTasks: string[] }>; budget: { lowUsd: number; highUsd: number; confidence: number };
+  risks: PlanContent["risks"]; assumptions: string[]; openContextNeeds: string[]; decisionPoints: Array<{ taskId?: string; description: string }>;
+};
+type ApiProposal = {
+  id: string; projectId: string; organizationId: string; type: string; version: number; status: PlanVersion["status"]; decisionOwner: PlanVersion["decision_owner"];
+  impact: number; reversibility: number; rationale: string | null; submittedAt: string | null; decidedAt: string | null; decision: PlanVersion["decision"];
+  decisionNote: string | null; onBehalfPermissionId: string | null; content: ApiPlan;
+};
+const toPlan = (c: ApiPlan): PlanContent => ({
+  objective: c.objective, scope_in: c.scope.in, scope_out: c.scope.out, deliverables: c.deliverables,
+  success_metrics: c.successMetrics.map((m) => ({ id: m.id, metric: m.metric, baseline: m.baseline, target: m.target, measurement: m.measurement, window: m.window, data_source: m.dataSource })),
+  tasks: c.tasks.map((t) => ({ id: t.id, title: t.title, domain: t.domain, capability: t.capability, rigor: t.rigor, risk: t.risk, reversibility: t.reversibility, depends_on: t.dependsOn })),
+  milestones: c.milestones.map((m) => ({ name: m.name, after_tasks: m.afterTasks })),
+  budget: { low_usd: c.budget.lowUsd, high_usd: c.budget.highUsd, confidence: c.budget.confidence },
+  risks: c.risks, assumptions: c.assumptions, open_context_needs: c.openContextNeeds,
+  decision_points: c.decisionPoints.map((d) => ({ task_id: d.taskId ?? null, description: d.description })),
+});
+const toPlanVersion = (p: ApiProposal): PlanVersion => ({
+  id: p.id, project_id: p.projectId, organization_id: p.organizationId, version: p.version, status: p.status, decision_owner: p.decisionOwner,
+  impact: p.impact, reversibility: p.reversibility, rationale: p.rationale, submitted_at: p.submittedAt, decided_at: p.decidedAt, decision: p.decision,
+  decision_note: p.decisionNote, on_behalf: p.onBehalfPermissionId !== null, plan: toPlan(p.content),
 });
 
 const pathOf = (url: string) => new URL(url, "http://localhost").pathname;
@@ -208,6 +235,48 @@ export function createApiDataSource(): DataSource {
           return voidResult(await call("POST", `/v1/requirements/${requirementId}/respond`, { action: "UPLOAD", assetId: staged.data }));
         }
         return voidResult(await call("POST", `/v1/requirements/${requirementId}/respond`, answer));
+      },
+    },
+
+    plans: {
+      async list(projectId) {
+        const r = await call<ApiProposal[]>("GET", `/v1/projects/${projectId}/proposals`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.filter((p) => p.type === "PLAN").map(toPlanVersion));
+      },
+      async changes(proposalId) {
+        const r = await call<{ from: { version: number }; to: { version: number }; diff: { summary: string[]; unchanged: boolean; budget: { from: { lowUsd: number; highUsd: number }; to: { lowUsd: number; highUsd: number } } | null } }>("GET", `/v1/proposals/${proposalId}/diff`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        const { diff } = r.data;
+        return ok({
+          from_version: r.data.from.version, to_version: r.data.to.version, summary: diff.summary, unchanged: diff.unchanged,
+          budget: diff.budget ? { from_low: diff.budget.from.lowUsd, from_high: diff.budget.from.highUsd, to_low: diff.budget.to.lowUsd, to_high: diff.budget.to.highUsd } : null,
+        });
+      },
+      async decide(proposalId, decision) {
+        const r = await call<{ revision: { version: number } | null }>("POST", `/v1/proposals/${proposalId}/decision`, decision);
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ nextVersion: r.data.revision?.version ?? null });
+      },
+      async decisions(projectId) {
+        const r = await call<Array<{ proposalId: string; version: number; decision: DecisionEntry["decision"]; decidedByRole: DecisionEntry["decided_by_role"]; onBehalf: boolean; note: string | null; decidedAt: string }>>("GET", `/v1/projects/${projectId}/decisions`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map((d) => ({ proposal_id: d.proposalId, version: d.version, decision: d.decision, decided_by_role: d.decidedByRole, on_behalf: d.onBehalf, note: d.note, decided_at: d.decidedAt })));
+      },
+      async delegations(projectId) {
+        const r = await call<Array<{ id: string; proposalId: string; approvalLevel: string; maxAutonomyMode: number; maxRisk: number; allowedScopes: string[]; budgetMaxCostUsd: number | null; onBehalfPermissionId: string | null; createdAt: string; revokedAt: string | null; revokedReason: string | null }>>("GET", `/v1/projects/${projectId}/delegations`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map((d): DelegationView => ({
+          id: d.id, proposal_id: d.proposalId, approval_level: d.approvalLevel, max_autonomy_mode: d.maxAutonomyMode, scopes: d.allowedScopes, max_risk: d.maxRisk,
+          budget_max_usd: d.budgetMaxCostUsd, on_behalf: d.onBehalfPermissionId !== null, created_at: d.createdAt, revoked_at: d.revokedAt, revoked_reason: d.revokedReason,
+        })));
+      },
+      async revokeDelegation(delegationId, reason) {
+        return voidResult(await call("POST", `/v1/delegations/${delegationId}/revoke`, { reason }));
+      },
+      async mayDecideForClient(plan) {
+        const r = await call<Array<{ status: string; scope: string; projectId: string | null; proposalId: string | null; expiresAt: string | null; usedAt: string | null }>>("GET", `/v1/organizations/${plan.organization_id}/permissions`);
+        if (r.error || !r.data) return false;
+        const now = Date.now();
+        // A standing permission never covers a plan of risk above 3 (the API's own limit); a single-decision one names this plan.
+        return r.data.some((p) => p.status === "ACTIVE" && (!p.expiresAt || new Date(p.expiresAt).getTime() > now)
+          && (p.scope === "DECISION" ? p.proposalId === plan.id && !p.usedAt : (p.projectId === null || p.projectId === plan.project_id) && plan.impact <= 3));
       },
     },
 

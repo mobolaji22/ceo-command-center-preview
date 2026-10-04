@@ -38,7 +38,7 @@ test("a client sends a request with a file and a link, answers the questions, se
   await expect(composer.getByRole("status")).toContainText("Received. A few questions");
 
   const card = page.locator(".intent-card", { hasText: "We want a better website" });
-  await expect(card.locator(".pill")).toHaveText("NEEDS ANSWERS");
+  await expect(card.locator(".intent-head .pill")).toHaveText("NEEDS ANSWERS");
   await expect(card.locator(".question")).toHaveCount(2);
 
   // One ask: the questions and the materials list are together.
@@ -47,7 +47,7 @@ test("a client sends a request with a file and a link, answers the questions, se
 
   await card.getByRole("button", { name: /More sales or sign-ups/ }).click();
   await card.getByRole("button", { name: /Within the quarter/ }).click();
-  await expect(card.locator(".pill")).toHaveText("PLANNED");
+  await expect(card.locator(".intent-head .pill")).toHaveText("PLANNED");
   await expect(card.locator(".question")).toHaveCount(0);
 
   // Settle the materials list, each in a different way.
@@ -65,7 +65,7 @@ test("a client sends a request with a file and a link, answers the questions, se
   await expect(page.locator(".library .resolved-row", { hasText: "example.com/current-site" })).toBeVisible();
 
   // The assumption we made instead of asking is shown, not hidden.
-  await expect(card.getByText("We are going with:")).toBeVisible();
+  await expect(card.locator(".ask-block").getByText("We are going with:")).toBeVisible();
 });
 
 test("the old directive route is gone and says where to go", async ({ page }) => {
@@ -94,9 +94,9 @@ test("the CEO sends a directive for a client, answers its questions, and sees wh
   await expect(composer.getByRole("status")).toContainText("Received.");
 
   const card = page.locator(".intent-card", { hasText: "Refresh the brand" });
-  await expect(card.locator(".pill")).toHaveText("NEEDS ANSWERS");
+  await expect(card.locator(".intent-head .pill")).toHaveText("NEEDS ANSWERS");
   await expect(card.getByText("from the agency")).toBeVisible();
   await card.getByRole("button", { name: /More sales or sign-ups/ }).click();
   await card.getByRole("button", { name: /As soon as possible/ }).click();
-  await expect(card.locator(".pill")).toHaveText("PLANNED");
+  await expect(card.locator(".intent-head .pill")).toHaveText("PLANNED");
 });

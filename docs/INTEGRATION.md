@@ -31,6 +31,12 @@ spends it, so a mail scanner that fetches the link cannot use it up. There are n
 | intents.submit                                | POST /v1/intents (attachments staged first via /v1/assets with `staged`) |
 | intents.answer                                | POST /v1/intents/:id/clarifications/:cid/answer |
 | intents.respond                               | GET /v1/intents/:id/ask, POST /v1/requirements/:id/respond |
+| plans.list                                    | GET /v1/projects/:id/proposals (PLAN only; drafts are hidden from clients) |
+| plans.changes                                 | GET /v1/proposals/:id/diff |
+| plans.decide                                  | POST /v1/proposals/:id/decision (`APPROVE` / `REQUEST_REVISION` / `REJECT`; a revision answers with the next version) |
+| plans.decisions                               | GET /v1/projects/:id/decisions |
+| plans.delegations / revokeDelegation          | GET /v1/projects/:id/delegations, POST /v1/delegations/:id/revoke |
+| plans.mayDecideForClient                      | GET /v1/organizations/:id/permissions (a `DECIDE_ON_BEHALF` permission naming the plan, or standing and covering it) |
 | commands.markSeen                             | POST /v1/console/seen |
 | commands.createOrganization                   | POST /v1/organizations (CEO) |
 | commands.invitePerson                         | POST /v1/invitations (needs step-up: `/v1/auth/step-up/request` then `/verify`) |
