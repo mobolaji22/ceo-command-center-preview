@@ -8,6 +8,10 @@ import { useDataSource } from "@/lib/data";
 import { fmtDate, label, statusTone } from "@/lib/format";
 import type { OwnerData, Question, RunStatus, RunTask } from "@/lib/model";
 import { PlanPanel } from "./plans";
+import { useStepUp } from "./step-up";
+
+/** Answers that commit money or authority need a fresh proof of who is answering, as approving a plan does. */
+const COMMITS = ["RAISE_BUDGET", "APPROVE", "GRANT_EXCEPTION", "ACCEPT_RISK"];
 
 /**
  * The case file for a project: the work in order, how much of the approved budget it has used, what it is waiting to ask, and the
@@ -147,17 +151,20 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const { guard, panel: stepUpPanel } = useStepUp();
 
   const askedOf = audience === "client" ? null : x.routed_to === "CEO" ? "Asked of you." : "Asked of the client's owner. You can answer for them only if they have allowed it.";
   const confirm = async () => {
     if (!choice) return;
     setBusy(true); setMsg(null);
-    const r = await ds.questions.answer(x.id, { option: choice, ...(note.trim() ? { note: note.trim() } : {}), ...(choice === "RAISE_BUDGET" ? { toUsd: Number(amount) } : {}), ...(choice === "MARK_DONE" ? { evidence: note.trim() } : {}) });
+    await guard(() => ds.questions.answer(x.id, { option: choice, ...(note.trim() ? { note: note.trim() } : {}), ...(choice === "RAISE_BUDGET" ? { toUsd: Number(amount) } : {}), ...(choice === "MARK_DONE" ? { evidence: note.trim() } : {}) }), async (r) => {
+      setBusy(false);
+      if (r.error) { setMsg(r.error.message); return; }
+      setChoice(null); setNote(""); setAmount("");
+      await Promise.all([qc.invalidateQueries({ queryKey: ["questions"] }), qc.invalidateQueries({ queryKey: ["case"] })]);
+      onChanged?.();
+    });
     setBusy(false);
-    if (r.error) { setMsg(r.error.message); return; }
-    setChoice(null); setNote(""); setAmount("");
-    await Promise.all([qc.invalidateQueries({ queryKey: ["questions"] }), qc.invalidateQueries({ queryKey: ["case"] })]);
-    onChanged?.();
   };
 
   return <article className="question" aria-label={x.title}>
@@ -176,7 +183,9 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
       {choice === "ACCEPT_RISK" && <label>Why is this acceptable? It is recorded with your name.<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice !== "RAISE_BUDGET" && choice !== "MARK_DONE" && choice !== "ACCEPT_RISK" && <label>Add a note (optional)<input value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "STOP_RUN" && <p>This ends the work for good.</p>}
+      {COMMITS.includes(choice) && <small className="plan-confirm-note">For safety we will ask you for a six-digit code, which we email to you.</small>}
       <Button className={choice === "STOP_RUN" ? "reject-btn" : "approve-btn"} disabled={busy} onClick={confirm}>Confirm: {optionWords(choice).toLowerCase()}</Button>
+      {stepUpPanel}
     </div>}
     {msg && <p className="mmsg" role="status">{msg}</p>}
   </article>;

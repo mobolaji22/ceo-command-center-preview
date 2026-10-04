@@ -590,6 +590,8 @@ export function createFixturesDataSource(): DataSource {
         return ok(structuredClone(mine).map((q) => (agency ? q : { ...q, detail: null })));
       },
       async answer(questionId, answer) {
+        // Spending more, letting work go ahead that was not allowed, and accepting a result that failed our checks need a fresh proof.
+        if (["RAISE_BUDGET", "APPROVE", "GRANT_EXCEPTION", "ACCEPT_RISK"].includes(answer.option) && !steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
         return mutate((s) => {
           const q = s.questions.find((x) => x.id === questionId);
           if (!q) throw new Error("This was already answered.");
