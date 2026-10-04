@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
 import type { DecisionEntry, DelegationView, PlanChange, PlanVersion } from "@/lib/model";
-import { fmtAgo, label } from "@/lib/format";
+import { fmtAgo, fmtDate, label } from "@/lib/format";
 import { useStepUp } from "./step-up";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
@@ -147,10 +147,10 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
       {history.map((h) => <div key={h.proposal_id} className="resolved-row"><span>Version {h.version}: {DECISION_WORDS[h.decision]}<small>{who(h)} · {fmtAgo(h.decided_at)}{h.note ? ` · “${h.note}”` : ""}</small></span></div>)}</div>}
 
     {delegations.length > 0 && <div className="plan-delegation" aria-label="What we may do without asking again"><div className="section-label"><span>WHAT WE MAY DO WITHOUT ASKING AGAIN</span></div>
-      {delegations.map((d) => <div key={d.id} className="resolved-row"><span>{d.revoked_at ? "Taken back" : "In force"}: approved plan, version {versions.find((v) => v.id === d.proposal_id)?.version ?? "?"}
+      {delegations.map((d) => <div key={d.id} className="resolved-row"><span>{d.revoked_at ? "Taken back" : "In force"}: {d.basis === "STANDING_POLICY" ? `standing permission${d.expires_at ? `, until ${fmtDate(d.expires_at)}` : ""}` : `approved plan, version ${versions.find((v) => v.id === d.proposal_id)?.version ?? "?"}`}
         <small>{d.scopes.map((s) => { const [dom, cap] = s.split(":"); return `${label(dom ?? "")}: ${cap}`; }).join(" · ")}</small>
-        <small>Never above risk {d.max_risk} or hard to undo; those, and anything not listed, come to you first.{d.budget_max_usd ? ` Estimated spend up to ${usd(d.budget_max_usd)}.` : ""}</small>
-        {d.revoked_at && <small>Taken back {fmtAgo(d.revoked_at)}{d.revoked_reason ? `: “${d.revoked_reason}”` : ""}. Every step now asks first.</small>}</span>
+        <small>Never above risk {d.max_risk} or hard to undo; those, and anything not listed, come to you first.{d.budget_max_usd ? ` Estimated spend up to ${usd(d.budget_max_usd)}.` : d.basis === "STANDING_POLICY" ? " It adds no spending of its own: work stays inside what was approved for each plan." : ""}</small>
+        {d.revoked_at && <small>Taken back {fmtAgo(d.revoked_at)}{d.revoked_reason ? `: “${d.revoked_reason}”` : ""}. {d.basis === "STANDING_POLICY" ? "Work the plan does not name asks first again." : "Every step now asks first."}</small>}</span>
         {!d.revoked_at && (isClientOwner || isCEO) && (mode === "revoke"
           ? <span className="plan-confirm"><input aria-label="Why (optional)" placeholder="Why? (optional)" value={text} onChange={(e) => setText(e.target.value)} /><Button className="reject-btn" variant="outline" disabled={busy} onClick={() => revoke(d)}>Confirm: take it back</Button> <Button variant="ghost" onClick={() => { setMode(null); setText(""); }}>Cancel</Button></span>
           : <Button variant="outline" className="reject-btn" onClick={() => setMode("revoke")}>Take this back</Button>)}</div>)}

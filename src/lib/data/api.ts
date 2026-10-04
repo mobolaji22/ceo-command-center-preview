@@ -110,6 +110,11 @@ type ApiCitation = { type: string; id?: string; ids?: string[]; path?: string; e
 type ApiPrefs = { timezone: string; quietHours: { start: string; end: string } | null; minInterruptLevel: number; emailEnabled: boolean; digest: NotificationPrefs["digest"] };
 const toBrief = (b: ApiBrief): BriefSummary => ({ id: b.id, organization_id: b.organizationId, project_id: b.projectId, type: b.type, audience: b.audience, title: b.title, level: b.attentionLevel, created_at: b.compiledAt });
 const toPrefs = (p: ApiPrefs): NotificationPrefs => ({ timezone: p.timezone, quiet_hours: p.quietHours, min_interrupt_level: p.minInterruptLevel, email_enabled: p.emailEnabled, digest: p.digest });
+type ApiDelegation = { id: string; organizationId: string; basis: DelegationView["basis"]; proposalId: string | null; projectId: string | null; expiresAt: string | null; approvalLevel: string; maxAutonomyMode: number; maxRisk: number; allowedScopes: string[]; budgetMaxCostUsd: number | null; onBehalfPermissionId: string | null; createdAt: string; revokedAt: string | null; revokedReason: string | null };
+const toDelegation = (d: ApiDelegation): DelegationView => ({
+  id: d.id, basis: d.basis, organization_id: d.organizationId, proposal_id: d.proposalId, project_id: d.projectId, expires_at: d.expiresAt, approval_level: d.approvalLevel, max_autonomy_mode: d.maxAutonomyMode,
+  scopes: d.allowedScopes, max_risk: d.maxRisk, budget_max_usd: d.budgetMaxCostUsd, on_behalf: d.onBehalfPermissionId !== null, created_at: d.createdAt, revoked_at: d.revokedAt, revoked_reason: d.revokedReason,
+});
 const toQuestion = (q: ApiQuestion): Question => ({
   id: q.id, project_id: q.projectId, organization_id: q.organizationId, run_id: q.runId, task_id: q.taskId, reason: q.reason, routed_to: q.routedTo, status: q.status,
   title: q.title, summary: q.summary, detail: q.detail ?? null, options: q.options.map((o) => o.id), recommendation: q.recommendation, deadline: q.deadline, created_at: q.createdAt,
@@ -349,6 +354,17 @@ export function createApiDataSource(): DataSource {
       },
     },
 
+    standing: {
+      async list(organizationId) {
+        const r = await call<ApiDelegation[]>("GET", `/v1/organizations/${organizationId}/standing-policies`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map(toDelegation));
+      },
+      async grant(input) {
+        const r = await call<ApiDelegation>("POST", `/v1/organizations/${input.organizationId}/standing-policies`, { scopes: input.scopes, validDays: input.validDays });
+        return r.error || !r.data ? { data: null, error: r.error } : ok(toDelegation(r.data));
+      },
+    },
+
     plans: {
       async list(projectId) {
         const r = await call<ApiProposal[]>("GET", `/v1/projects/${projectId}/proposals`);
@@ -372,11 +388,8 @@ export function createApiDataSource(): DataSource {
         return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map((d) => ({ proposal_id: d.proposalId, version: d.version, decision: d.decision, decided_by_role: d.decidedByRole, on_behalf: d.onBehalf, note: d.note, decided_at: d.decidedAt })));
       },
       async delegations(projectId) {
-        const r = await call<Array<{ id: string; proposalId: string; approvalLevel: string; maxAutonomyMode: number; maxRisk: number; allowedScopes: string[]; budgetMaxCostUsd: number | null; onBehalfPermissionId: string | null; createdAt: string; revokedAt: string | null; revokedReason: string | null }>>("GET", `/v1/projects/${projectId}/delegations`);
-        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map((d): DelegationView => ({
-          id: d.id, proposal_id: d.proposalId, approval_level: d.approvalLevel, max_autonomy_mode: d.maxAutonomyMode, scopes: d.allowedScopes, max_risk: d.maxRisk,
-          budget_max_usd: d.budgetMaxCostUsd, on_behalf: d.onBehalfPermissionId !== null, created_at: d.createdAt, revoked_at: d.revokedAt, revoked_reason: d.revokedReason,
-        })));
+        const r = await call<ApiDelegation[]>("GET", `/v1/projects/${projectId}/delegations`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map(toDelegation));
       },
       async revokeDelegation(delegationId, reason) {
         return voidResult(await call("POST", `/v1/delegations/${delegationId}/revoke`, { reason }));

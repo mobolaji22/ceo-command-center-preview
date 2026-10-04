@@ -239,7 +239,15 @@ export type DecisionEntry = {
 /** What the agency may do on a project without asking again: the approved plan, within limits. */
 export type DelegationView = {
   id: string
-  proposal_id: string
+  /** PLAN_APPROVAL: the approved plan. STANDING_POLICY: named kinds of work for a limited time, not tied to one plan. */
+  basis: "PLAN_APPROVAL" | "STANDING_POLICY"
+  organization_id: string
+  /** Null for a standing policy. */
+  proposal_id: string | null
+  /** Null for a standing policy that covers the whole client. */
+  project_id: string | null
+  /** When a standing policy ends; always set for one. */
+  expires_at: string | null
   approval_level: string
   max_autonomy_mode: number
   /** "domain:capability" */

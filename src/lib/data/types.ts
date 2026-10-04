@@ -160,6 +160,15 @@ export interface DataSource {
     describe(token: string): Promise<Result<ActionLinkView>>;
     confirm(token: string): Promise<Result<{ option: ActionLinkView["option"] }>>;
   };
+  /**
+   * Standing permission: what the agency may do for a client without asking each time, for a limited time. It covers only the kinds of
+   * work it names, never anything above risk 3, hard to undo or consequential (publishing, sending, deleting, paying), and no extra
+   * spend. The client's owner grants it (with a fresh proof); it can be taken back at any time through `plans.revokeDelegation`.
+   */
+  standing: {
+    list(organizationId: string): Promise<Result<DelegationView[]>>;
+    grant(input: { organizationId: string; scopes: string[]; validDays: number }): Promise<Result<DelegationView>>;
+  };
   plans: {
     /** Every version, oldest first. A client sees only what has been submitted to them. */
     list(projectId: string): Promise<Result<PlanVersion[]>>;
