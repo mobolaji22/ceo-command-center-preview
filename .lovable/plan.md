@@ -25,6 +25,40 @@ Build **Cinematic Executive Command** as a coherent working place, not a decorat
 - Keep operational content more prominent than the room image once inside a work area. Use semantic design tokens, strong foreground contrast on glass, visible focus, 44px-class touch targets, stable layouts, no text overlap, and no hover-only information.
 - Review the full experience at desktop, tablet, and mobile sizes, including short-height screens: every hotspot, preview, corridor door, room, client action, empty state, sign-in, brief, and action link. Test pointer, keyboard, touch, and reduced motion; verify real v4-backed interactions still complete and read back. The current local preview capture rendered almost entirely black despite returning HTTP 200, so first diagnose the preview/runtime rendering and use authenticated or permitted fixture views appropriately before judging the visual result.
 
+## Connected motion, not screen-by-screen effects
+
+- Establish a **spatial grammar**: entering a doorway advances into the corridor; opening a room carries its name and threshold into the next view; opening a desk moves attention from the object to its working surface; Back reverses that relationship. Retain a small persistent location marker so a user always knows where they are. Transitions preserve directional meaning across desktop and mobile rather than using unrelated fades.
+- Choreograph in three layers: immediate hotspot feedback (roughly 100–150 ms), a short shared threshold/section transition (roughly 220–320 ms), and content reveal only after the destination is legible. Keep controls responsive throughout; never animate a live number as if its value changed. Subtle ambient light and material shifts may suggest a living agency, but no perpetual movement around reading or decision areas.
+- The selected **Cinematic Executive Command** reference governs compositional emphasis: architectural image as a wide, immersive backdrop; a restrained brass wayfinding line; preview adjacent to its object; and a strong, intentional action at the desk. Do not copy the example's sign-in or fictional six-step pipeline into the CEO office. Respect reduced motion by replacing travel and parallax with immediate state changes and clear focus placement.
+- Define motion continuity for forward/back, hover/focus/press, tabs and filters, opening a case file, flipping the room history, loading new information, and completing a decision. Success confirmations remain visible long enough to read; errors are never hidden by a transition. Preserve scroll or restore the destination's logical heading rather than dropping the user in an arbitrary position.
+
+## Information architecture: each room earns its metaphor
+
+Use a consistent reading order on every working screen: **where am I → what changed → what needs me → supporting context/evidence → next action**. The top band is a brief live summary, not a hero-sized decoration; a person can scan what is urgent without scrolling through scenery. Put statuses, ownership, dates, counts, and sources close to the item they qualify; use plain-language labels with restrained color as a secondary signal. Avoid nested cards and repeated decorative frames.
+
+| Space | First-glance information | Deeper reading and primary action |
+| --- | --- | --- |
+| CEO office | Real pending signatures and current agency state beside clearly named destinations | Hover/focus preview gives one-sentence context; select enters immediately. |
+| Corridor | Department name, active/quiet state, number of live projects | Enter a room; accessible list mirrors the spatial map. |
+| Department room | Work in motion, waiting, done; pinned projects | Select a project; dated calendar reveals tasks in context without burying the board. |
+| Computer | Active cases, decisions requiring attention, system health | Tabs keep dossiers, decision ledger, and governance distinct; each row exposes status, age, owner/context, and a clear route to evidence or action. |
+| Contracts | Queue size and next authorization, decision owner, risk, reversibility | Proposal/reasoning/evidence appear before approve/reject; consequential actions get confirmation and a readable result. |
+| Phone | Highest-priority attention and latest signal | Compact summaries lead into the full brief, contract, or question; do not compress substantive decisions into unreadably small phone chrome. |
+| Directive | Target and intent at a glance | Prompts and input stay focused; validation, submit state, and the resulting request are easy to locate. |
+| Brief | Changed since last visit, needs judgment, momentum | Timeline and source-backed briefs provide drill-down; empty states say what is genuinely absent. |
+| Records & access | Projects, people, organizations, library with clear separation | Selection keeps its detail visible; invite and file actions have explicit permissions and outcomes. |
+| Client room | Decisions/questions due, project standing, most recent update | Separate shelves for requests, project details, briefs, deliverables, library and timeline; show provenance, download state, and the next permitted action without exposing CEO-only controls. |
+
+On narrow screens, replace the scenic spread with a readable stacked sequence: location and urgency first, one primary action, then collapsible or tabbed supporting material. On larger screens, keep one stable content column plus a contextual side rail where it genuinely helps comparison. Empty, loading, failure, permission-denied, long-title, and high-volume states receive deliberate layouts rather than generic blank cards.
+
+## Acceptance gates for a world-class finish
+
+- **Navigation:** A first-time user can find every destination without guessing which dot means what; every office hotspot opens in one activation and every detail has an obvious way back. No hover-only access.
+- **Comprehension:** In a five-second glance at each screen, the urgent item, its project/owner, current state, and next possible action are identifiable; no image, animation, or glass effect obscures them.
+- **Continuity:** Forward/back motion follows the same physical direction, no jarring scene reset, no overlapping preview or clipped label at common and short-height viewports; reduced-motion mode conveys the same location and result.
+- **Trust:** Counts match the items opened; empty states never manufacture activity; approvals, client actions, requests, and uploads retain their current permission checks and show a persisted result after refresh.
+- **Accessibility and performance:** Keyboard-only completion of all core tasks, visible focus and logical heading order, meaningful accessible names, readable contrast, responsive imagery that does not block interaction, and no layout shift from loading media. Verify this against actual rendered desktop/mobile screenshots and representative populated as well as empty data.
+
 ## Technical boundaries and rollout
 
 - This is a presentation and navigation redesign. Keep the existing Next.js front end, `DataSource` boundary, server-held session, invitation-only access, and v4 API authority unchanged. No fabricated records, client-side session shortcuts, or new backend scope.
