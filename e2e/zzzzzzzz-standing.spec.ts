@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 /**
  * Standing permission (CC): the client's owner lets the agency do named kinds of work without asking each time, for a limited time.
@@ -21,6 +22,7 @@ async function signIn(page: Page, email: string) {
 }
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("the owner allows some kinds of work without asking, after the code, sees it in force, and takes it back", async ({ page }) => {
@@ -42,6 +44,7 @@ test("the owner allows some kinds of work without asking, after the code, sees i
   await section.getByRole("button", { name: "Allow these without asking" }).click();
   const form = section.getByRole("form", { name: "Confirm it's you" });
   await expect(form).toBeVisible();
+  await shot(page, "Standing permission: choose kinds of work and how long, then confirm with the emailed code");
   await expect(section.getByText(/^In force, until/)).toHaveCount(0); // nothing is allowed until the code is right
   const code = await mailTo(OWNER, "step-up", asked);
   await form.getByPlaceholder("Six-digit code").fill(code.meta!.code!);
@@ -50,6 +53,7 @@ test("the owner allows some kinds of work without asking, after the code, sees i
   await expect(section.getByText(/^In force, until/)).toBeVisible();
   await expect(section).toContainText(chosen.trim());
   await expect(section).toContainText("It adds no spending of its own");
+  await shot(page, "Standing permission in force: what it covers, when it ends, and no spending of its own");
   await page.reload();
   await expect(page.getByRole("region", { name: "Standing permission" }).getByText(/^In force, until/)).toBeVisible();
 

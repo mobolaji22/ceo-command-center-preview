@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 /**
  * The CEO's side of standing permission (CC). For a client it is the client's decision, so the CEO can set one only under the
@@ -22,6 +23,7 @@ async function signIn(page: Page, email: string) {
 }
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("the CEO sets a standing permission for a client under the client's permission, the owner sees it as done for them and takes it back", async ({ browser, page }) => {
@@ -49,6 +51,7 @@ test("the CEO sets a standing permission for a client under the client's permiss
   await form.getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(orbit.getByText(/^In force, until/)).toBeVisible();
   await expect(orbit).toContainText("Granted by you, on the client's behalf, under the permission they gave.");
+  await shot(page, "The CEO sets a standing permission for a client under the permission their owner gave");
 
   // it shows among what the agency may do without asking, flagged as granted on the client's behalf
   await expect(page.getByLabel("Delegations in force")).toContainText("standing permission");
@@ -61,6 +64,7 @@ test("the CEO sets a standing permission for a client under the client's permiss
   const mine = ownerPage.getByRole("region", { name: "Standing permission" });
   await expect(mine.getByText(/^In force, until/)).toBeVisible();
   await expect(mine).toContainText("Granted for you by the agency's CEO, under the permission you gave.");
+  await shot(ownerPage, "The client's owner sees it was done for them under their permission, and can take it back");
   await mine.getByRole("button", { name: "Take this back" }).click();
   await mine.getByRole("button", { name: "Confirm: take it back" }).click();
   await expect(mine.getByText(/^In force, until/)).toHaveCount(0);

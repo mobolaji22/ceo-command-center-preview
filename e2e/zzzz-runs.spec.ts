@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests, recordSpend } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 /**
  * The work, in the agency (CC-4). The client sees how their project is going in their own room: the work in order, how much of
@@ -30,6 +31,7 @@ async function openProgress(page: Page, word: RegExp) {
 }
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("a client sees the work in order and the budget used, holds it, resumes it, and stops it", async ({ page }) => {
@@ -45,6 +47,7 @@ test("a client sees the work in order and the budget used, holds it, resumes it,
   const again = await openProgress(page, /checkout/i);
   await expect(again.getByLabel("Budget used", { exact: true })).toContainText(/\$0\.50 of \$\d+\.\d\d approved/);
   await expect(again.getByRole("progressbar", { name: "Share of the approved budget used" })).toBeVisible();
+  await shot(page, "The client sees the work in order and how much of the approved budget it has used");
   // the client sees totals, never the records behind them
   await expect(again).not.toContainText("e2e");
 

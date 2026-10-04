@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { actionLinksFor, aClientBriefId, forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 /**
  * The two pages an email opens (CC-5b). A question can be answered from the email without signing in, but only by pressing the
@@ -21,6 +22,7 @@ async function signInFrom(page: Page, email: string) {
 }
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("a client resumes held work from the email: opening answers nothing, the button answers once", async ({ browser, page }) => {
@@ -42,6 +44,7 @@ test("a client resumes held work from the email: opening answers nothing, the bu
   await stranger.goto(`/act/${link!.token}`);
   await expect(stranger.getByRole("heading", { name: /paused/i })).toBeVisible();
   await expect(stranger.getByLabel("What happens if you confirm")).toContainText("Resume the work");
+  await shot(stranger, "The page an emailed link opens: the question and what answering would do, nothing answered yet");
   await expect(stranger.getByText("Nothing happens until you confirm.")).toBeVisible();
   // opened again and again, as a mail scanner would: still nothing
   await stranger.reload();
@@ -53,6 +56,7 @@ test("a client resumes held work from the email: opening answers nothing, the bu
 
   await stranger.getByRole("button", { name: "Confirm: resume the work" }).click();
   await expect(stranger.getByRole("heading", { name: "Done." })).toBeVisible();
+  await shot(stranger, "Pressing the button answered it, as the person the link was sent to");
   await page.reload();
   await room.getByRole("button", { name: /^Show progress of/i }).click();
   await expect(room.getByLabel("Case file").locator(".pill").first()).toHaveText("UNDER WAY");
@@ -60,6 +64,7 @@ test("a client resumes held work from the email: opening answers nothing, the bu
   // it works once
   await stranger.goto(`/act/${link!.token}`);
   await expect(stranger.getByRole("heading", { name: "This link has already been used." })).toBeVisible();
+  await shot(stranger, "The same link, used again: refused");
   await expect(stranger.getByRole("button", { name: /^Confirm/ })).toHaveCount(0);
   await stranger.context().close();
 });

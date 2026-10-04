@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests, stopRunAtBudget } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 /**
  * Answering a stopped project's question with something that commits money or authority (here, approving a step the plan did not
@@ -20,6 +21,7 @@ async function signIn(page: Page, email: string) {
 }
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("approving a step outside the plan asks the client's owner for the emailed code, and nothing changes until it is right", async ({ page }) => {
@@ -35,6 +37,7 @@ test("approving a step outside the plan asks the client's owner for the emailed 
   await expect(question.getByText("we will ask you for a six-digit code")).toBeVisible();
   await question.getByRole("button", { name: /^Confirm: approve this step/i }).click();
   await expect(question.getByRole("form", { name: "Confirm it's you" })).toBeVisible();
+  await shot(page, "Approving a step outside the plan asks for the emailed code first");
   // being asked for the code answers nothing
   await page.reload();
   await expect(asking(page)).toBeVisible();

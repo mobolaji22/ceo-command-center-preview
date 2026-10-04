@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 /**
  * Requests (P2.5): a client sends a request with attachments, is asked what matters, answers, settles the materials list,
@@ -21,6 +22,7 @@ async function signIn(page: Page, email: string) {
 }
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("a client sends a request with a file and a link, answers the questions, settles the materials, and the project opens", async ({ page }) => {

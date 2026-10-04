@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 /**
  * The corridor's rooms are the nine departments the agency works in (CC-6), not whatever words projects carry: always the same
@@ -21,6 +22,7 @@ async function signIn(page: Page, email: string) {
 }
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("the corridor has the nine departments in order, and entering one with work in it shows the work", async ({ page }) => {
@@ -40,6 +42,7 @@ test("the corridor has the nine departments in order, and entering one with work
   await expect(page.getByRole("heading", { name })).toBeVisible();
   await expect(page.getByLabel("On the desks")).toContainText(/\d+ in motion · \d+ waiting · \d+ done/);
   await expect(page.locator(".pin-card").first()).toBeVisible();
+  await shot(page, "A department room: what is in motion, waiting and done, and the projects pinned to the wall");
 
   await page.getByRole("button", { name: "ALL ROOMS" }).click();
   const quietName = (await quiet.first().locator(".door-name").innerText()).trim();

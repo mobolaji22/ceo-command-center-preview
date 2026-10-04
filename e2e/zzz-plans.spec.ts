@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { allowCeoToDecideFor, forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
+import { evidence, shot } from "./evidence";
 
 /**
  * Plans (P3.6): the plan for a request is a document a person can read and decide on. The client's owner asks for a change
@@ -16,6 +17,7 @@ const ASK = "Redesign our online checkout for our customers and write blog posts
 async function enterStepUpCode(plan: Locator, email: string, emailsBefore: number) {
   const form = plan.getByRole("form", { name: "Confirm it's you" });
   await expect(form).toBeVisible();
+  await shot(plan.page(), "Approving a plan asks for a fresh emailed code before anything is approved");
   await expect(plan.getByText("Approved. The work can begin.")).toHaveCount(0); // nothing is approved until the code is right
   const mail = await mailTo(email, "step-up", emailsBefore);
   await form.getByPlaceholder("Six-digit code").fill(mail.meta!.code!);
@@ -43,6 +45,7 @@ async function sendRequest(page: Page, text: string) {
 const money = async (text: string | null) => Number(/\$(\d+\.\d\d) to \$(\d+\.\d\d)/.exec(text ?? "")![2]);
 
 test.describe.configure({ mode: "serial" });
+evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("a client reads the plan, asks for a change, sees what changed, approves it, and takes the permission back", async ({ page }) => {
