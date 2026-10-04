@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useDataSource } from "@/lib/data";
 import { fmtAgo, fmtDate, label, pad } from "@/lib/format";
 import type { DecisionEntry, DelegationView, OwnerData } from "@/lib/model";
+import { StandingPermission } from "./standing";
 
 /**
  * The Computer's Decision Ledger and Security/Gov tabs, from the records themselves: every plan decision with who made it, what the
@@ -72,6 +73,11 @@ export function GovernancePanel({ data }: { data: OwnerData }) {
         <div><b>{d.basis === "STANDING_POLICY" ? `${orgName(data, d.organization_id)}${d.project_id ? `: ${nameOf(data, d.project_id)}` : ""}: standing permission` : `${d.project_id ? nameOf(data, d.project_id) : orgName(data, d.organization_id)}: approved plan`}</b>
           <small>{d.scopes.length} kind{d.scopes.length === 1 ? "" : "s"} of work · never above risk {d.max_risk}{d.expires_at ? ` · until ${fmtDate(d.expires_at)}` : ""}{d.on_behalf ? " · granted on the client's behalf" : ""}</small></div>
         <span className="pill green">IN FORCE</span></div>)}</div>}
+
+    <div className="section-label"><span>STANDING PERMISSIONS</span><span>BY CLIENT</span></div>
+    <p className="case-none">What the agency may do for a client without asking each time, for a limited time. For a client it is their decision: you can set one only under the permission their owner gave you. It never covers anything above risk 3, hard to undo, or that publishes, sends, deletes or pays, and it adds no spending.</p>
+    <div className="dossier-list" aria-label="Standing permissions by client">{orgs.map((o) => <div key={o.id} className="standing-org"><b>{o.name}</b>
+      <StandingPermission organizationId={o.id} projectIds={data.projects.filter((p) => p.organization_id === o.id).map((p) => p.id)} actingAs="ceo" orgName={o.name} /></div>)}</div>
 
     <div className="section-label"><span>AUDIT CHAINS</span><span>EACH CLIENT'S OWN</span></div>
     {chains.isLoading ? <p className="case-none">Loading…</p> : <div className="dossier-list" aria-label="Audit chains">{(chains.data ?? []).filter((c) => c.chain).map(({ org, chain }, i) => {
