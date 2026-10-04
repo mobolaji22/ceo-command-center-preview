@@ -74,6 +74,24 @@ const toAsset = (a: ApiAsset): Asset => ({
 
 const pathOf = (url: string) => new URL(url, "http://localhost").pathname;
 
+/** Uploads a file as a draft (set aside, nobody else's, placed when a request is submitted) and returns its id once it has passed its scan. */
+async function stageFile(organizationId: string, file: File, provenance: string): Promise<Result<string>> {
+  const mime = file.type || "application/octet-stream";
+  const started = await call<{ asset: { id: string }; version: { version: number }; upload: { url: string; headers: Record<string, string>; direct: boolean } }>("POST", "/v1/assets", {
+    organizationId, scope: "PROJECT", staged: true, kind: kindFor(mime), name: file.name, provenance, rights: "OWNED_BY_CLIENT", mime, sizeBytes: file.size,
+  });
+  if (started.error || !started.data) return { data: null, error: started.error };
+  const { asset, version, upload } = started.data;
+  const sent = await request<void>(upload.direct ? upload.url : `${PROXY}${pathOf(upload.url)}`, { method: "PUT", headers: { "Content-Type": upload.headers["content-type"] ?? mime }, body: file });
+  if (sent.error) return { data: null, error: sent.error };
+  const done = await call<{ scanStatus: string; scanDetail: string | null }>("POST", `/v1/assets/${asset.id}/versions/${version.version}/complete`);
+  if (done.error) return { data: null, error: done.error };
+  if (done.data && done.data.scanStatus !== "CLEAN") return fail(`"${file.name}" was not accepted: ${done.data.scanDetail ?? done.data.scanStatus}`, "SCAN_" + done.data.scanStatus);
+  return ok(asset.id);
+}
+
+const kindFor = (mime: string) => (mime.startsWith("image/") ? "IMAGE" : mime.startsWith("audio/") ? "AUDIO" : mime.startsWith("video/") ? "VIDEO" : "DOCUMENT");
+
 export function createApiDataSource(): DataSource {
   const session = async (r: Promise<Result<{ session: Session | null }>>): Promise<Result<Session>> => {
     const res = await r;
@@ -139,14 +157,6 @@ export function createApiDataSource(): DataSource {
         return voidResult(await call("POST", `/v1/approvals/${id}/resolve`, { approved }));
       },
 
-      async issueDirective(input) {
-        return voidResult(await call("POST", "/v1/directives", {
-          rawInput: input.content,
-          ...(input.projectId ? { projectId: input.projectId } : {}),
-          ...(input.organizationId ? { organizationId: input.organizationId } : {}),
-        }));
-      },
-
       async markSeen() {
         const r = await call<{ since: string | null }>("POST", "/v1/console/seen");
         return r.data?.since ?? null;
@@ -163,6 +173,41 @@ export function createApiDataSource(): DataSource {
       },
       async postUpdate() {
         return fail("Timeline updates are written by the system, not by hand.");
+      },
+    },
+
+    intents: {
+      async submit(input) {
+        const me = await call<{ isCEO: boolean; isAgency: boolean }>("GET", "/v1/me");
+        const provenance = me.data?.isAgency ? "CEO_PROVIDED" : "CLIENT_PROVIDED";
+        const placed: Array<{ assetId: string; scope: "PROJECT" | "ORGANIZATION" }> = [];
+        for (const a of input.attachments) {
+          if (a.kind === "file") {
+            const r = await stageFile(input.organizationId, a.file, provenance);
+            if (r.error || !r.data) return { data: null, error: r.error };
+            placed.push({ assetId: r.data, scope: a.scope });
+          } else {
+            const r = await call<{ id: string }>("POST", "/v1/assets/pointers", {
+              organizationId: input.organizationId, kind: "URL_REFERENCE", name: a.url.slice(0, 200), url: a.url, scope: "PROJECT", staged: true, provenance, rights: "THIRD_PARTY_UNCLEARED",
+            });
+            if (r.error || !r.data) return { data: null, error: r.error };
+            placed.push({ assetId: r.data.id, scope: a.scope });
+          }
+        }
+        const r = await call<{ status: string; projectId: string | null }>("POST", "/v1/intents", { organizationId: input.organizationId, text: input.text, attachments: placed });
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ status: r.data.status, projectId: r.data.projectId });
+      },
+      async answer(intentId, clarificationId, answer) {
+        return voidResult(await call("POST", `/v1/intents/${intentId}/clarifications/${clarificationId}/answer`, answer));
+      },
+      async respond(requirementId, answer, organizationId) {
+        if (answer.action === "UPLOAD") {
+          const me = await call<{ isAgency: boolean }>("GET", "/v1/me");
+          const staged = await stageFile(organizationId, answer.file, me.data?.isAgency ? "CEO_PROVIDED" : "CLIENT_PROVIDED");
+          if (staged.error || !staged.data) return { data: null, error: staged.error };
+          return voidResult(await call("POST", `/v1/requirements/${requirementId}/respond`, { action: "UPLOAD", assetId: staged.data }));
+        }
+        return voidResult(await call("POST", `/v1/requirements/${requirementId}/respond`, answer));
       },
     },
 

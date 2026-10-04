@@ -7,6 +7,7 @@ import type { OwnerData, Approval } from "@/lib/model";
 import { label, riskLabel, reversibilityLabel, statusTone, fmtDate, fmtAgo, pad } from "@/lib/format";
 import { useDataSource } from "@/lib/data";
 import { useAuth } from "@/lib/auth";
+import { Composer, IntentCard } from "./intents";
 
 type Common = { data: OwnerData; refresh: () => void };
 const CLOSED = ["COMPLETED", "CANCELLED", "ARCHIVED"];
@@ -48,6 +49,7 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
   const auth = useAuth();
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
+  const asking = data.intents.filter((i) => i.source === "CEO_DIRECTIVE" && i.questions.length > 0);
   const latest = data.events[0];
   const hour = new Date().getHours();
   const now = new Date();
@@ -56,11 +58,13 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
       <div className="phone-app-head"><span className="phone-app-logo">D/</span><span className="pill amber">● AGENCY PULSE CHANNEL</span></div>
       <div className="phone-greeting">Good {hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}, {auth.user?.displayName ?? "there"}.</div>
       <h3>Executive<br />Attention<span className="period">.</span></h3>
-      <div className="phone-meta">{now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "long" }).toUpperCase()} <span>{pad(pending.length + blocked.length)} ITEMS NEED YOU</span></div>
+      <div className="phone-meta">{now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "long" }).toUpperCase()} <span>{pad(pending.length + blocked.length + asking.length)} ITEMS NEED YOU</span></div>
       <div className="phone-card brief-card"><div className="phone-card-top"><Sparkles size={16} /><span>DAILY EXECUTIVE BRIEF</span><ArrowRight size={15} /></div><p>What happened while I was away?</p><Button variant="ghost" className="phone-card-link" onClick={openBrief}>READ YOUR BRIEF <ArrowRight size={14} /></Button></div>
       <div className="phone-section-title">Decisions Requiring<br />CEO Signature <span>{pad(pending.length)}</span></div>
       {pending.length === 0 ? <div className="phone-info"><Check size={15} /><span>Nothing awaiting signature<small>You're clear</small></span></div> :
         pending.slice(0, 3).map((a) => <Button key={a.id} variant="ghost" className="phone-decision" onClick={() => openContracts(a.project_id)}><span>{a.title}<small>{projectName(data, a.project_id)}</small><span className="risk-badges"><em>{riskLabel(a.risk)} risk</em><em>{reversibilityLabel(a.reversibility)} reversibility</em></span></span><ArrowRight size={16} /></Button>)}
+      {asking.length > 0 && <><div className="phone-section-title small-title">Questions On Your Directives <span>{pad(asking.length)}</span></div>
+        {asking.slice(0, 2).map((i) => <div key={i.id} className="phone-info"><CircleAlert size={15} /><span>{i.questions[0]?.question}<small>{i.text.slice(0, 60)}</small></span></div>)}</>}
       <div className="phone-section-title small-title">Exceptions Detected <span>{pad(blocked.length)}</span></div>
       {blocked.length === 0 ? <div className="phone-info"><Check size={15} /><span>No blocked work<small>All tasks flowing</small></span></div> :
         blocked.slice(0, 2).map((t) => <div key={t.id} className="phone-info"><CircleAlert size={15} /><span>{t.title}<small>{label(t.status)} · {projectName(data, t.project_id)}</small></span></div>)}
@@ -127,34 +131,14 @@ function ResolvedList({ data, items }: { data: OwnerData; items: Approval[] }) {
 }
 
 export function DirectiveView({ data, refresh, close }: Common & { close: () => void }) {
-  const ds = useDataSource();
-  const [text, setText] = useState("");
-  const [projectId, setProjectId] = useState("");
-  const [orgId, setOrgId] = useState("");
   const [full, setFull] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const issue = async () => {
-    const project = data.projects.find((p) => p.id === projectId);
-    const organizationId = project?.organization_id ?? (orgId || null);
-    if (!organizationId && ds.kind === "api") { setMsg("Choose the organization this direction is for."); return; }
-    const { error } = await ds.commands.issueDirective({ content: text.trim(), projectId: projectId || null, organizationId });
-    if (error) { setMsg(error.message); return; }
-    setText(""); setMsg("Directive issued and recorded."); refresh();
-  };
-  const history = full ? data.directives : data.directives.slice(0, 5);
+  const orgName = (id: string) => data.organizations.find((o) => o.id === id)?.name ?? "";
+  const history = full ? data.intents : data.intents.slice(0, 5);
   return <div className="directive-wrap"><div className="directive-head"><div><div className="eyebrow gold">INTENT FRAMING / CEO OFFICE</div><h2><span className="brain-symbol">✦</span> Executive Directive</h2></div><Button variant="ghost" size="icon" className="icon-button" aria-label="Close directive" onClick={close}><X size={20} /></Button></div>
     <div className="philosophy"><span>THE PRINCIPLE</span><p>The CEO does not manage tasks. The CEO sets direction, resolves ambiguity, and authorizes consequential action.</p></div>
-    <div className="directive-form"><label htmlFor="directive-text">WHAT DIRECTION WOULD YOU LIKE TO SET?</label>
-      <textarea id="directive-text" value={text} maxLength={4000} onChange={(e) => setText(e.target.value)} placeholder="Describe the outcome you want to create, the tension you want resolved, or the principle you want the organization to follow…" />
-      <div className="directive-targets">
-        <label>PROJECT<select value={projectId} onChange={(e) => setProjectId(e.target.value)}><option value="">Organization-wide</option>{data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-        <label>ORGANIZATION<select value={orgId} onChange={(e) => setOrgId(e.target.value)} disabled={!!projectId}><option value="">{ds.kind === "api" ? "Choose…" : "None"}</option>{data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
-      </div>
-      <div className="suggestions"><span>START WITH</span>{["Clarify our Q4 priorities", "Resolve an open trade-off", "Set a guiding principle"].map((s) => <Button key={s} variant="outline" onClick={() => setText(s)}>{s} <ArrowDownRight size={13} /></Button>)}</div>
-      <div className="directive-footer"><span>{msg ?? `${text.length} characters`}</span><Button className="approve-btn" disabled={!text.trim()} onClick={issue}>Issue directive <Send size={15} /></Button></div>
-    </div>
-    <div className="directive-history"><div className="section-label"><span>DIRECTIVE HISTORY</span>{data.directives.length > 5 && <button onClick={() => setFull(!full)}>{full ? "SHOW RECENT" : `SHOW ALL ${data.directives.length}`}</button>}</div>
-      {history.length === 0 ? <Empty title="No directives issued yet." /> : history.map((d) => <div key={d.id} className="resolved-row"><span>{d.content}<small>{projectName(data, d.project_id)} · {fmtDate(d.created_at)}</small></span></div>)}
+    <Composer organizations={data.organizations} onSubmitted={refresh} />
+    <div className="directive-history"><div className="section-label"><span>REQUESTS</span>{data.intents.length > 5 && <button onClick={() => setFull(!full)}>{full ? "SHOW RECENT" : `SHOW ALL ${data.intents.length}`}</button>}</div>
+      {history.length === 0 ? <Empty title="Nothing requested yet." /> : history.map((i) => <div key={i.id}><small className="who">{orgName(i.organization_id)}</small><IntentCard intent={i} canAnswer={i.source === "CEO_DIRECTIVE"} refresh={refresh} /></div>)}
     </div></div>;
 }
 

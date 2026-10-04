@@ -28,7 +28,9 @@ spends it, so a mail scanner that fetches the link cannot use it up. There are n
 | queries.ownerData                             | GET /v1/console/overview (agency only) |
 | queries.clientData                            | GET /v1/portal/overview (clients only) |
 | commands.resolveApproval / clientResolveApproval | POST /v1/approvals/:id/resolve |
-| commands.issueDirective                       | POST /v1/directives |
+| intents.submit                                | POST /v1/intents (attachments staged first via /v1/assets with `staged`) |
+| intents.answer                                | POST /v1/intents/:id/clarifications/:cid/answer |
+| intents.respond                               | GET /v1/intents/:id/ask, POST /v1/requirements/:id/respond |
 | commands.markSeen                             | POST /v1/console/seen |
 | commands.createOrganization                   | POST /v1/organizations (CEO) |
 | commands.invitePerson                         | POST /v1/invitations (needs step-up: `/v1/auth/step-up/request` then `/verify`) |
@@ -39,7 +41,7 @@ spends it, so a mail scanner that fetches the link cannot use it up. There are n
 Not offered by the API yet, so the UI hides them (`capabilities`): constraints and evidence requests on an
 authorization (arrive with interventions) and hand-posted timeline updates (the system writes the timeline).
 
-Projects are never created or status-edited by hand: they begin only as directives (`POST /v1/directives`). Tasks,
+Projects are never created or status-edited by hand: they begin only as intents (`POST /v1/intents`; `/v1/directives` answers 410). Tasks,
 approvals, decisions, evidence and outcomes are created by the runtime. The UI has no create-project screen.
 
 The CEO may resolve a **client's** authorization only with a permission the client's owner granted; otherwise the API

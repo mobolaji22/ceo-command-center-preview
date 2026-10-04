@@ -105,9 +105,12 @@ function seed(): Store {
       { id: "ev-10", project_id: "p-4", type: "PROJECT_COMPLETED", summary: "Project completed: Northwind brand audit", actor_id: null, client_visible: true, created_at: ago(24 * 35) },
       { id: "ev-11", project_id: "p-3", type: "PROJECT_CREATED", summary: "Project opened: Portfolio v2", actor_id: "u-ceo", client_visible: false, created_at: ago(24 * 5) },
     ],
-    directives: [
-      { id: "dv-1", content: "Clarify our Q4 priorities and drop anything that does not move online orders.", project_id: null, organization_id: "o-1", client_id: null, created_by: "u-ceo", created_at: ago(24 * 6) },
-      { id: "dv-2", content: "Make the patient intake feel calm. Fewer fields, plainer words.", project_id: "p-2", organization_id: "o-2", client_id: "u-tunde", created_by: "u-ceo", created_at: ago(24 * 10) },
+    intents: [
+      { id: "in-1", organization_id: "o-1", project_id: "p-1", source: "CLIENT_INTENT", status: "UNDERSTOOD", text: "Clarify our Q4 priorities and drop anything that does not move online orders.", initiator_id: "u-amara", rejection_reason: null, created_at: ago(24 * 20), understood_at: ago(24 * 20), questions: [], assumptions: [{ id: "as-1", question: "Is there a spending limit we should respect?", assumed: "Use the usual range for this kind of work", forced: false }], answers: [], materials: [] },
+      { id: "in-2", organization_id: "o-2", project_id: null, source: "CLIENT_INTENT", status: "CLARIFYING", text: "Make the patient intake feel calm.", initiator_id: "u-tunde", rejection_reason: null, created_at: ago(5), understood_at: null,
+        questions: [{ id: "q-1", question: "What result would tell you this worked?", why: "Without a result to aim at we cannot tell a good plan from a merely busy one.", decision: "Which approach we propose, and how we measure success.", options: [{ id: "revenue", label: "More completed intakes", tradeoff: "We design around completion; extras that do not help it are left out." }, { id: "trust", label: "Patients who feel at ease", tradeoff: "We invest in tone and content; it is slower to measure." }], default_option_id: null }],
+        assumptions: [], answers: [],
+        materials: [{ requirement_id: "m-1", name: "Brand guidelines", why: "Design should extend your brand, not invent a new one.", if_missing: "Colors, type and tone would be guessed.", required: true, ways: ["UPLOAD", "LINK", "NONE", "SOURCE"], sourcing: false }] },
     ],
     organizations: [
       { id: "o-1", name: "Northwind Bakery", mission: "Fresh bread, honestly made.", created_at: ago(24 * 70) },
@@ -231,6 +234,7 @@ export function createFixturesDataSource(): DataSource {
           artifacts: s.data.artifacts.filter((a) => a.client_visible && mine.has(a.project_id)),
           approvals: s.data.approvals.filter((a) => a.requires_client && mine.has(a.project_id)),
           requirements: s.data.requirements.filter((r) => r.assigned_to_client && mine.has(r.project_id)),
+          intents: s.data.intents.filter((i) => orgs.has(i.organization_id)),
         });
       },
     },
@@ -271,13 +275,6 @@ export function createFixturesDataSource(): DataSource {
           a.resolved_by = currentUserId();
           a.resolved_at = new Date().toISOString();
           addEvent(s, { project_id: a.project_id, type: approved ? "APPROVAL_GRANTED" : "APPROVAL_REJECTED", summary: `Client ${approved ? "approved" : "rejected"}: ${a.title}`, client_visible: true });
-        });
-      },
-
-      async issueDirective(input) {
-        return mutate((s) => {
-          s.data.directives.unshift({ id: id(), content: input.content, project_id: input.projectId, organization_id: input.organizationId, client_id: null, created_by: currentUserId() ?? "u-ceo", created_at: new Date().toISOString() });
-          addEvent(s, { project_id: input.projectId, type: "DIRECTIVE_ISSUED", summary: `Directive: ${input.content.slice(0, 120)}`, client_visible: false });
         });
       },
 
@@ -326,6 +323,41 @@ export function createFixturesDataSource(): DataSource {
         });
       },
 
+    },
+
+    intents: {
+      async submit(input) {
+        const words = input.text.trim().split(/\s+/).length;
+        const clear = words >= 12;
+        const s = load();
+        const id_ = id();
+        s.data.intents.unshift({
+          id: id_, organization_id: input.organizationId, project_id: null, source: currentUserId() === "u-ceo" ? "CEO_DIRECTIVE" : "CLIENT_INTENT", status: clear ? "PLANNED" : "CLARIFYING",
+          text: input.text.trim(), initiator_id: currentUserId() ?? "u-ceo", rejection_reason: null, created_at: new Date().toISOString(), understood_at: clear ? new Date().toISOString() : null,
+          questions: clear ? [] : [{ id: id(), question: "What result would tell you this worked?", why: "Without a result to aim at we cannot tell a good plan from a merely busy one.", decision: "Which approach we propose, and how we measure success.", options: [{ id: "revenue", label: "More sales or sign-ups", tradeoff: "We design around conversion." }, { id: "trust", label: "More trust and a clearer image", tradeoff: "Slower to measure." }], default_option_id: null }],
+          assumptions: [], answers: [], materials: [],
+        });
+        if (clear) {
+          const pid = id();
+          s.data.projects.unshift({ id: pid, organization_id: input.organizationId, name: input.text.trim().slice(0, 60), description: input.text.trim(), objective: null, status: "INTAKE", priority: 50, domains: [], created_at: new Date().toISOString(), started_at: null, completed_at: null });
+          s.data.intents[0]!.project_id = pid;
+        }
+        save(s);
+        return ok({ status: clear ? "PLANNED" : "CLARIFYING", projectId: s.data.intents[0]!.project_id });
+      },
+      async answer(intentId, clarificationId, answer) {
+        return mutate((s) => {
+          const i = s.data.intents.find((x) => x.id === intentId);
+          const q = i?.questions.find((x) => x.id === clarificationId);
+          if (!i || !q) return;
+          i.answers.push({ id: q.id, question: q.question, answer: answer.text ?? q.options.find((o) => o.id === answer.optionId)?.label ?? "our usual choice" });
+          i.questions = i.questions.filter((x) => x.id !== clarificationId);
+          if (i.questions.length === 0) { i.status = "PLANNED"; i.understood_at = new Date().toISOString(); }
+        });
+      },
+      async respond(requirementId) {
+        return mutate((s) => { for (const i of s.data.intents) i.materials = i.materials.filter((m) => m.requirement_id !== requirementId); });
+      },
     },
 
     assets: {

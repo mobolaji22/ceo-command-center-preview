@@ -35,14 +35,25 @@ export type Capabilities = {
   timelineUpdates: boolean;
 };
 
-export type DirectiveInput = {
-  content: string;
-  projectId: string | null;
-  organizationId: string | null;
-};
+/** Something that arrives with a request. `scope` is where it should live: this request's project, or the client's library. */
+export type NewAttachment =
+  | { kind: "file"; file: File; scope: "PROJECT" | "ORGANIZATION" }
+  | { kind: "link"; url: string; scope: "PROJECT" | "ORGANIZATION" };
+
+export type IntentInput = { organizationId: string; text: string; attachments: NewAttachment[] };
+
+/** The ways to answer one item of the materials list. */
+export type MaterialAnswer =
+  | { action: "UPLOAD"; file: File }
+  | { action: "LINK"; url: string }
+  | { action: "CONNECT"; assetId: string }
+  | { action: "NONE" }
+  | { action: "SOURCE" };
 
 export type AssetUploadInput = {
   organizationId: string;
+  /** Compose-time: set aside for a request being written, placed when it is submitted. */
+  staged?: boolean;
   scope: "ORGANIZATION" | "PROJECT";
   projectId: string | null;
   kind: AssetKind;
@@ -84,9 +95,6 @@ export interface DataSource {
     requestApprovalEvidence(id: string, text: string): Promise<Result>;
     clientResolveApproval(id: string, approved: boolean, note: string): Promise<Result>;
 
-    // Intent. Projects begin only here (or from a client's own intent); there is no create-project command.
-    issueDirective(input: DirectiveInput): Promise<Result>;
-
     /** Marks the CEO's visit and returns when they were last here (ISO), or null. */
     markSeen(): Promise<string | null>;
 
@@ -96,6 +104,14 @@ export interface DataSource {
     removePerson(organizationId: string, userId: string): Promise<Result>;
 
     postUpdate(projectId: string, input: { summary: string; share: boolean }): Promise<Result>;
+  };
+
+  /** Where work enters. A request is understood, questions are asked, and only then does a project open (there is no create-project command). */
+  intents: {
+    /** Stages each attachment, then submits the request. The answer says where it stands. */
+    submit(input: IntentInput): Promise<Result<{ status: string; projectId: string | null }>>;
+    answer(intentId: string, clarificationId: string, answer: { optionId?: string; text?: string; useDefault?: boolean }): Promise<Result>;
+    respond(requirementId: string, answer: MaterialAnswer, organizationId: string): Promise<Result>;
   };
 
   /** The asset library: files held for a client, in their organization's library or one project. */
