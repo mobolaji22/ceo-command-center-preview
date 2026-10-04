@@ -1,0 +1,31 @@
+# The living agency: visual and interaction plan
+
+## Direction
+
+Build **Cinematic Executive Command** as a coherent working place, not a decorative dashboard. The selected **warm architectural** palette (#17191A charcoal, #33403B deep green, #C89A4B brass, #E9DDD0 warm light), **DM Serif Display + Fira Sans**, and **full-width spatial journey** apply across the experience. Keep the existing office's recognizable objects, restrained glass, functional labels, and real v4 status. Use the supplied screenshot as a reference for the computer hotspot's immediate contextual reveal, not as an image to embed or as permission to copy its unrelated pipeline.
+
+## Experience map
+
+1. **CEO office — the entry hall.** Retain the photographic office and map hotspots accurately to door/corridor, computer, phone, contracts, directive, brief, and focus. A pointer hover reveals a compact preview anchored beside the object; a single click opens it. Keyboard focus reveals the same preview, Enter/Space opens it, and Escape dismisses it. Touch uses clearly labeled, sufficiently large targets and one tap to open; offer an always-available destination list so discovery never depends on hover or image cropping. Keep counts and state sourced from the live ledger, not painted into the photo. Move or flip previews when they would cover other controls or leave the viewport; eliminate the preview's extra action click.
+2. **Corridor — orientation.** Generate a dedicated architectural corridor image that connects visually to the existing office. Give the nine established departments legible wayfinding and direct access; preserve the existing domain-to-project mapping rather than inventing new departments. Quiet rooms still exist but look intentionally unoccupied. A compact list provides the same access on small screens and for nonvisual navigation.
+3. **Department rooms — evidence of work.** Produce a cohesive room-image family with recognizable variations for Business, Market, Brand, Content, Design, Marketing, Engineering, Strategy, and Social Growth. Maintain a stable room identity across visits. Place live projects and the existing pinboard/calendar above a readable surface; empty rooms remain empty. Room names and status live in accessible HTML, never generated image lettering.
+4. **Working desks.** Bring the computer/cases and ledger, contracts/governance, phone/attention, directive/intents, brief/archive, and records/people/library into the same architectural language. Each gets a purposeful environmental cue (desk surface, document table, communication nook, writing desk, reading table, filing wall) without putting dense forms, signatures, source evidence, or critical decisions on top of a busy photograph. Preserve their current workflows, permissions, and API-backed data.
+5. **Client room.** Refresh `/client` as a welcoming but distinct client-facing room connected to the agency: project shelves, current requests, decisions, questions, briefs, deliverables, timeline, and library should be scannable in that order of urgency. The image supports orientation; controls and evidence remain clearly readable. Preserve client/owner permissions and never imply that a non-owner can approve.
+6. **Entry and focused pages.** Extend the visual system to sign-in/invitation, standalone brief and action pages, loading/empty/error states. These get quiet contextual imagery or material detail rather than a full immersive scene where a short task demands focus.
+
+## Image production
+
+- Make a visual inventory and shot list before rendering: existing CEO office is the continuity anchor; create a corridor, nine coordinated department-room plates, a client-room plate, and a small set of reusable work-surface/editorial crops for the working desks and focused pages. Refine the existing office image by editing its source only if new hotspot placement or continuity requires it; do not regenerate an unrelated office.
+- Direct every image as the same plausible building: consistent walnut/brass/green materials, time-of-day and light direction, restrained photographic realism, open space for UI, visible objects that identify the room. Avoid baked-in words, fictional brands, people, fake status displays, and visually dense center areas.
+- Generate and inspect images in coherent batches, reject inconsistent lighting or perspective, optimize for desktop and mobile crops, and store app imagery as app assets. Use real HTML for all wayfinding and live information, with meaningful alternative text where imagery is informative.
+
+## Interaction and quality bar
+
+- One clear action per hotspot; predictable Back to Office / Back to Corridor paths; preserve current work when moving between sections where feasible. Add subtle door/desk transitions and hotspot feedback, with reduced-motion equivalents. Never let animation delay a decision or obscure errors.
+- Keep operational content more prominent than the room image once inside a work area. Use semantic design tokens, strong foreground contrast on glass, visible focus, 44px-class touch targets, stable layouts, no text overlap, and no hover-only information.
+- Review the full experience at desktop, tablet, and mobile sizes, including short-height screens: every hotspot, preview, corridor door, room, client action, empty state, sign-in, brief, and action link. Test pointer, keyboard, touch, and reduced motion; verify real v4-backed interactions still complete and read back. The current local preview capture rendered almost entirely black despite returning HTTP 200, so first diagnose the preview/runtime rendering and use authenticated or permitted fixture views appropriately before judging the visual result.
+
+## Technical boundaries and rollout
+
+- This is a presentation and navigation redesign. Keep the existing Next.js front end, `DataSource` boundary, server-held session, invitation-only access, and v4 API authority unchanged. No fabricated records, client-side session shortcuts, or new backend scope.
+- Implement in passes: (1) restore a usable preview and establish visual tokens/typography; (2) office interaction and navigation; (3) corridor and department-room imagery; (4) working desks and client room; (5) focused pages, accessibility, and end-to-end visual review. Each pass must preserve the live workflows before proceeding.
