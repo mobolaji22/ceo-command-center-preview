@@ -1,4 +1,4 @@
-import type { Answer, AppRole, Asset, AssetKind, BudgetView, ClientData, DecisionEntry, DelegationView, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
+import type { Answer, AppRole, Asset, AssetKind, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -134,6 +134,23 @@ export interface DataSource {
   questions: {
     list(opts?: { projectId?: string }): Promise<Result<Question[]>>;
     answer(questionId: string, answer: Answer): Promise<Result>;
+  };
+  /**
+   * What people are told (CC-5). A brief is written from records and every statement names the records it comes from, so the
+   * reader can open them; what is not known says "not recorded." A client reads only what was written to their organization.
+   */
+  briefs: {
+    /** Newest first. */
+    list(opts?: { projectId?: string; type?: BriefType }): Promise<Result<BriefSummary[]>>;
+    get(id: string): Promise<Result<BriefDoc>>;
+    /** Opens every source and reports whether each statement still says what its record says. */
+    verify(id: string): Promise<Result<BriefCheck>>;
+  };
+  /** How the signed-in person wants to be told, and what has been sent or is waiting. Always their own. */
+  notifications: {
+    list(): Promise<Result<NotificationItem[]>>;
+    preferences(): Promise<Result<NotificationPrefs>>;
+    savePreferences(prefs: NotificationPrefs): Promise<Result<NotificationPrefs>>;
   };
   plans: {
     /** Every version, oldest first. A client sees only what has been submitted to them. */

@@ -345,3 +345,31 @@ export type Question = {
   options: string[]; recommendation: { option: string; why: string } | null; deadline: string | null; created_at: string;
 };
 export type Answer = { option: string; note?: string; toUsd?: number; evidence?: string };
+
+/* ---- What people are told (CC-5): briefs, the sources behind each statement, and how a person wants to be told ---- */
+
+export type BriefType = "KICKOFF" | "PROGRESS" | "EXCEPTION" | "DIGEST" | "HANDOFF" | "OUTCOME" | "IMPROVEMENT";
+export type BriefSummary = {
+  id: string; organization_id: string; project_id: string | null; type: BriefType; audience: "CLIENT" | "AGENCY";
+  title: string; level: number; created_at: string;
+};
+/** Where a statement comes from: a record, and where in it a value is quoted. A sum cites several records. */
+export type Source = { type: string; ids: string[]; path: string | null; expect: string | number | null; sum: boolean };
+export type BriefStatement = { position: number; section: string; kind: "FACT" | "GAP"; text: string; sources: Source[] };
+export type BriefDoc = BriefSummary & { statements: BriefStatement[] };
+/** The result of opening every source: each one exists, belongs here, and says what the statement says. */
+export type BriefCheck = { ok: boolean; facts: number; gaps: number; problems: string[] };
+
+export type DigestFrequency = "DAILY" | "WEEKLY" | "OFF";
+export type NotificationPrefs = {
+  timezone: string;
+  quiet_hours: { start: string; end: string } | null;
+  /** Only 3 to 5 can interrupt; lower is not offered. */
+  min_interrupt_level: number;
+  email_enabled: boolean;
+  digest: { frequency: DigestFrequency; time: string; weekday: number };
+};
+export type NotificationItem = {
+  id: string; brief_id: string; title: string; type: BriefType; project_id: string | null; level: number;
+  status: "QUEUED" | "SENT" | "FAILED" | "WAITING_DIGEST" | "DIGESTED" | "SKIPPED"; reason: string | null; created_at: string;
+};

@@ -1,5 +1,6 @@
 "use client";
 
+import { BriefArchive, NotificationSettings, PhoneBriefs } from "./briefs";
 import { CaseFileToggle, PhoneQuestions, Standing } from "./runs";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowDownRight, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, MoreHorizontal, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
@@ -46,6 +47,15 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
     </div></div>;
 }
 
+/** The phone is where a person says how they want to be told, so it sits behind a button on the phone itself. */
+function PhoneSettings() {
+  const [open, setOpen] = useState(false);
+  return <>
+    <Button variant="ghost" className="phone-decision" aria-expanded={open} onClick={() => setOpen(!open)}><span>How you are told<small>Quiet hours, urgency, email, digest</small></span><ChevronDown size={16} /></Button>
+    {open && <div className="phone-settings"><NotificationSettings /></div>}
+  </>;
+}
+
 export function PhoneView({ data, openBrief, openContracts }: Common & { openBrief: () => void; openContracts: (projectId?: string) => void }) {
   const auth = useAuth();
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
@@ -67,6 +77,8 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
       {asking.length > 0 && <><div className="phone-section-title small-title">Questions On Your Directives <span>{pad(asking.length)}</span></div>
         {asking.slice(0, 2).map((i) => <div key={i.id} className="phone-info"><CircleAlert size={15} /><span>{i.questions[0]?.question}<small>{i.text.slice(0, 60)}</small></span></div>)}</>}
       <PhoneQuestions open={openContracts} />
+      <PhoneBriefs open={openBrief} />
+      <PhoneSettings />
       <div className="phone-section-title small-title">Exceptions Detected <span>{pad(blocked.length)}</span></div>
       {blocked.length === 0 ? <div className="phone-info"><Check size={15} /><span>No blocked work<small>All tasks flowing</small></span></div> :
         blocked.slice(0, 2).map((t) => <div key={t.id} className="phone-info"><CircleAlert size={15} /><span>{t.title}<small>{label(t.status)} · {projectName(data, t.project_id)}</small></span></div>)}
@@ -158,5 +170,6 @@ export function BriefView({ data, openContracts, openComputer }: Common & { open
     <div className="brief-grid"><div className="brief-feature"><span>01 / NEEDS YOUR JUDGMENT</span><h3>{pending.length + waitingDecisions.length === 0 ? "Nothing awaits your judgment." : `${pending.length} authorization${pending.length === 1 ? "" : "s"}, ${waitingDecisions.length} open decision${waitingDecisions.length === 1 ? "" : "s"}.`}</h3><p>{pending.slice(0, 3).map((a) => a.title).join(" · ") || "You're clear for now."}</p>{pending.length > 0 && <Button variant="ghost" className="inline-arrow" onClick={() => openContracts()}>REVIEW AUTHORIZATIONS <ArrowRight size={16} /></Button>}</div>
       <div className="brief-feature"><span>02 / ORGANIZATIONAL PULSE</span><h3>{blocked.length ? `${blocked.length} item${blocked.length > 1 ? "s" : ""} blocked.` : "Momentum is holding."}</h3><p>{done.length ? `Completed: ${done.slice(0, 3).map((t) => t.title).join(" · ")}` : "No tasks completed in this window."}</p><Button variant="ghost" className="inline-arrow" onClick={openComputer}>OPEN OPERATING SYSTEM <ArrowRight size={16} /></Button></div></div>
     <div className="brief-events"><div className="section-label"><span>WHAT CHANGED</span><span>{recent.length}</span></div>{recent.length === 0 ? <Empty title="No new signals since your last visit." /> : recent.slice(0, 12).map((e) => <div key={e.id} className="resolved-row"><span>{e.summary}<small>{projectName(data, e.project_id)} · {fmtAgo(e.created_at)}</small></span><span className="pill muted">{label(e.type).toUpperCase()}</span></div>)}</div>
+    <div className="brief-events"><div className="section-label"><span>EVERYTHING YOU HAVE BEEN TOLD</span></div><BriefArchive limit={5} /></div>
     <div className="brief-signoff"><span className="live-dot" /> PREPARED BY DEVPLAYBOOK · EXECUTIVE INTELLIGENCE</div></div>;
 }

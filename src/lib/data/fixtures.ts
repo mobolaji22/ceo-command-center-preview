@@ -2,10 +2,13 @@ import type {
   Answer,
   Approval,
   Asset,
+  BriefDoc,
   BudgetView,
   ClientData,
   DecisionEntry,
   DelegationView,
+  NotificationItem,
+  NotificationPrefs,
   OwnerData,
   PlanContent,
   PlanVersion,
@@ -29,7 +32,7 @@ import { fail, ok, type DataSource, type Result } from "./types";
  * client visibility is decided here the way the API will decide it.
  */
 
-const STORE_KEY = "dpl.fixtures.v4";
+const STORE_KEY = "dpl.fixtures.v5";
 const SESSION_KEY = "dpl.fixtures.session";
 const CHANGE_EVENT = "dpl:fixtures-change";
 
@@ -39,7 +42,7 @@ const id = () => crypto.randomUUID();
 type Membership = { organizationId: string; role: "CLIENT_OWNER" | "CLIENT_MEMBER" };
 type User = { id: string; email: string; displayName: string; role: "owner" | "client"; memberships: Membership[] };
 
-type Store = { data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; budgets: Record<string, BudgetView> };
+type Store = { data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView> };
 
 /** A demo plan: enough to show every part of the page. */
 const demoPlan = (): PlanContent => ({
@@ -166,7 +169,29 @@ function seed(): Store {
     recommendation: { option: "RAISE_BUDGET", why: "Raising the limit to $1.88 lets the plan finish." }, deadline: ago(-24 * 3), created_at: ago(5),
   }];
   const budgets: Record<string, BudgetView> = { "p-2": { run_id: "r-2", run_status: "WAITING", approved_usd: 1.5, used_usd: 1.5, used_percent: 100 } };
-  return { data, users, assets: [], lastSeen: ago(24 * 2), plans, decisions: [], delegations: [], runs, questions, budgets };
+  const sec = (position: number, section: string, text: string, sources: BriefDoc["statements"][number]["sources"]): BriefDoc["statements"][number] => ({ position, section, kind: sources.length ? "FACT" : "GAP", text, sources });
+  const briefs: BriefDoc[] = [{
+    id: "b-1", organization_id: "o-2", project_id: "p-2", type: "EXCEPTION", audience: "CLIENT", title: "Lumen onboarding: the budget has been reached", level: 4, created_at: ago(5),
+    statements: [
+      sec(0, "What happened", "The work reached the $1.50 budget you approved.", [{ type: "Run", ids: ["r-2"], path: "budget.approvedUsd", expect: 1.5, sum: false }]),
+      sec(1, "What happened", "$1.50 has been spent in total.", [{ type: "Cost record", ids: ["c-1", "c-2", "c-3"], path: "costUsd", expect: 1.5, sum: true }]),
+      sec(2, "What happens next", "Nothing more will be spent until you answer. You can allow more, or stop here.", [{ type: "Question", ids: ["q-1"], path: "status", expect: "OPEN", sum: false }]),
+      sec(3, "What it cost to get here", "The reason the last step cost more than planned: not recorded.", []),
+    ],
+  }, {
+    id: "b-2", organization_id: "o-1", project_id: "p-1", type: "KICKOFF", audience: "CLIENT", title: "Northwind checkout: what we will do", level: 2, created_at: ago(24 * 19),
+    statements: [
+      sec(0, "The plan", "We will clarify Q4 priorities and drop what does not move online orders.", [{ type: "Plan", ids: ["pl-1"], path: "objective", expect: "Clarify Q4 priorities", sum: false }]),
+      sec(1, "The plan", "The work is estimated at $4 to $9.", [{ type: "Plan", ids: ["pl-1"], path: "budget.highUsd", expect: 9, sum: false }]),
+      sec(2, "The plan", "When it will be finished: not recorded.", []),
+    ],
+  }];
+  const prefs: Record<string, NotificationPrefs> = {};
+  const notifications: NotificationItem[] = [
+    { id: "n-1", brief_id: "b-1", title: "Lumen onboarding: the budget has been reached", type: "EXCEPTION", project_id: "p-2", level: 4, status: "SENT", reason: null, created_at: ago(5) },
+    { id: "n-2", brief_id: "b-2", title: "Northwind checkout: what we will do", type: "KICKOFF", project_id: "p-1", level: 2, status: "WAITING_DIGEST", reason: "WAITS_FOR_DIGEST", created_at: ago(24 * 19) },
+  ];
+  return { data, users, assets: [], lastSeen: ago(24 * 2), plans, decisions: [], delegations: [], runs, questions, budgets, briefs, prefs, notifications };
 }
 
 /** Can the signed-in person see this project's work? The CEO reaches all of it; a client only their own organization's. */
@@ -177,6 +202,17 @@ function mayReach(s: Store, projectId: string): boolean {
   if (me.role === "owner") return true;
   const project = s.data.projects.find((p) => p.id === projectId);
   return Boolean(project && me.memberships.some((m) => m.organizationId === project.organization_id));
+}
+
+const DEFAULT_PREFS: NotificationPrefs = { timezone: "UTC", quiet_hours: null, min_interrupt_level: 3, email_enabled: true, digest: { frequency: "DAILY", time: "08:00", weekday: 1 } };
+
+/** Can the signed-in person read this brief? The CEO reads all; a client only what was written to their own organization. */
+function mayReadBrief(s: Store, b: { organization_id: string; audience: string }): boolean {
+  const uid = typeof window === "undefined" ? null : window.localStorage.getItem(SESSION_KEY);
+  const me = s.users.find((u) => u.id === uid);
+  if (!me) return false;
+  if (me.role === "owner") return true;
+  return b.audience === "CLIENT" && me.memberships.some((m) => m.organizationId === b.organization_id);
 }
 
 /** The work ends here: the run and what was unfinished are cancelled, and the project is stopped. */
@@ -444,6 +480,44 @@ export function createFixturesDataSource(): DataSource {
       },
       async respond(requirementId) {
         return mutate((s) => { for (const i of s.data.intents) i.materials = i.materials.filter((m) => m.requirement_id !== requirementId); });
+      },
+    },
+
+    briefs: {
+      async list(opts) {
+        const s = load();
+        return ok(structuredClone(s.briefs.filter((b) => (!opts?.projectId || b.project_id === opts.projectId) && (!opts?.type || b.type === opts.type) && mayReadBrief(s, b))
+          .map(({ statements: _statements, ...b }) => b).sort((a, b) => b.created_at.localeCompare(a.created_at))));
+      },
+      async get(id) {
+        const s = load();
+        const b = s.briefs.find((x) => x.id === id);
+        return b && mayReadBrief(s, b) ? ok(structuredClone(b)) : fail("That couldn't be found.", "NOT_FOUND");
+      },
+      async verify(id) {
+        const s = load();
+        const b = s.briefs.find((x) => x.id === id);
+        if (!b || !mayReadBrief(s, b)) return fail("That couldn't be found.", "NOT_FOUND");
+        const facts = b.statements.filter((x) => x.kind === "FACT").length;
+        return ok({ ok: true, facts, gaps: b.statements.length - facts, problems: [] });
+      },
+    },
+
+    notifications: {
+      async list() {
+        const s = load();
+        return ok(structuredClone(s.notifications.filter((n) => { const b = s.briefs.find((x) => x.id === n.brief_id); return b ? mayReadBrief(s, b) : false; })));
+      },
+      async preferences() {
+        const s = load();
+        const uid = currentUserId();
+        return ok(structuredClone((uid && s.prefs[uid]) || { ...DEFAULT_PREFS }));
+      },
+      async savePreferences(p) {
+        if (p.min_interrupt_level < 3 || p.min_interrupt_level > 5) return fail("Only level 3 and above can interrupt.");
+        if (p.quiet_hours && p.quiet_hours.start === p.quiet_hours.end) return fail("Quiet hours need a start and a different end.");
+        const r = mutate((s) => { const uid = currentUserId(); if (uid) s.prefs[uid] = structuredClone(p); });
+        return r.error ? { data: null, error: r.error } : ok(structuredClone(p));
       },
     },
 
