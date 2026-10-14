@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { createApiDataSource } from "./api";
 import { createFixturesDataSource } from "./fixtures";
 import type { DataSource } from "./types";
@@ -22,7 +22,8 @@ function select(): DataSource {
 const Ctx = createContext<DataSource | null>(null);
 
 export function DataSourceProvider({ children }: { children: ReactNode }) {
-  const ds = useMemo(select, []);
+  // Created once for the life of the app: a lazy state initialiser runs exactly once, where useMemo may re-run.
+  const [ds] = useState(select);
   return <Ctx.Provider value={ds}>{children}</Ctx.Provider>;
 }
 

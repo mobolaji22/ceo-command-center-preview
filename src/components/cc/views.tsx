@@ -111,7 +111,10 @@ export function ContractsView({ data, refresh, focusProjectId }: Common & { focu
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  useEffect(() => { setText(tab === "Modify Constraints & Scope" ? a?.constraints ?? "" : tab === "Request Evidence" ? a?.evidence_request ?? "" : ""); }, [tab, a?.id]);
+  // Start the text from the record whenever the tab or the authorization changes (adjusted during render, not in an effect).
+  const draftFor = `${tab}:${a?.id ?? ""}`;
+  const [textFor, setTextFor] = useState(draftFor);
+  if (textFor !== draftFor) { setTextFor(draftFor); setText(tab === "Modify Constraints & Scope" ? a?.constraints ?? "" : tab === "Request Evidence" ? a?.evidence_request ?? "" : ""); }
 
   const resolved = data.approvals.filter((x) => x.status !== "REQUESTED").slice(0, 6);
   if (!a) return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span></div>
@@ -172,8 +175,10 @@ export function DirectiveView({ data, refresh, close }: Common & { close: () => 
 export function BriefView({ data, openContracts, openComputer }: Common & { openContracts: (projectId?: string) => void; openComputer: () => void }) {
   const ds = useDataSource();
   const [since, setSince] = useState<string | null>(null);
-  useEffect(() => { void ds.commands.markSeen().then((d) => setSince(d ?? new Date(Date.now() - 7 * 864e5).toISOString())); }, [ds]);
-  const s = since ? new Date(since).getTime() : Date.now() - 7 * 864e5;
+  // Without a last visit, the brief covers the week before it was opened.
+  const [weekAgo] = useState(() => Date.now() - 7 * 864e5);
+  useEffect(() => { void ds.commands.markSeen().then((d) => setSince(d ?? new Date(weekAgo).toISOString())); }, [ds, weekAgo]);
+  const s = since ? new Date(since).getTime() : weekAgo;
   const recent = useMemo(() => data.events.filter((e) => new Date(e.created_at).getTime() > s), [data.events, s]);
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const waitingDecisions = data.decisions.filter((d) => d.status === "WAITING_FOR_HUMAN" || d.status === "PROPOSED");

@@ -132,6 +132,8 @@ export function Artboard({ doc, frameId, scale, selection, onSelect, onOp, tool,
   };
 
   const selected = sel.length === 1 ? nodes.find((n) => n.id === sel[0]) : undefined;
+  const handleNode = !readOnly && selected && !selected.locked && !selected.hidden ? selected : undefined;
+  const handleRect = handleNode ? rectOf(handleNode) : null;
   const guides = drag?.kind === "move" ? drag.guides : { x: null, y: null };
   return (
     <div className="ws-artboard-wrap" style={{ width: frame.w * scale, height: frame.h * scale }}>
@@ -157,7 +159,7 @@ export function Artboard({ doc, frameId, scale, selection, onSelect, onOp, tool,
           const o = offset(n); const r = rectOf(n);
           return <div key={`o-${id}`} className={`ws-outline${n.locked ? " is-locked" : ""}`} style={{ left: r.x + o.dx, top: r.y + o.dy, width: r.w, height: r.h }} aria-hidden="true">{n.locked && <Lock size={12 / Math.max(scale, 0.5)} />}</div>;
         })}
-        {!readOnly && selected && !selected.locked && !selected.hidden && (() => { const r = rectOf(selected); return <div className="ws-handles" style={{ left: r.x, top: r.y, width: r.w, height: r.h }}>{HANDLES.map((h) => <span key={h} className="ws-handle" style={{ ...HANDLE_POS[h], width: 10 / Math.max(scale, 0.4), height: 10 / Math.max(scale, 0.4) }} onPointerDown={(e) => startResize(e, selected, h)} aria-hidden="true" />)}</div>; })()}
+        {handleNode && handleRect && <div className="ws-handles" style={{ left: handleRect.x, top: handleRect.y, width: handleRect.w, height: handleRect.h }}>{HANDLES.map((h) => <span key={h} className="ws-handle" style={{ ...HANDLE_POS[h], width: 10 / Math.max(scale, 0.4), height: 10 / Math.max(scale, 0.4) }} onPointerDown={(e) => startResize(e, handleNode, h)} aria-hidden="true" />)}</div>}
         {guides.x !== null && <div className="ws-guide ws-guide-v" style={{ left: guides.x }} aria-hidden="true" />}
         {guides.y !== null && <div className="ws-guide ws-guide-h" style={{ top: guides.y }} aria-hidden="true" />}
         {!readOnly && doc.annotations.filter((a) => a.frameId === frameId).map((a, i) => (

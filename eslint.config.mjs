@@ -2,7 +2,7 @@ import next from "eslint-config-next";
 
 // The copied preview UI predates the React Compiler lint rules. They stay visible as warnings
 // so the direct copy is not rewritten just to satisfy them.
-export default [
+const config = [
   ...next,
   { ignores: [".next/**", "node_modules/**", "next-env.d.ts"] },
   {
@@ -19,3 +19,5 @@ export default [
     },
   },
 ];
+
+export default config;

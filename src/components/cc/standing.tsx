@@ -43,7 +43,8 @@ export function StandingPermission({ organizationId, projectIds, actingAs = "own
   const [why, setWhy] = useState("");
   const [revoking, setRevoking] = useState<string | null>(null);
 
-  const now = Date.now();
+  // The moment this screen opened; a grant that lapses while it is open shows on the next refresh.
+  const [now] = useState(() => Date.now());
   const rows: DelegationView[] = current.data ?? [];
   const inForce = rows.find((d) => !d.revoked_at && (!d.expires_at || new Date(d.expires_at).getTime() > now));
   // The governance tab lists what is in force and each client's audit chain from the same records, so they look again too.

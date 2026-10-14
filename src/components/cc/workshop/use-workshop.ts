@@ -53,9 +53,8 @@ export function useWorkshop(projectId: string, projectName: string, actor: strin
     setSaveState(histRef.current && histRef.current.present.revision !== h.present.revision ? "unsaved" : "saved");
   }, []);
 
-  const load = useCallback(async () => {
-    setLoadError(null);
-    put(null);
+  // Fetch only sets state after the reply arrives. Switching project remounts the editor, so a first load needs no reset.
+  const fetchDoc = useCallback(async () => {
     const res = await storeRef.current.load(projectId);
     if (res.error) { setLoadError(res.error.message); return; }
     if (res.data) {
@@ -72,8 +71,9 @@ export function useWorkshop(projectId: string, projectName: string, actor: strin
     setCreated(true);
     setSaveState("unsaved");
   }, [projectId, projectName, actor]);
+  const load = useCallback(() => { setLoadError(null); put(null); return fetchDoc(); }, [fetchDoc]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void fetchDoc(); }, [fetchDoc]);
 
   // Autosave shortly after the last change, and once more when the Workshop closes.
   const rev = hist?.present.revision;
