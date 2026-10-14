@@ -142,7 +142,7 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
         <div className="ws-group"><Button variant="ghost" className="ws-btn" onClick={() => download(`${slug(projectName)}-design-r${doc.revision}.json`, "application/json", documentJson(doc))}><Download size={14} /> Data</Button><Button variant="ghost" className="ws-btn" onClick={() => download(`${slug(projectName)}-${slug(frame.name)}-r${doc.revision}.svg`, "image/svg+xml", frameToSvg(doc, frame.id))}><Download size={14} /> Frame (SVG)</Button><Button variant="ghost" className="ws-btn" onClick={() => fileRef.current?.click()}><Upload size={14} /> Import</Button><input ref={fileRef} type="file" accept="application/json,.json" hidden aria-label="Import a design document" onChange={onImport} /></div>
         <span className={`ws-save is-${w.saveState}`} role="status">{saveText}{w.saveState === "failed" && <button type="button" onClick={() => void w.retrySave()}>Retry</button>}{w.saveState === "conflict" && <button type="button" onClick={() => void w.reload()}>Reload</button>}</span>
       </div>
-      {w.created && <p className="ws-banner">Started from the territory exploration: three directions to choose between. Pick one to adjust, or compare them first.</p>}
+      {w.created && !doc.selectedTerritoryId && <p className="ws-banner">Started from the territory exploration: three directions to choose between. Pick one to adjust, or compare them first.</p>}
       {w.where === "device" && <p className="ws-banner quiet">Kept on this device only. The agency&apos;s design service is not connected yet, so export the design to share it.</p>}
       {w.saveNote && <p className="ws-banner warn">{w.saveNote}</p>}
 

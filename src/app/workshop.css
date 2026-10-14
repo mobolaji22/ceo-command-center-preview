@@ -179,8 +179,10 @@ html:not([data-lighting="day"]) .ws-chip.bad { color: oklch(0.8 0.14 40); }
 
 @media (max-width: 1180px) { .ws-main { grid-template-columns: 224px minmax(0, 1fr) 292px; } }
 @media (max-width: 900px) {
-  .ws-main { grid-template-columns: 1fr; overflow-y: auto; }
-  .ws-left, .ws-inspector { border: 0; border-top: 1px solid var(--border); max-height: 60vh; }
+  /* Stacked: each row as tall as its content (min-height: 0 would let the grid squeeze the panels to nothing) and the
+     column scrolls; the side panels stop at 60vh and scroll inside. */
+  .ws-main { grid-template-columns: 1fr; grid-auto-rows: max-content; overflow-y: auto; }
+  .ws-left, .ws-inspector { border: 0; border-top: 1px solid var(--border); min-height: auto; max-height: 60vh; }
   .ws-center { min-height: 62vh; }
   .ws-compare { grid-template-columns: 1fr; }
 }
