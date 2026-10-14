@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests, recordSpend } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openClientDesk, openClientProject } from "./client-room";
 
 /**
  * The work, in the agency (CC-4). The client sees how their project is going in their own room: the work in order, how much of
@@ -25,6 +26,7 @@ async function signIn(page: Page, email: string) {
 
 const room = (page: Page, word: RegExp) => page.locator(".project-room", { hasText: word }).first();
 async function openProgress(page: Page, word: RegExp) {
+  await openClientProject(page, word);
   const r = room(page, word);
   await r.getByRole("button", { name: /^Show progress of/i }).click();
   return r.getByLabel("Case file");
@@ -103,6 +105,7 @@ test("the CEO's hold on a client's work is shown to the client, who cannot lift 
   await expect(desk.getByLabel("The work is paused")).toHaveCount(0);
 
   await page.reload();
+  await openClientProject(page, /checkout/i);
   await expect(room(page, /checkout/i).locator(".pill").first()).toHaveText("UNDER WAY");
   await ceoPage.context().close();
 });

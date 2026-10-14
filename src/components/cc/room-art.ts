@@ -1,0 +1,46 @@
+import type { StaticImageData } from "next/image";
+import corridor from "@/assets/agency-corridor.jpg";
+import corridorDay from "@/assets/agency-corridor-day.jpg";
+import office from "@/assets/ceo-office.jpg";
+import officeDay from "@/assets/ceo-office-day.jpg";
+import clientRoom from "@/assets/agency-client-room.jpg";
+import clientRoomDay from "@/assets/agency-client-room-day.jpg";
+import business from "@/assets/agency-room-business.jpg";
+import businessDay from "@/assets/agency-room-business-day.jpg";
+import market from "@/assets/agency-room-market.jpg";
+import marketDay from "@/assets/agency-room-market-day.jpg";
+import brand from "@/assets/agency-room-brand.jpg";
+import brandDay from "@/assets/agency-room-brand-day.jpg";
+import content from "@/assets/agency-room-content.jpg";
+import contentDay from "@/assets/agency-room-content-day.jpg";
+import design from "@/assets/agency-room-design.jpg";
+import designDay from "@/assets/agency-room-design-day.jpg";
+import marketing from "@/assets/agency-room-marketing.jpg";
+import marketingDay from "@/assets/agency-room-marketing-day.jpg";
+import engineering from "@/assets/agency-room-engineering.jpg";
+import engineeringDay from "@/assets/agency-room-engineering-day.jpg";
+import strategy from "@/assets/agency-room-strategy.jpg";
+import strategyDay from "@/assets/agency-room-strategy-day.jpg";
+import social from "@/assets/agency-room-social.jpg";
+import socialDay from "@/assets/agency-room-social-day.jpg";
+
+/** One place, two times of day. The photographs are atmosphere only: names, counts and status are always HTML. */
+export type LitArt = { night: StaticImageData; day: StaticImageData };
+
+/** Each department keeps one room, so it looks the same every visit. "Other" (records that fit no department) has no room of its own. */
+const ROOMS: Record<string, LitArt> = {
+  BUSINESS: { night: business, day: businessDay },
+  MARKET: { night: market, day: marketDay },
+  BRAND: { night: brand, day: brandDay },
+  CONTENT: { night: content, day: contentDay },
+  DESIGN: { night: design, day: designDay },
+  MARKETING: { night: marketing, day: marketingDay },
+  ENGINEERING: { night: engineering, day: engineeringDay },
+  STRATEGY: { night: strategy, day: strategyDay },
+  SOCIAL_GROWTH: { night: social, day: socialDay },
+};
+
+export const CORRIDOR_ART: LitArt = { night: corridor, day: corridorDay };
+export const OFFICE_ART: LitArt = { night: office, day: officeDay };
+export const CLIENT_ART: LitArt = { night: clientRoom, day: clientRoomDay };
+export const roomArt = (code: string): LitArt | null => ROOMS[code] ?? null;

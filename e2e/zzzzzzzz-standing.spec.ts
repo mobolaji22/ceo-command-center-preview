@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openClientDesk, openClientProject } from "./client-room";
 
 /**
  * Standing permission (CC): the client's owner lets the agency do named kinds of work without asking each time, for a limited time.
@@ -28,6 +29,7 @@ test.beforeEach(() => forgetSignInRequests());
 test("the owner allows some kinds of work without asking, after the code, sees it in force, and takes it back", async ({ page }) => {
   await signIn(page, OWNER);
   await page.goto("/client");
+  await openClientDesk(page, "Lamp", "Standing permission");
   const section = page.getByRole("region", { name: "Standing permission" });
   await expect(section.getByText("The agency asks you about any kind of work a plan does not name.")).toBeVisible();
 
@@ -55,6 +57,7 @@ test("the owner allows some kinds of work without asking, after the code, sees i
   await expect(section).toContainText("It adds no spending of its own");
   await shot(page, "Standing permission in force: what it covers, when it ends, and no spending of its own");
   await page.reload();
+  await openClientDesk(page, "Lamp", "Standing permission");
   await expect(page.getByRole("region", { name: "Standing permission" }).getByText(/^In force, until/)).toBeVisible();
 
   const again = page.getByRole("region", { name: "Standing permission" });

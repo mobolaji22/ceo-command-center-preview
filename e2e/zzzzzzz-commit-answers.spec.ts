@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests, stopRunAtBudget } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openClientDesk, openClientProject } from "./client-room";
 
 /**
  * Answering a stopped project's question with something that commits money or authority (here, approving a step the plan did not
@@ -31,6 +32,7 @@ test("approving a step outside the plan asks the client's owner for the emailed 
 
   await signIn(page, OWNER);
   await page.goto("/client");
+  await openClientDesk(page, "Board", /Questions/);
   const question = asking(page);
   await expect(question).toBeVisible();
   await question.getByRole("button", { name: "Approve this step" }).click();
@@ -40,6 +42,7 @@ test("approving a step outside the plan asks the client's owner for the emailed 
   await shot(page, "Approving a step outside the plan asks for the emailed code first");
   // being asked for the code answers nothing
   await page.reload();
+  await openClientDesk(page, "Board", /Questions/);
   await expect(asking(page)).toBeVisible();
 
   await asking(page).getByRole("button", { name: "Approve this step" }).click();

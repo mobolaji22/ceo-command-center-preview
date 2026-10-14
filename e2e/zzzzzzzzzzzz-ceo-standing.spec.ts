@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openClientDesk, openClientProject } from "./client-room";
 
 /**
  * The CEO's side of standing permission (CC). For a client it is the client's decision, so the CEO can set one only under the
@@ -61,6 +62,7 @@ test("the CEO sets a standing permission for a client under the client's permiss
   const ownerPage = await (await browser.newContext()).newPage();
   await signIn(ownerPage, OWNER);
   await ownerPage.goto("/client");
+  await openClientDesk(ownerPage, "Lamp", "Standing permission");
   const mine = ownerPage.getByRole("region", { name: "Standing permission" });
   await expect(mine.getByText(/^In force, until/)).toBeVisible();
   await expect(mine).toContainText("Granted for you by the agency's CEO, under the permission you gave.");

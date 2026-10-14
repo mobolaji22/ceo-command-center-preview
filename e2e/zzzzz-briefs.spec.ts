@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openClientDesk, openClientProject } from "./client-room";
 
 /**
  * What people are told (CC-5). A client reads what was written to them, opens the records behind a statement and has every one of
@@ -29,6 +30,7 @@ test.beforeEach(() => forgetSignInRequests());
 test("a client reads a brief, opens the records behind a statement, and has every source checked", async ({ page }) => {
   await signIn(page, OWNER);
   await page.goto("/client");
+  await openClientDesk(page, "Lamp");
   const archive = page.getByLabel("Briefs", { exact: true });
   await expect(archive.locator(".brief-row").first()).toBeVisible();
   const kickoff = archive.locator(".brief-row", { hasText: "WHAT WE WILL DO" }).first();
@@ -59,6 +61,7 @@ test("a client reads a brief, opens the records behind a statement, and has ever
 test("a client sets quiet hours and a weekly digest, cannot make a lower level interrupt, and finds it kept after a reload", async ({ page }) => {
   await signIn(page, OWNER);
   await page.goto("/client");
+  await openClientDesk(page, "Lamp", "How you are told");
   const form = page.getByRole("form", { name: "How you are told" });
   // only 3 and above can interrupt: nothing lower is offered
   await expect(form.getByLabel("Interrupt me for", { exact: true }).locator("option")).toHaveText(["Important and above", "Urgent and above", "Only emergencies"]);
@@ -74,6 +77,7 @@ test("a client sets quiet hours and a weekly digest, cannot make a lower level i
   await expect(form.getByRole("status")).toHaveText("Saved.");
 
   await page.reload();
+  await openClientDesk(page, "Lamp", "How you are told");
   const again = page.getByRole("form", { name: "How you are told" });
   await expect(again.getByLabel("Quiet hours", { exact: true })).toBeChecked();
   await expect(again.getByLabel("From", { exact: true })).toHaveValue("21:30");
@@ -87,12 +91,14 @@ test("a client sets quiet hours and a weekly digest, cannot make a lower level i
 test("a quiet hours window with the same start and end is refused in words, and nothing is changed", async ({ page }) => {
   await signIn(page, OWNER);
   await page.goto("/client");
+  await openClientDesk(page, "Lamp", "How you are told");
   const form = page.getByRole("form", { name: "How you are told" });
   await form.getByLabel("From", { exact: true }).fill("08:00");
   await form.getByLabel("Until", { exact: true }).fill("08:00");
   await form.getByRole("button", { name: "Save" }).click();
   await expect(form.getByRole("alert")).toContainText("different end");
   await page.reload();
+  await openClientDesk(page, "Lamp", "How you are told");
   await expect(page.getByRole("form", { name: "How you are told" }).getByLabel("From", { exact: true })).toHaveValue("21:30");
 });
 

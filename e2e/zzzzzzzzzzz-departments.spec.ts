@@ -41,8 +41,13 @@ test("the corridor has the nine departments in order, and entering one with work
   await busy.first().click();
   await expect(page.getByRole("heading", { name })).toBeVisible();
   await expect(page.getByLabel("On the desks")).toContainText(/\d+ in motion · \d+ waiting · \d+ done/);
+  await shot(page, "A department room: a photograph with its wall, calendar and desk to press, and what is in motion, waiting and done");
+  // The projects are pinned to the wall: press the wall, open its desk, and they are there.
+  await page.getByRole("button", { name: "Preview Wall" }).click();
+  await page.getByRole("button", { name: "Open pinned projects", exact: true }).click();
   await expect(page.locator(".pin-card").first()).toBeVisible();
-  await shot(page, "A department room: what is in motion, waiting and done, and the projects pinned to the wall");
+  await shot(page, "The wall desk: the projects pinned to the department");
+  await page.getByRole("button", { name: "BACK TO ROOM" }).click();
 
   await page.getByRole("button", { name: "ALL ROOMS" }).click();
   const quietName = (await quiet.first().locator(".door-name").innerText()).trim();

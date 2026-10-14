@@ -1,0 +1,107 @@
+/*
+ * Day mode for the surfaces. The photographs change with the time of day (see lit-image.tsx); this makes the screens you work on
+ * change with them. Almost everything reads its colours from the shared tokens, so day mode is mostly a second set of tokens.
+ * Three kinds of thing are handled on purpose:
+ *   - islands that stay dark in daylight because the object is dark: the photographed rooms (and the text laid over them), the
+ *     phone, the monitor, and the wood, cork and shelf frames. They re-declare the night tokens, so what is written on them stays
+ *     legible.
+ *   - light islands inside those frames: paper, ledger pages, sheets and the folio. They use the day tokens again.
+ *   - the old dark panels that had colours written into them (computer window, contract, brief, forms, explorer): restated for day.
+ * Brass stays brass; in text and borders it is deepened so it still reads on ivory.
+ */
+html[data-lighting="day"] {
+  color-scheme: light;
+  --background: oklch(0.965 0.012 85);
+  --foreground: oklch(0.21 0.016 60);
+  --card: oklch(0.99 0.006 85);
+  --card-foreground: oklch(0.21 0.016 60);
+  --popover: oklch(0.99 0.006 85);
+  --popover-foreground: oklch(0.21 0.016 60);
+  --primary: oklch(0.5 0.125 66);
+  --primary-foreground: oklch(0.985 0.01 85);
+  --secondary: oklch(0.93 0.012 85);
+  --secondary-foreground: oklch(0.21 0.016 60);
+  --muted: oklch(0.94 0.01 85);
+  --muted-foreground: oklch(0.44 0.02 70);
+  --accent: oklch(0.9 0.045 80);
+  --accent-foreground: oklch(0.21 0.016 60);
+  --border: oklch(0 0 0 / 13%);
+  --input: oklch(0 0 0 / 16%);
+  --ring: oklch(0.5 0.125 66);
+}
+html[data-lighting="day"] body { transition: background-color 0.6s ease, color 0.6s ease; }
+
+/* ---- dark islands: night tokens, restored where the object is dark -------------------------------------- */
+html[data-lighting="day"] :is(.office-stage, .hall-stage, .phone-shell, .surface-screen, .surface-cork, .surface-board, .surface-desk, .surface-table, .surface-shelf, .pin-card, .door-card, .stage-nav) {
+  color-scheme: dark;
+  --background: oklch(0.105 0.006 270); --foreground: oklch(0.95 0.01 80); --card: oklch(0.17 0.006 270); --card-foreground: oklch(0.95 0.01 80);
+  --popover: oklch(0.17 0.006 270); --popover-foreground: oklch(0.95 0.01 80); --primary: oklch(0.76 0.146 76); --primary-foreground: oklch(0.12 0.006 270);
+  --secondary: oklch(0.22 0.008 270); --secondary-foreground: oklch(0.94 0.01 80); --muted: oklch(0.21 0.008 270); --muted-foreground: oklch(0.65 0.01 80);
+  --accent: oklch(0.27 0.035 76); --accent-foreground: oklch(0.94 0.01 80); --border: oklch(1 0 0 / 10%); --input: oklch(1 0 0 / 13%); --ring: oklch(0.76 0.146 76);
+  color: var(--foreground);
+}
+/* ---- light islands: paper, pages and sheets inside those frames ------------------------------------------ */
+html[data-lighting="day"] :is(.surface-board .desk-sheet, .surface-table .desk-sheet, .surface-shelf .desk-content, .ledger-left, .ledger-right) {
+  color-scheme: light;
+  --background: oklch(0.965 0.012 85); --foreground: oklch(0.21 0.016 60); --card: oklch(0.99 0.006 85); --card-foreground: oklch(0.21 0.016 60);
+  --popover: oklch(0.99 0.006 85); --popover-foreground: oklch(0.21 0.016 60); --primary: oklch(0.5 0.125 66); --primary-foreground: oklch(0.985 0.01 85);
+  --secondary: oklch(0.93 0.012 85); --secondary-foreground: oklch(0.21 0.016 60); --muted: oklch(0.94 0.01 85); --muted-foreground: oklch(0.44 0.02 70);
+  --accent: oklch(0.9 0.045 80); --accent-foreground: oklch(0.21 0.016 60); --border: oklch(0 0 0 / 13%); --input: oklch(0 0 0 / 16%); --ring: oklch(0.5 0.125 66);
+  color: var(--foreground);
+}
+html[data-lighting="day"] .surface-board .desk-sheet, html[data-lighting="day"] .surface-table .desk-sheet { background: oklch(0.985 0.01 85 / 98%); border-color: oklch(0.5 0.125 66 / 30%); }
+html[data-lighting="day"] .surface-shelf .desk-content { background: oklch(0.975 0.012 85 / 98%); border-color: oklch(0.5 0.125 66 / 28%); }
+html[data-lighting="day"] .ledger-book { background: oklch(0.96 0.02 85); }
+html[data-lighting="day"] .ledger-left { background: linear-gradient(90deg, oklch(0.97 0.02 85), oklch(0.94 0.022 82)); }
+html[data-lighting="day"] .ledger-right { background: linear-gradient(90deg, oklch(0.92 0.022 82), oklch(0.975 0.018 85) 14%), repeating-linear-gradient(transparent 0 41px, oklch(0.5 0.125 66 / 16%) 41px 42px); }
+html[data-lighting="day"] .ledger-left .desk-tabs .tab { color: oklch(0.45 0.05 25); background: oklch(0.88 0.04 25 / 70%); }
+html[data-lighting="day"] .ledger-left .desk-tabs .tab.active { color: oklch(0.98 0.01 85); background: oklch(0.5 0.15 25); }
+html[data-lighting="day"] .surface-table .desk-chip[aria-pressed="true"] { background: oklch(0.985 0.01 85); color: oklch(0.5 0.125 66); }
+html[data-lighting="day"] .surface-shelf .desk-tabs .tab.active { color: oklch(0.82 0.12 80); }
+
+/* ---- the letter and the calendar are paper ------------------------------------------------------------- */
+html[data-lighting="day"] .surface-paper { background: linear-gradient(180deg, oklch(0.985 0.012 85), oklch(0.96 0.016 82)); border-color: oklch(0.5 0.125 66 / 30%); box-shadow: 0 26px 60px oklch(0.3 0.03 60 / 28%), 0 0 70px oklch(0.8 0.12 78 / 14%); }
+html[data-lighting="day"] .surface-paper .desk-heading { border-bottom-color: oklch(0.5 0.125 66 / 40%); }
+html[data-lighting="day"] .flipbook { background: oklch(0.985 0.012 85); }
+html[data-lighting="day"] .surface-calendar .flipbook { box-shadow: 0 24px 56px oklch(0.3 0.03 60 / 28%), 0 0 0 1px oklch(0.5 0.125 66 / 22%); }
+html[data-lighting="day"] .desk-panel[data-surface="client-briefs"]::before { background: radial-gradient(ellipse at 70% 10%, oklch(0.85 0.1 82 / 40%), transparent 65%); }
+
+/* ---- the layer and the page chrome ---------------------------------------------------------------------- */
+html[data-lighting="day"] .desk-scrim { background: oklch(0.96 0.012 85 / 58%); }
+html[data-lighting="day"] .desk-bar.workspace-heading { background: oklch(0.99 0.006 85 / 86%); }
+html[data-lighting="day"] :is(.desk-panel[data-surface="contracts"], .desk-panel[data-surface="directive"], .desk-panel[data-surface="brief"]) .desk-scroll { background: oklch(0.99 0.006 85 / 94%); }
+html[data-lighting="day"] .topbar { background: oklch(0.985 0.008 85 / 94%); }
+html[data-lighting="day"] .workspace, html[data-lighting="day"] .auth-page { background: radial-gradient(ellipse at 80% 0%, oklch(0.9 0.05 80 / 38%), transparent 40%), var(--background); }
+
+/* ---- legacy panels with dark colours written into them -------------------------------------------------- */
+html[data-lighting="day"] :is(.computer-frame, .contract-wrap) { background: oklch(0.995 0.005 85 / 90%); box-shadow: 0 24px 60px oklch(0.3 0.03 60 / 22%); }
+html[data-lighting="day"] :is(.brief-reader, .case-file) { background: oklch(0.985 0.008 85); }
+html[data-lighting="day"] :is(.client-card, .mform) { background: oklch(0.99 0.005 85 / 80%); }
+html[data-lighting="day"] :is(.auth-card input:not([type="checkbox"]), .mform input:not([type="checkbox"]), .tab-pane textarea, .directive-form textarea, .plan-confirm textarea, .plan-confirm input) { background: oklch(0.997 0.003 85); color: var(--foreground); }
+html[data-lighting="day"] .auth-card { background: linear-gradient(180deg, oklch(0.995 0.005 85 / 96%), oklch(0.975 0.008 85 / 94%)); }
+html[data-lighting="day"] .philosophy { background: linear-gradient(90deg, oklch(0.5 0.125 66 / 10%), oklch(0.97 0.01 85 / 70%)); }
+html[data-lighting="day"] .question { background: linear-gradient(145deg, oklch(0.9 0.05 80 / 50%), oklch(0.985 0.008 85)); }
+html[data-lighting="day"] .contract-lead { color: oklch(0.3 0.015 60); }
+html[data-lighting="day"] :is(.pill.green, .directive-confirm, .room-signal, .flip-done span, .workspace-right, .window-bar strong, .system-time) { color: oklch(0.4 0.11 155); }
+html[data-lighting="day"] .flip-start span { color: oklch(0.42 0.12 235); }
+html[data-lighting="day"] .check-bad { color: oklch(0.5 0.17 45); }
+html[data-lighting="day"] :is(.dossier-row, .resolved-row):hover { background: oklch(0 0 0 / 3.5%); }
+html[data-lighting="day"] .command-center button:not(:disabled):active { scale: 0.98; }
+
+/* ---- the explorer ---------------------------------------------------------------------------------------- */
+html[data-lighting="day"] .explorer { background: oklch(0.995 0.005 85 / 94%); box-shadow: 0 24px 60px oklch(0.3 0.03 60 / 24%); }
+html[data-lighting="day"] .explorer-toolbar, html[data-lighting="day"] .explorer-status { background: oklch(0.965 0.01 85); }
+html[data-lighting="day"] .explorer-side { background: oklch(0.955 0.012 85); }
+html[data-lighting="day"] .explorer-path { background: oklch(0.995 0.004 85); }
+html[data-lighting="day"] .folder-tile:hover { background: oklch(0.5 0.125 66 / 8%); }
+html[data-lighting="day"] .explorer-folder:hover, html[data-lighting="day"] .explorer-sub-item:hover { background: oklch(0 0 0 / 4%); }
+html[data-lighting="day"] .desk-chip { background: oklch(0.99 0.005 85 / 70%); }
+html[data-lighting="day"] .lighting-toggle[aria-pressed="true"] { background: oklch(0.5 0.125 66 / 14%); border-color: oklch(0.5 0.125 66 / 55%); }
+
+/* ---- form fields and the sign-in card ---------------------------------------------------------------------- */
+html[data-lighting="day"] :is(.mform input:not([type="checkbox"]):not([type="file"]), .mform textarea, .mform select, .directive-targets select, .pd-head select, .resolved-row select) { background: oklch(0.997 0.003 85); color: var(--foreground); }
+html[data-lighting="day"] .auth-card h1 { color: var(--foreground); }
+
+/* ---- the shelf is wood, not black ---------------------------------------------------------------------------- */
+html[data-lighting="day"] .surface-shelf { background: linear-gradient(180deg, oklch(0.3 0.045 55), oklch(0.22 0.035 52)); }
+html[data-lighting="day"] .surface-shelf::before { border-bottom-color: oklch(0.36 0.05 52); }

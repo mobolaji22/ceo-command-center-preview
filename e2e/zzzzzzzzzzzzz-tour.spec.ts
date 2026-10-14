@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openClientDesk } from "./client-room";
 
 /**
  * The tour: every screen the CEO and a client have, opened once the whole journey has run, each shown to be connected to real records
@@ -87,11 +88,28 @@ test("the CEO's office and every desk in it", async ({ page }) => {
 test("a client's room and everything in it", async ({ page }) => {
   await signIn(page, OWNER);
   await page.goto("/client");
-  await expect(page.getByRole("heading", { name: /Your projects/ })).toBeVisible();
-  for (const section of ["YOUR REQUESTS", "PROJECTS", "STANDING PERMISSION", "BRIEFS", "HOW YOU ARE TOLD", "QUESTIONS FROM THE WORK", "NEEDS YOUR SIGNATURE", "YOUR LIBRARY", "TIMELINE"]) {
-    await expect(page.getByText(section, { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /The client room/ })).toBeVisible();
+  await shot(page, "The client room: a table, a screen, a board, a shelf and a lamp to press");
+  // every layer of what a client used to scroll through is one tab on one desk
+  const layers: [Parameters<typeof openClientDesk>[1], string | undefined, string][] = [
+    ["Table", undefined, "Your projects"],
+    ["Table", "Timeline", "TIMELINE"],
+    ["Screen", undefined, "NEEDS YOUR SIGNATURE"],
+    ["Board", undefined, "YOUR REQUESTS"],
+    ["Board", "Questions from the work", "Questions from the work"],
+    ["Shelf", "Your library", "Your library"],
+    ["Lamp", undefined, "Briefs"],
+    ["Lamp", "Standing permission", "Standing permission"],
+    ["Lamp", "How you are told", "How you are told"],
+  ];
+  for (const [desk, tab, expected] of layers) {
+    await openClientDesk(page, desk, tab);
+    await expect(page.getByText(expected, { exact: false }).first()).toBeVisible();
   }
-  await shot(page, "A client's room: their requests, projects, standing permission, briefs, questions and library");
+  await openClientDesk(page, "Board", "Your requests");
+  await shot(page, "A client's board: their requests, with the questions from the work on the next tab");
+  await openClientDesk(page, "Table");
+  await page.getByRole("tab", { name: /^Projects/ }).click();
   const room = page.locator(".project-room").first();
   await room.getByRole("button", { name: /^Show progress of/i }).click();
   await expect(room.getByLabel("Case file")).toBeVisible();
