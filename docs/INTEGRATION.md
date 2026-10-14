@@ -67,12 +67,18 @@ answers `PERMISSION_REQUIRED` and the UI says so. Decisions made that way are fl
 The read models (`src/lib/model.ts`) use the ten v4 project statuses; the API builds them (`apps/api/src/readmodels`).
 They are to be replaced by types generated from `packages/contracts`.
 
-## Design documents (proposed, not yet served by the API)
+## Design documents (not yet served by the API; superseded design below)
 
 The Design Workshop (the Design room's monitors in the command center) edits a **structured design document** per project, the
-"SDD" described in the Design Intelligence Contract (v15, Stage 5). The browser reaches it only through `DataSource.design`:
+"SDD" described in the Design Intelligence Contract (v15, Stage 5). The browser reaches it only through `DataSource.design`.
 
-| Call | Request | Success | Failure the UI handles |
+> **Do not build `/v1/projects/:id/design-document`.** v4 keeps `DesignState` as the one design record, and a Workshop session is a
+> branch of it (Design §7.7; dev-playbook-v4 ADR-0016, slice P6.10b): open a session, autosave the branch with a revision, every edit
+> an override with its token level, commit runs one critique of the net diff, and the branch merges on a pass. The routes are
+> designed in P6.10b once Design v15 is in `docs/contracts`; `design.load/save` will be re-pointed at them then. The table below is
+> what the Workshop was written against and stays only as a record of what the editor needs (load, revisioned save, conflict).
+
+| Call (superseded) | Request | Success | Failure the UI handles |
 |---|---|---|---|
 | `design.load(projectId)` | `GET /v1/projects/:id/design-document` | `200` the document, or `404` when none exists yet (the Workshop then starts from territory exploration output) | any error is shown, with Try again |
 | `design.save(doc, baseRevision)` | `PUT /v1/projects/:id/design-document` body `{ baseRevision, document }` | `200 { revision }` | `409 REVISION_CONFLICT` when `baseRevision` is not the stored revision (nobody's work is overwritten; the editor offers Reload); `403` when the person may not edit |
@@ -86,7 +92,7 @@ Rules the API owns, not the browser:
   forward. `revisions[]` and `decisionLog[]` are append-only history for attribution.
 - **Schema.** `schemaVersion` is `sdd/1-lite` (`src/lib/design/sdd.ts`). Validate it and refuse unknown versions.
 
-`capabilities.designDocuments` is `false` in `api.ts` until these two endpoints exist. While it is false the Workshop works fully, but
+`capabilities.designDocuments` is `false` in `api.ts` until v4 serves Workshop sessions (P6.10b). While it is false the Workshop works fully, but
 keeps a working copy in this browser (`src/lib/design/draft-store.ts`), shows a notice saying so, and offers JSON and SVG export so the
 design can be shared. Flipping the flag to `true` makes `design.load/save` the system of record with no UI change. The demo data source
 (`fixtures.ts`) implements the same interface on top of the same local store.
@@ -95,6 +101,12 @@ The territory-exploration capability that produces the first document is represe
 provider: three territories, each with a desktop and a mobile frame, tokens and a twelve-part genome). A model-backed provider replaces
 it by returning the same shape; likewise `src/lib/design/proposals.ts` (`ProposalProvider`) for scoped suggestions that are shown
 before and after and never applied until a person accepts them.
+
+## Rooms (planned, P6.10a)
+
+The corridor's rooms will come from `GET /v1/domains` (dev-playbook-v4 ADR-0017) through a new `queries.domains()`: every domain in
+order with its name and whether a pack is registered. `DEPARTMENTS` in `src/components/cc/corridor.tsx` is the stand-in until then and
+is deleted with that slice; no other list of domain codes belongs in this repo outside the fixtures.
 
 ## Deviations from the preview
 
