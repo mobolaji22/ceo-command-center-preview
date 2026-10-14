@@ -274,11 +274,22 @@ function save(s: Store) {
 const toSession = (u: User): Session => ({ userId: u.id, email: u.email, displayName: u.displayName, role: u.role, memberships: u.memberships });
 
 /** What `GET /v1/domains` serves, for the demo. The only list of domains in this repo; the real one comes from the API (ADR-0017). */
+const DEMO_DEPARTMENTS: Record<string, string> = {
+  STRATEGY_INTELLIGENCE: "Strategy & Intelligence", BRAND_CREATIVE: "Brand & Creative", PRODUCT_ENGINEERING: "Product & Engineering",
+  GROWTH_COMMUNICATIONS: "Growth & Communications", EVIDENCE_ASSURANCE: "Evidence & Assurance",
+};
 const DEMO_DOMAINS: DomainView[] = ([
-  ["BUSINESS", "Business", "advisory-standin"], ["MARKET", "Market", "contract"], ["BRAND", "Brand", "contract"], ["CONTENT", "Content", "advisory-standin"],
-  ["DESIGN", "Design", "contract"], ["MARKETING", "Marketing", "advisory-standin"], ["ENGINEERING", "Engineering", "advisory-standin"],
-  ["STRATEGY", "Strategy", "advisory-standin"], ["SOCIAL_GROWTH", "Social Growth", "advisory-standin"],
-] as const).map(([code, name, basis]) => ({ code, name, pack: { version: "0.1.0", basis, stages: ["plan"] } }));
+  ["STRATEGY", "Strategy", "advisory-standin", "STRATEGY_INTELLIGENCE"], ["MARKET", "Market", "advisory-standin", "STRATEGY_INTELLIGENCE"],
+  ["BUSINESS", "Business", "advisory-standin", "STRATEGY_INTELLIGENCE"], ["BRAND", "Brand", "contract", "BRAND_CREATIVE"],
+  ["DESIGN", "Design", "contract", "BRAND_CREATIVE"], ["CONTENT", "Content", "advisory-standin", "BRAND_CREATIVE"],
+  ["MEDIA", "Media", "advisory-standin", "BRAND_CREATIVE"], ["PRODUCT", "Product", "advisory-standin", "PRODUCT_ENGINEERING"],
+  ["ENGINEERING", "Engineering", "advisory-standin", "PRODUCT_ENGINEERING"], ["GROWTH", "Growth", "advisory-standin", "GROWTH_COMMUNICATIONS"],
+  ["COMMUNICATIONS", "Communications", "advisory-standin", "GROWTH_COMMUNICATIONS"], ["MEASUREMENT", "Measurement", "advisory-standin", "EVIDENCE_ASSURANCE"],
+  ["COMPLIANCE", "Compliance", "advisory-standin", "EVIDENCE_ASSURANCE"],
+] as const).map(([code, name, basis, department]) => ({
+  code, name, department: { code: department, name: DEMO_DEPARTMENTS[department]! },
+  pack: { version: "0.1.0", basis, contract: null, stages: ["plan"], implementation: { "implemented-and-tested": 0, partial: 0, missing: 0 } },
+}));
 
 const DEMO_CODE = "123456";
 

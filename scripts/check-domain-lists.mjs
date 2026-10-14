@@ -6,9 +6,9 @@ import { join, relative } from "node:path";
 const root = join(import.meta.dirname, "..");
 const FIXTURES = "src/lib/data/fixtures.ts";
 // The check's own copy of the codes, held to the fixtures' list below so the two cannot drift apart.
-const CODES = ["BUSINESS", "MARKET", "BRAND", "CONTENT", "DESIGN", "MARKETING", "ENGINEERING", "STRATEGY", "SOCIAL_GROWTH"];
+const CODES = ["STRATEGY", "MARKET", "BUSINESS", "BRAND", "DESIGN", "CONTENT", "MEDIA", "PRODUCT", "ENGINEERING", "GROWTH", "COMMUNICATIONS", "MEASUREMENT", "COMPLIANCE"];
 
-const fixtureCodes = [...readFileSync(join(root, FIXTURES), "utf8").matchAll(/\["([A-Z_]+)", "[^"]+", "(?:contract|advisory-standin)"\]/g)].map((m) => m[1]);
+const fixtureCodes = [...readFileSync(join(root, FIXTURES), "utf8").matchAll(/\["([A-Z_]+)", "[^"]+", "(?:contract|advisory-standin)", "[A-Z_]+"\]/g)].map((m) => m[1]);
 const problems = [];
 if (fixtureCodes.join() !== CODES.join()) problems.push(`${FIXTURES}: its domains (${fixtureCodes.join(", ")}) differ from this check's (${CODES.join(", ")})`);
 

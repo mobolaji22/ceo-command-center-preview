@@ -26,7 +26,7 @@ const spotData: Record<RoomSpot, Omit<Spot<RoomSpot>, "id">> = {
   wall: { title: "PINNED TO THE WALL", label: "Wall", description: "The projects pinned to this department.", action: "Open pinned projects", icon: PanelTop },
   calendar: { title: "WORK CALENDAR", label: "Calendar", description: "What was tasked, started and finished here, month by month.", action: "Open work calendar", icon: CalendarDays },
   workshop: { title: "DESIGN WORKSHOP", label: "Workshop", description: "Adjust the direction that was chosen: tokens, type, layout, copy and notes, with every change recorded.", action: "Open the workshop", icon: PenTool },
-  desk: { title: "ON THE DESKS", label: "Desk", description: "Work in motion, work waiting, and work done in this department.", action: "Open the desks", icon: ListChecks },
+  desk: { title: "ON THE DESKS", label: "Desk", description: "Work in motion, work waiting, and work done in this room.", action: "Open the desks", icon: ListChecks },
 };
 const SPOTS: RoomSpot[] = ["wall", "calendar", "desk"];
 /** The Design room has a fourth object: the monitors, where the design is worked on. */
@@ -54,9 +54,9 @@ export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: O
       className={`room-stage room-${dept.toLowerCase()}`}
       art={art}
       alt=""
-      eyebrow={`DEPARTMENT / ROOM ${pad(depts.indexOf(dept) + 1)}`}
+      eyebrow={`${(list.find((d) => d.code === dept)?.department.name ?? "Other").toUpperCase()} / ROOM ${pad(depts.indexOf(dept) + 1)}`}
       heading={name}
-      line={<><span aria-label="On the desks">{desk.moving} in motion · {desk.waiting} waiting · {desk.done} done in this department.</span>{projects.length === 0 && <span className="wall-empty stage-note">No projects pinned on the walls.</span>}</>}
+      line={<><span aria-label="On the desks">{desk.moving} in motion · {desk.waiting} waiting · {desk.done} done in this room.</span>{projects.length === 0 && <span className="wall-empty stage-note">No projects pinned on the walls.</span>}</>}
       sideLabel={[`ROOM / ${pad(depts.indexOf(dept) + 1)}`, name.toUpperCase()]}
       spots={spotsFor(dept).map((id) => ({ id, ...spotData[id], count: id === "desk" ? desk.waiting : 0, countNote: id === "desk" ? `${desk.waiting} waiting` : "" }))}
       statusList={dept === "DESIGN" ? "Wall · Calendar · Desk · Workshop" : "Wall · Calendar · Desk"}
@@ -87,7 +87,7 @@ function WallDesk({ data, dept, openManage }: { data: OwnerData; dept: string; o
   const projects = projectsIn(data, dept, list);
   const find = useProjectFind(projects, nameOf);
   return (
-    <DeskFrame kind="cork" eyebrow="PINNED TO THE WALL" title="Pinned projects" line={`${pad(projects.length)} project${projects.length === 1 ? "" : "s"} in this department.`} tab="all" onTab={() => {}} tabs={[{ id: "all", label: "All" }]}>
+    <DeskFrame kind="cork" eyebrow="PINNED TO THE WALL" title="Pinned projects" line={`${pad(projects.length)} project${projects.length === 1 ? "" : "s"} in this room.`} tab="all" onTab={() => {}} tabs={[{ id: "all", label: "All" }]}>
       {projects.length > 0 && <FindBar find={find} shown={find.results.length} />}
       {projects.length === 0 ? <div className="wall-empty">No projects pinned on the walls.</div> : find.results.length === 0 ? <div className="wall-empty">No pinned project matches.</div> :
         <div className="pin-board">{find.results.map((p, i) => <button key={p.id} className="pin-card" style={{ ["--tilt" as string]: `${(i % 3) - 1}deg`, ["--i" as string]: i } as CSSProperties} onClick={() => openManage(p.id)}><span className="pin" /><b><Marked text={p.name} q={find.q} /></b><small>{p.description || "No description"}</small><span className={`pill ${statusTone(p.status)}`}>{label(p.status).toUpperCase()}</span><em>Opened {fmtDate(p.created_at)}</em></button>)}</div>}
@@ -144,7 +144,7 @@ function CalendarDesk({ data, dept }: { data: OwnerData; dept: string }) {
         {current ? <div key={flip} className="flip-page">
           <div className="flip-month">{monthName}</div>
           <ul>{current[1].map((e, i) => <li key={i} className={`flip-${e.kind}`}><span>{new Date(e.date).getDate()}</span>{e.text}</li>)}</ul>
-        </div> : <div className="flip-page"><div className="flip-month">{allEntries.length ? "Nothing matches" : "No history yet"}</div><p className="wall-empty">{allEntries.length ? "Try another word or clear the filters." : "Dates appear here as work is tasked, started, and completed in this department."}</p></div>}
+        </div> : <div className="flip-page"><div className="flip-month">{allEntries.length ? "Nothing matches" : "No history yet"}</div><p className="wall-empty">{allEntries.length ? "Try another word or clear the filters." : "Dates appear here as work is tasked, started, and completed in this room."}</p></div>}
         <div className="flip-controls"><Button variant="ghost" size="icon" aria-label="Newer month" disabled={safePage === 0} onClick={() => go(safePage - 1)}><ChevronLeft size={18} /></Button><Button variant="ghost" size="icon" aria-label="Older month" disabled={safePage >= pages.length - 1} onClick={() => go(safePage + 1)}><ChevronRight size={18} /></Button></div>
       </div>
     </DeskFrame>

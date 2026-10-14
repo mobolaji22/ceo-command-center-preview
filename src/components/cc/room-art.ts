@@ -27,17 +27,21 @@ import socialDay from "@/assets/agency-room-social-day.jpg";
 /** One place, two times of day. The photographs are atmosphere only: names, counts and status are always HTML. */
 export type LitArt = { night: StaticImageData; day: StaticImageData };
 
-/** Each department keeps one room, so it looks the same every visit. "Other" (records that fit no department) has no room of its own. */
+/**
+ * Each domain keeps one room, so it looks the same every visit. Growth and Communications use the rooms Marketing and Social Growth
+ * had (v4 ADR-0018). Media, Product, Measurement and Compliance have no art yet and show the corridor as a placeholder until theirs
+ * is made (v4 Foundation §12). "Other" (records that fit no domain) has no room of its own.
+ */
 const ROOMS: Record<string, LitArt> = {
-  BUSINESS: { night: business, day: businessDay },
-  MARKET: { night: market, day: marketDay },
-  BRAND: { night: brand, day: brandDay },
-  CONTENT: { night: content, day: contentDay },
-  DESIGN: { night: design, day: designDay },
-  MARKETING: { night: marketing, day: marketingDay },
-  ENGINEERING: { night: engineering, day: engineeringDay },
   STRATEGY: { night: strategy, day: strategyDay },
-  SOCIAL_GROWTH: { night: social, day: socialDay },
+  MARKET: { night: market, day: marketDay },
+  BUSINESS: { night: business, day: businessDay },
+  BRAND: { night: brand, day: brandDay },
+  DESIGN: { night: design, day: designDay },
+  CONTENT: { night: content, day: contentDay },
+  ENGINEERING: { night: engineering, day: engineeringDay },
+  GROWTH: { night: marketing, day: marketingDay },
+  COMMUNICATIONS: { night: social, day: socialDay },
 };
 
 export const CORRIDOR_ART: LitArt = { night: corridor, day: corridorDay };

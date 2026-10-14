@@ -39,10 +39,11 @@ export function HallwayView({ data, enter, openManage, startAt }: { data: OwnerD
   const doors: HallDoor[] = departments(data, list).map((d, i) => ({
     code: d,
     name: nameOf(d),
+    wing: list.find((x) => x.code === d)?.department.name,
     icon: ICONS[i % ICONS.length]!,
     active: projectsIn(data, d, list).filter((p) => !CLOSED.includes(p.status)).length,
   }));
-  return <div className="hallway-wrap hall-wrap"><div className="eyebrow gold">BEYOND THE OFFICE / ORGANIZATIONAL SPACES</div><h2>The corridor<span className="period">.</span></h2><p className="hallway-subtitle">Every room is a department of the agency. Walk the hall and step inside.</p>
+  return <div className="hallway-wrap hall-wrap"><div className="eyebrow gold">BEYOND THE OFFICE / ORGANIZATIONAL SPACES</div><h2>The corridor<span className="period">.</span></h2><p className="hallway-subtitle">Every room is a domain of the agency, in five wings. Walk the hall and step inside.</p>
     {loading ? <p className="hallway-subtitle"><span className="pulse-dot" /> Opening the corridor…</p> : <Hall doors={doors} startAt={startAt} onEnter={enter} />}
     <p className="hallway-subtitle">Work reaches a room when a plan names it. <Button variant="ghost" className="inline-arrow" onClick={openManage}>SEE ALL PROJECTS <ArrowRight size={14} /></Button></p></div>;
 }
