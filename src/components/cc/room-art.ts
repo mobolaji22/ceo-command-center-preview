@@ -23,14 +23,21 @@ import strategy from "@/assets/agency-room-strategy.jpg";
 import strategyDay from "@/assets/agency-room-strategy-day.jpg";
 import social from "@/assets/agency-room-social.jpg";
 import socialDay from "@/assets/agency-room-social-day.jpg";
+import media from "@/assets/agency-room-media.jpg";
+import mediaDay from "@/assets/agency-room-media-day.jpg";
+import product from "@/assets/agency-room-product.jpg";
+import productDay from "@/assets/agency-room-product-day.jpg";
+import measurement from "@/assets/agency-room-measurement.jpg";
+import measurementDay from "@/assets/agency-room-measurement-day.jpg";
+import compliance from "@/assets/agency-room-compliance.jpg";
+import complianceDay from "@/assets/agency-room-compliance-day.jpg";
 
 /** One place, two times of day. The photographs are atmosphere only: names, counts and status are always HTML. */
 export type LitArt = { night: StaticImageData; day: StaticImageData };
 
 /**
  * Each domain keeps one room, so it looks the same every visit. Growth and Communications use the rooms Marketing and Social Growth
- * had (v4 ADR-0018). Media, Product, Measurement and Compliance have no art yet and show the corridor as a placeholder until theirs
- * is made (v4 Foundation §12). "Other" (records that fit no domain) has no room of its own.
+ * had (v4 ADR-0018). "Other" (records that fit no domain) has no room of its own and shows the corridor.
  */
 const ROOMS: Record<string, LitArt> = {
   STRATEGY: { night: strategy, day: strategyDay },
@@ -39,9 +46,13 @@ const ROOMS: Record<string, LitArt> = {
   BRAND: { night: brand, day: brandDay },
   DESIGN: { night: design, day: designDay },
   CONTENT: { night: content, day: contentDay },
+  MEDIA: { night: media, day: mediaDay },
+  PRODUCT: { night: product, day: productDay },
   ENGINEERING: { night: engineering, day: engineeringDay },
   GROWTH: { night: marketing, day: marketingDay },
   COMMUNICATIONS: { night: social, day: socialDay },
+  MEASUREMENT: { night: measurement, day: measurementDay },
+  COMPLIANCE: { night: compliance, day: complianceDay },
 };
 
 export const CORRIDOR_ART: LitArt = { night: corridor, day: corridorDay };
