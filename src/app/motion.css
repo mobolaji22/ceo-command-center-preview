@@ -113,6 +113,8 @@
 
 .door-plate { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .hall .door-name { font: 28px/1 "Cormorant Garamond", serif; }
+/* The wing (department) a room sits in: a quiet line above its name (v4 ADR-0018). */
+.hall .door-wing { display: block; margin-bottom: 6px; color: var(--primary); font: 600 8px "DM Sans", sans-serif; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.8; }
 .hall .door-enter { margin-top: auto; opacity: 0; translate: 0 -4px; transition: opacity var(--t-feedback), translate var(--t-feedback) var(--ease-out); }
 .hall .door-card[data-active] .door-enter, .hall .door-card:hover .door-enter, .hall .door-card:focus-visible .door-enter { opacity: 1; translate: 0 0; color: var(--primary); }
 @media (hover: none) { .hall .door-card[data-active] .door-enter { opacity: 1; } }
@@ -139,6 +141,7 @@
 .hall-where span { color: var(--foreground); font-size: 11px; letter-spacing: 0.08em; }
 .hall-index { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
 .hall-chip { position: relative; min-width: 34px; height: 36px; padding: 0 4px; color: var(--muted-foreground); background: none; border: 0; font: 600 10px "DM Sans", sans-serif; letter-spacing: 0.1em; cursor: pointer; }
+.hall-chip[data-wing-start] { margin-left: 10px; box-shadow: -6px 0 0 -5px var(--border); }
 .hall-chip::after { content: ""; position: absolute; left: 25%; right: 25%; bottom: 5px; height: 2px; background: var(--primary); transform: scaleX(0); transition: transform 0.25s var(--ease-out); }
 .hall-chip:hover { color: var(--foreground); }
 .hall-chip[data-active] { color: var(--primary); }

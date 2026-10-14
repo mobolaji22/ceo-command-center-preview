@@ -16,7 +16,8 @@ import { THRESHOLD_MS, useReducedMotion } from "@/lib/motion";
 import { LitImage } from "./lit-image";
 import { CORRIDOR_ART, roomArt } from "./room-art";
 
-export type HallDoor = { code: string; name: string; active: number; icon: LucideIcon };
+/** `wing` is the department the room sits in (v4 ADR-0018); a room with no wing (older records) shows none. */
+export type HallDoor = { code: string; name: string; active: number; icon: LucideIcon; wing?: string | undefined };
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
@@ -243,7 +244,7 @@ export function Hall({ doors, startAt, onEnter }: { doors: HallDoor[]; startAt?:
   };
 
   const here = doors[settled];
-  const announce = here ? `${here.name}, room ${settled + 1} of ${n}. ${here.active ? `${here.active} active project${here.active === 1 ? "" : "s"}.` : "Quiet."}` : "";
+  const announce = here ? `${here.wing ? `${here.wing} wing. ` : ""}${here.name}, room ${settled + 1} of ${n}. ${here.active ? `${here.active} active project${here.active === 1 ? "" : "s"}.` : "Quiet."}` : "";
 
   return (
     <div className="hall">
@@ -271,7 +272,7 @@ export function Hall({ doors, startAt, onEnter }: { doors: HallDoor[]; startAt?:
                   data-active={isActive || undefined}
                   data-quiet={d.active === 0 || undefined}
                   data-leaving={leaving === i || undefined}
-                  aria-label={`${d.name}, room ${i + 1} of ${n}. ${d.active ? `${d.active} active project${d.active === 1 ? "" : "s"}` : "Quiet"}. Enter room`}
+                  aria-label={`${d.wing ? `${d.wing} wing. ` : ""}${d.name}, room ${i + 1} of ${n}. ${d.active ? `${d.active} active project${d.active === 1 ? "" : "s"}` : "Quiet"}. Enter room`}
                   onClick={() => open(i)}
                   onFocus={(e) => {
                     if (e.currentTarget.matches(":focus-visible") && i !== activeRef.current) walk(i);
@@ -291,6 +292,7 @@ export function Hall({ doors, startAt, onEnter }: { doors: HallDoor[]; startAt?:
                       <span className="door-knob" aria-hidden="true" />
                     </span>
                     <span className="door-plate">
+                      {d.wing && <span className="door-wing">{d.wing}</span>}
                       <span className="door-name">{d.name}</span>
                       <span className={`pill ${d.active ? "green" : "muted"}`}>{d.active ? `● ${d.active} ACTIVE` : "QUIET"}</span>
                     </span>
@@ -305,10 +307,10 @@ export function Hall({ doors, startAt, onEnter }: { doors: HallDoor[]; startAt?:
         <button type="button" className="hall-arrow hall-arrow-next" aria-label="Walk to the next room" disabled={active === n - 1} onClick={() => { setTouched(true); walk(activeRef.current + 1); }}><ChevronRight size={20} /></button>
       </div>
       <div className="hall-status">
-        <span className="hall-where" aria-hidden="true"><b>{pad(active + 1)}</b> / {pad(n)}<span>{doors[active]?.name}</span></span>
+        <span className="hall-where" aria-hidden="true"><b>{pad(active + 1)}</b> / {pad(n)}<span>{doors[active]?.wing ? `${doors[active]?.wing} · ` : ""}{doors[active]?.name}</span></span>
         <nav className="hall-index" aria-label="Jump to a room">
           {doors.map((d, i) => (
-            <button key={d.code} type="button" className="hall-chip" data-active={i === active || undefined} aria-label={`Walk to ${d.name}`} title={d.name} onClick={() => { setTouched(true); walk(i); }}>{pad(i + 1)}</button>
+            <button key={d.code} type="button" className="hall-chip" data-active={i === active || undefined} data-wing-start={(i > 0 && d.wing !== doors[i - 1]?.wing) || undefined} aria-label={`Walk to ${d.name}`} title={d.wing ? `${d.wing}: ${d.name}` : d.name} onClick={() => { setTouched(true); walk(i); }}>{pad(i + 1)}</button>
           ))}
         </nav>
         <span className="hall-hint">Drag, scroll, or use the arrow keys to walk the hall.</span>

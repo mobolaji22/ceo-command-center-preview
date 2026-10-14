@@ -25,21 +25,25 @@ test.describe.configure({ mode: "serial" });
 evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
-test("the corridor has the nine departments in order, and entering one with work in it shows the work", async ({ page }) => {
+test("the corridor has the thirteen domains in five wings, in order, and entering one with work in it shows the work", async ({ page }) => {
   await signIn(page, CEO);
   await page.getByRole("button", { name: "Preview Door" }).click();
   await page.getByRole("button", { name: "Enter corridor" }).click();
 
   const served = await page.request.get("/api/v4/v1/domains");
   expect(served.status()).toBe(200);
-  const names = ((await served.json()) as { domains: { name: string }[] }).domains.map((d) => d.name);
-  expect(names).toHaveLength(9);
+  const domains = ((await served.json()) as { domains: { name: string; department: { name: string } }[] }).domains;
+  const names = domains.map((d) => d.name);
+  expect(names).toHaveLength(13);
+  expect(new Set(domains.map((d) => d.department.name)).size).toBe(5);
   const doors = page.locator(".door-card");
   await expect(doors.locator(".door-name")).toHaveText(names);
+  // Each door says which wing (department) it is in, as the API says (v4 ADR-0018).
+  await expect(doors.locator(".door-wing")).toHaveText(domains.map((d) => d.department.name));
   const quiet = doors.filter({ hasText: "QUIET" });
   const busy = doors.filter({ hasText: "ACTIVE" });
   expect(await busy.count()).toBeGreaterThan(0);
-  expect(await quiet.count()).toBeGreaterThan(0); // nine rooms are never all in use
+  expect(await quiet.count()).toBeGreaterThan(0); // thirteen rooms are never all in use
 
   const name = (await busy.first().locator(".door-name").innerText()).trim();
   await busy.first().click();

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useDataSource } from "@/lib/data";
 import type { DomainView } from "@/lib/model";
 
-export type DomainList = readonly Pick<DomainView, "code" | "name">[];
+export type DomainList = readonly Pick<DomainView, "code" | "name" | "department">[];
 
 /** A code as words, for the moment before the list arrives ("SOCIAL_GROWTH" → "Social growth"). Never a second list of names. */
 export const humanize = (code: string) => code.charAt(0) + code.slice(1).toLowerCase().replace(/_/g, " ");

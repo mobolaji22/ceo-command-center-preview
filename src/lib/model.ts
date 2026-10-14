@@ -395,4 +395,16 @@ export type ActionLinkView = {
 };
 
 /** A domain the agency works in, as `GET /v1/domains` serves it (dev-playbook-v4 ADR-0017). The rooms are drawn from these. */
-export type DomainView = { code: string; name: string; pack: { version: string; basis: "contract" | "advisory-standin"; stages: string[] } };
+/** One domain as `GET /v1/domains` serves it (v4 ADR-0017, ADR-0018, ADR-0019): its department is the corridor's wing. */
+export type DomainView = {
+  code: string;
+  name: string;
+  department: { code: string; name: string };
+  pack: {
+    version: string;
+    basis: "contract" | "advisory-standin";
+    contract: { document: string; version: string } | null;
+    stages: string[];
+    implementation: { "implemented-and-tested": number; partial: number; missing: number };
+  };
+};
