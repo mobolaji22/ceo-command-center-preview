@@ -1,5 +1,5 @@
 import type { DesignDocument } from "@/lib/design/sdd";
-import type { ActionLinkView, AuditChain, Asset, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
+import type { ActionLinkView, AuditChain, Asset, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -206,6 +206,9 @@ export function createApiDataSource(): DataSource {
       },
       async clientData() {
         return must(await call<ClientData>("GET", "/v1/portal/overview"));
+      },
+      async domains() {
+        return must(await call<{ domains: DomainView[] }>("GET", "/v1/domains")).domains;
       },
     },
 

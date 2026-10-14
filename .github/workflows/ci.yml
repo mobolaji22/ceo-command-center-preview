@@ -1,0 +1,25 @@
+name: ci
+# Every push (Lovable pushes to main directly) and every pull request: the checks AGENTS.md asks for before a commit.
+on: [push, pull_request]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # ESLint with no warnings allowed, then the scan for a list of domains outside the API (ADR-0017).
+      - run: npm run lint
+      # The Design Workshop's document rules; no browser or backend needed.
+      - run: npm run test:unit
+      # The configuration that ships: the v4 API, never fixtures. The build does not call the API.
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_DATA_SOURCE: api
+          V4_API_URL: http://localhost:4000

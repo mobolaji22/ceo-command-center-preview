@@ -102,11 +102,12 @@ provider: three territories, each with a desktop and a mobile frame, tokens and 
 it by returning the same shape; likewise `src/lib/design/proposals.ts` (`ProposalProvider`) for scoped suggestions that are shown
 before and after and never applied until a person accepts them.
 
-## Rooms (planned, P6.10a)
+## Rooms (P6.10a)
 
-The corridor's rooms will come from `GET /v1/domains` (dev-playbook-v4 ADR-0017) through a new `queries.domains()`: every domain in
-order with its name and whether a pack is registered. `DEPARTMENTS` in `src/components/cc/corridor.tsx` is the stand-in until then and
-is deleted with that slice; no other list of domain codes belongs in this repo outside the fixtures.
+The corridor's rooms come from `GET /v1/domains` (dev-playbook-v4 ADR-0017) through `queries.domains()` and the shared
+`useDomains()` read (`src/lib/domains.ts`): every domain in order with its name and pack. The "Other" room for older records is the
+only room not from that read. `npm run lint` fails if a list of domain codes appears outside the demo fixtures
+(`scripts/check-domain-lists.mjs`).
 
 ## Deviations from the preview
 

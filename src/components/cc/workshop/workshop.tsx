@@ -14,6 +14,7 @@ import { SDD_SCHEMA, territoryOf, type Checkpoint, type DesignDocument, type Ter
 import type { OwnerData } from "@/lib/model";
 import { Empty } from "../views";
 import { projectsIn } from "../corridor";
+import { useDomains } from "@/lib/domains";
 import { Artboard } from "./canvas";
 import { Inspector, type InspectorTab } from "./inspector";
 import { LeftPanel, type LeftTab } from "./left-panel";
@@ -25,7 +26,8 @@ import { useWorkshop, type DesignStore } from "./use-workshop";
  * a picture of it, so everything it does is attributable, undoable and exportable (Design Intelligence Contract v15, Stage 5).
  */
 export function WorkshopDesk({ data, dept }: { data: OwnerData; dept: string }) {
-  const projects = projectsIn(data, dept);
+  const { list } = useDomains();
+  const projects = projectsIn(data, dept, list);
   const [pid, setPid] = useState(projects[0]?.id ?? "");
   const ds = useDataSource();
   const auth = useAuth();

@@ -393,3 +393,6 @@ export type ActionLinkView = {
   option: "RESUME" | "RETRY" | "REWORK";
   label: string; does: string; title: string; summary: string; project: string | null; expires_at: string;
 };
+
+/** A domain the agency works in, as `GET /v1/domains` serves it (dev-playbook-v4 ADR-0017). The rooms are drawn from these. */
+export type DomainView = { code: string; name: string; pack: { version: string; basis: "contract" | "advisory-standin"; stages: string[] } };

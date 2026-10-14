@@ -11,7 +11,7 @@ import { label, riskLabel, reversibilityLabel, statusTone, fmtDate, fmtAgo, pad 
 import { useDataSource } from "@/lib/data";
 import { useAuth } from "@/lib/auth";
 import { Composer, IntentCard } from "./intents";
-import { departmentName } from "./corridor";
+import { useDomains } from "@/lib/domains";
 import { FindBar, Marked } from "./find-bar";
 import { useProjectFind } from "@/lib/find";
 
@@ -30,7 +30,8 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
   // The dossiers open on what is in motion; the scope lets you look at what is finished, or at everything.
   const [scope, setScope] = useState<"ACTIVE" | "CLOSED" | "ALL">("ACTIVE");
   const scoped = useMemo(() => data.projects.filter((p) => (scope === "ALL" ? true : scope === "ACTIVE" ? !CLOSED.includes(p.status) : CLOSED.includes(p.status))), [data.projects, scope]);
-  const find = useProjectFind(scoped, departmentName);
+  const { nameOf } = useDomains();
+  const find = useProjectFind(scoped, nameOf);
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
   const exceptions = pending.length + blocked.length;

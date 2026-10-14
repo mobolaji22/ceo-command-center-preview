@@ -5,7 +5,8 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { fmtDate, label, pad, statusTone } from "@/lib/format";
 import type { OwnerData } from "@/lib/model";
-import { departmentName, departments, projectsIn, taskIn, type Entry } from "./corridor";
+import { departments, projectsIn, taskIn, type Entry } from "./corridor";
+import { useDomains, type DomainList } from "@/lib/domains";
 import { DeskFrame } from "./desk-frame";
 import { OfficeStage, type Spot } from "./office-stage";
 import { CORRIDOR_ART, roomArt } from "./room-art";
@@ -31,9 +32,9 @@ const SPOTS: RoomSpot[] = ["wall", "calendar", "desk"];
 /** The Design room has a fourth object: the monitors, where the design is worked on. */
 const spotsFor = (dept: string): RoomSpot[] => (dept === "DESIGN" ? [...SPOTS, "workshop"] : SPOTS);
 
-const tasksOf = (data: OwnerData, dept: string) => data.tasks.filter((t) => taskIn(t, dept));
-const counts = (data: OwnerData, dept: string) => {
-  const mine = tasksOf(data, dept);
+const tasksOf = (data: OwnerData, dept: string, list: DomainList) => data.tasks.filter((t) => taskIn(t, dept, list));
+const counts = (data: OwnerData, dept: string, list: DomainList) => {
+  const mine = tasksOf(data, dept, list);
   return {
     moving: mine.filter((t) => t.status === "RUNNING" || t.status === "READY").length,
     waiting: mine.filter((t) => ["WAITING", "BLOCKED", "FAILED"].includes(t.status)).length,
@@ -42,11 +43,12 @@ const counts = (data: OwnerData, dept: string) => {
 };
 
 export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: OwnerData; dept: string; back: () => void; toOffice: () => void; goTo?: ((dept: string) => void) | undefined; onAct: (spot: RoomSpot, at: { x: number; y: number }) => void }) {
-  const depts = departments(data);
-  const projects = projectsIn(data, dept);
-  const desk = counts(data, dept);
+  const { list, nameOf } = useDomains();
+  const depts = departments(data, list);
+  const projects = projectsIn(data, dept, list);
+  const desk = counts(data, dept, list);
   const art = roomArt(dept) ?? CORRIDOR_ART;
-  const name = departmentName(dept);
+  const name = nameOf(dept);
   return (
     <OfficeStage
       className={`room-stage room-${dept.toLowerCase()}`}
@@ -64,7 +66,7 @@ export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: O
           <Button variant="ghost" className="back-link" onClick={back}><ArrowLeft size={16} /> ALL ROOMS</Button>
           <Button variant="ghost" className="back-link" aria-label="BACK TO OFFICE" onClick={toOffice}><DoorOpen size={16} /> OFFICE</Button>
         </div>
-        <nav className="room-rail" aria-label="Move to another room">{depts.map((d, i) => <button key={d} type="button" className="rail-door" aria-label={`Go to ${departmentName(d)}`} aria-current={d === dept ? "page" : undefined} title={departmentName(d)} disabled={!goTo} onClick={() => goTo?.(d)}>{pad(i + 1)}</button>)}</nav>
+        <nav className="room-rail" aria-label="Move to another room">{depts.map((d, i) => <button key={d} type="button" className="rail-door" aria-label={`Go to ${nameOf(d)}`} aria-current={d === dept ? "page" : undefined} title={nameOf(d)} disabled={!goTo} onClick={() => goTo?.(d)}>{pad(i + 1)}</button>)}</nav>
       </>}
       onAct={onAct}
     />
@@ -81,8 +83,9 @@ export function RoomDesk({ data, dept, spot, openManage }: { data: OwnerData; de
 }
 
 function WallDesk({ data, dept, openManage }: { data: OwnerData; dept: string; openManage: (projectId?: string) => void }) {
-  const projects = projectsIn(data, dept);
-  const find = useProjectFind(projects, departmentName);
+  const { list, nameOf } = useDomains();
+  const projects = projectsIn(data, dept, list);
+  const find = useProjectFind(projects, nameOf);
   return (
     <DeskFrame kind="cork" eyebrow="PINNED TO THE WALL" title="Pinned projects" line={`${pad(projects.length)} project${projects.length === 1 ? "" : "s"} in this department.`} tab="all" onTab={() => {}} tabs={[{ id: "all", label: "All" }]}>
       {projects.length > 0 && <FindBar find={find} shown={find.results.length} />}
@@ -93,14 +96,15 @@ function WallDesk({ data, dept, openManage }: { data: OwnerData; dept: string; o
 }
 
 function CalendarDesk({ data, dept }: { data: OwnerData; dept: string }) {
-  const projects = projectsIn(data, dept);
+  const { list } = useDomains();
+  const projects = projectsIn(data, dept, list);
   const [kind, setKind] = useState("ALL");
   const [q, setQ] = useState("");
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const pages = useMemo(() => {
     const ids = new Set(projects.map((p) => p.id));
     const entries: Entry[] = [];
-    data.tasks.filter((t) => taskIn(t, dept) || ids.has(t.project_id)).forEach((t) => {
+    data.tasks.filter((t) => taskIn(t, dept, list) || ids.has(t.project_id)).forEach((t) => {
       if (t.completed_at) entries.push({ date: t.completed_at, text: `Completed · ${t.title}`, kind: "done" });
       if (t.started_at) entries.push({ date: t.started_at, text: `Started · ${t.title}`, kind: "start" });
       entries.push({ date: t.created_at, text: `Tasked · ${t.title}`, kind: "task" });
@@ -116,14 +120,14 @@ function CalendarDesk({ data, dept }: { data: OwnerData; dept: string }) {
     });
     return [...byMonth.entries()];
     // eslint-disable-next-line react-hooks/exhaustive-deps -- words is derived from q
-  }, [data, dept, projects, kind, q]);
+  }, [data, dept, list, projects, kind, q]);
   const allEntries = useMemo(() => {
     const ids = new Set(projects.map((p) => p.id));
     const out: Entry[] = [];
-    data.tasks.filter((t) => taskIn(t, dept) || ids.has(t.project_id)).forEach((t) => { if (t.completed_at) out.push({ date: t.completed_at, text: t.title, kind: "done" }); if (t.started_at) out.push({ date: t.started_at, text: t.title, kind: "start" }); out.push({ date: t.created_at, text: t.title, kind: "task" }); });
+    data.tasks.filter((t) => taskIn(t, dept, list) || ids.has(t.project_id)).forEach((t) => { if (t.completed_at) out.push({ date: t.completed_at, text: t.title, kind: "done" }); if (t.started_at) out.push({ date: t.started_at, text: t.title, kind: "start" }); out.push({ date: t.created_at, text: t.title, kind: "task" }); });
     projects.forEach((p) => { out.push({ date: p.created_at, text: p.name, kind: "project" }); if (p.completed_at) out.push({ date: p.completed_at, text: p.name, kind: "done" }); });
     return out;
-  }, [data, dept, projects]);
+  }, [data, dept, list, projects]);
   const kindChips: FindOption[] = [{ id: "ALL", label: "All", count: allEntries.length }, ...(["task", "start", "done", "project"] as const).map((k) => ({ id: k, label: { task: "Tasked", start: "Started", done: "Finished", project: "Projects" }[k], count: allEntries.filter((e) => e.kind === k).length })).filter((c) => c.count > 0)];
   const shownCount = pages.reduce((n, [, es]) => n + es.length, 0);
   const [page, setPage] = useState(0);
@@ -148,7 +152,8 @@ function CalendarDesk({ data, dept }: { data: OwnerData; dept: string }) {
 }
 
 function TasksDesk({ data, dept }: { data: OwnerData; dept: string }) {
-  const mine = tasksOf(data, dept);
+  const { list } = useDomains();
+  const mine = tasksOf(data, dept, list);
   const groups = {
     moving: mine.filter((t) => t.status === "RUNNING" || t.status === "READY"),
     waiting: mine.filter((t) => ["WAITING", "BLOCKED", "FAILED"].includes(t.status)),

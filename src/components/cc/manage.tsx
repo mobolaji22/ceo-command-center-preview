@@ -8,7 +8,7 @@ import { label, statusTone, fmtDate } from "@/lib/format";
 import { useDataSource } from "@/lib/data";
 import { Empty } from "./views";
 import { Library } from "./library";
-import { departmentName } from "./corridor";
+import { useDomains } from "@/lib/domains";
 import { FindBar, Marked } from "./find-bar";
 import { useProjectFind } from "@/lib/find";
 import { useStepUp } from "./step-up";
@@ -39,7 +39,8 @@ export function ManageView({ data, refresh, initialProjectId }: P) {
   const [folder, setFolder] = useState<FolderName>("Projects");
   const [project, setProject] = useState<string | null>(initialProjectId ?? null);
   const open = data.projects.find((p) => p.id === project) ?? null;
-  const find = useProjectFind(data.projects, departmentName);
+  const { nameOf } = useDomains();
+  const find = useProjectFind(data.projects, nameOf);
   const counts: Record<FolderName, number> = { Projects: data.projects.length, People: data.clients.length, Organizations: data.organizations.length, Library: data.organizations.length };
   const go = (f: FolderName) => { setFolder(f); setProject(null); };
   const items = folder === "Projects" ? (open ? 1 : find.results.length) : counts[folder];

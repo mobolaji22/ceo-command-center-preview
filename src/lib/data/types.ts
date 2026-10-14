@@ -1,5 +1,5 @@
 import type { DesignDocument } from "@/lib/design/sdd";
-import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
+import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -89,6 +89,8 @@ export interface DataSource {
   queries: {
     ownerData(): Promise<OwnerData>;
     clientData(): Promise<ClientData>;
+    /** The domains the agency works in, in order, with their names (the rooms). The same for every signed-in person. */
+    domains(): Promise<DomainView[]>;
   };
 
   commands: {

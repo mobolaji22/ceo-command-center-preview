@@ -6,7 +6,7 @@ import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
 import type { ClientData } from "@/lib/model";
 import { Empty } from "./views";
 import { DeskFrame } from "./desk-frame";
-import { departmentName } from "./corridor";
+import { useDomains } from "@/lib/domains";
 import { FindBar, TextFind } from "./find-bar";
 import { useProjectFind, type FindOption } from "@/lib/find";
 import { Library } from "./library";
@@ -25,7 +25,8 @@ const projectName = (data: ClientData, pid: string | null) => data.projects.find
 /** The round table: the work itself. One project at a time, then the story so far. */
 export function ProjectsDesk({ data, isOwner }: Common) {
   const [tab, setTab] = useState<"projects" | "timeline">("projects");
-  const find = useProjectFind(data.projects, departmentName);
+  const { nameOf } = useDomains();
+  const find = useProjectFind(data.projects, nameOf);
   const [pid, setPid] = useState<string | undefined>(data.projects[0]?.id);
   const chosen = find.results.find((p) => p.id === pid) ?? find.results[0];
   // the timeline: words to find, and one project at a time

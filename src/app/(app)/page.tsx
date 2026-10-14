@@ -10,7 +10,8 @@ import { useDataSource } from "@/lib/data";
 const ownerKey = ["owner-data"] as const;
 import { attentionCounts, needYou } from "@/lib/attention";
 import { BriefView, ComputerView, ContractsView, DirectiveView, PhoneView } from "@/components/cc/views";
-import { HallwayView, departmentName, departments } from "@/components/cc/corridor";
+import { HallwayView, departments } from "@/components/cc/corridor";
+import { useDomains } from "@/lib/domains";
 import { RoomDesk, RoomStage, type RoomSpot } from "@/components/cc/room-stage";
 import { SceneFrame, ThresholdVeil, directionBetween, isOverlayMove, originFor, type SceneOrigin } from "@/components/cc/scene";
 import { DeskOverlay } from "@/components/cc/desk-overlay";
@@ -44,6 +45,7 @@ export default function Index() {
   const router = useRouter();
   const ds = useDataSource();
   const qc = useQueryClient();
+  const domains = useDomains();
   useEffect(() => { if (!auth.loading && auth.user && !auth.isOwner) router.replace("/client"); }, [auth, router]);
   const q = useQuery({ queryKey: ownerKey, queryFn: () => ds.queries.ownerData(), enabled: auth.isOwner });
   const refresh = () => qc.invalidateQueries({ queryKey: ownerKey });
@@ -110,7 +112,7 @@ export default function Index() {
     </SceneFrame>}
 
     {(view === "room" || view === "roomdesk") && data && <SceneFrame sceneKey={`room:${dept}`} dir={dir} origin={origin} inert={view === "roomdesk"}>
-      <RoomStage data={data} dept={dept} back={() => openView("hallway")} toOffice={() => openView("office")} goTo={(d) => { if (d === dept) return; const order = departments(data); setDir(order.indexOf(d) > order.indexOf(dept) ? "next" : "prev"); setOrigin(undefined); setFocusProject(undefined); setDept(d); }} onAct={(spot, at) => { setRoomSpot(spot); setRoomAt(at); openView("roomdesk", undefined, at); }} />
+      <RoomStage data={data} dept={dept} back={() => openView("hallway")} toOffice={() => openView("office")} goTo={(d) => { if (d === dept) return; const order = departments(data, domains.list); setDir(order.indexOf(d) > order.indexOf(dept) ? "next" : "prev"); setOrigin(undefined); setFocusProject(undefined); setDept(d); }} onAct={(spot, at) => { setRoomSpot(spot); setRoomAt(at); openView("roomdesk", undefined, at); }} />
     </SceneFrame>}
 
     {view === "hallway" && <div className="workspace">
@@ -135,7 +137,7 @@ export default function Index() {
       </div>
     </DeskOverlay>}
 
-    {view === "roomdesk" && data && <DeskOverlay label={`${departmentName(dept)} ${roomSpot}`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {departmentName(dept).toUpperCase()} &nbsp; / &nbsp; {roomSpot.toUpperCase()}</>} surface={`room-${roomSpot}`} wide={roomSpot === "workshop"} origin={origin} onBack={() => openView("room", undefined, roomAt)}>
+    {view === "roomdesk" && data && <DeskOverlay label={`${domains.nameOf(dept)} ${roomSpot}`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {domains.nameOf(dept).toUpperCase()} &nbsp; / &nbsp; {roomSpot.toUpperCase()}</>} surface={`room-${roomSpot}`} wide={roomSpot === "workshop"} origin={origin} onBack={() => openView("room", undefined, roomAt)}>
       <div className="scene scene-side"><RoomDesk data={data} dept={dept} spot={roomSpot} openManage={(id) => openView("manage", id)} /></div>
     </DeskOverlay>}
   </main>;
