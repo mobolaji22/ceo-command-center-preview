@@ -1,4 +1,5 @@
-import type { ActionLinkView, AuditChain, Asset, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
+import type { DesignDocument } from "@/lib/design/sdd";
+import type { ActionLinkView, AuditChain, Asset, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -37,6 +38,7 @@ const MESSAGES: Record<string, string> = {
   ALREADY_USED: "This link has already been used.",
   ALREADY_ANSWERED: "This was already answered.",
   EXPIRED: "This link has expired.",
+  REVISION_CONFLICT: "Someone else saved a newer version of this design. Reload to see it.",
 };
 
 async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
@@ -166,7 +168,8 @@ export function createApiDataSource(): DataSource {
 
   return {
     kind: "api",
-    capabilities: { approvalNotes: false, timelineUpdates: false },
+    // designDocuments stays false until the v4 API serves /v1/projects/:id/design-document (see docs/INTEGRATION.md); until then the Workshop keeps a draft on the device.
+    capabilities: { approvalNotes: false, timelineUpdates: false, designDocuments: false },
 
     auth: {
       async getSession() {
@@ -203,6 +206,9 @@ export function createApiDataSource(): DataSource {
       },
       async clientData() {
         return must(await call<ClientData>("GET", "/v1/portal/overview"));
+      },
+      async domains() {
+        return must(await call<{ domains: DomainView[] }>("GET", "/v1/domains")).domains;
       },
     },
 
@@ -272,6 +278,14 @@ export function createApiDataSource(): DataSource {
         }
         return voidResult(await call("POST", `/v1/requirements/${requirementId}/respond`, answer));
       },
+    },
+
+    design: {
+      async load(projectId) {
+        const r = await call<DesignDocument>("GET", `/v1/projects/${encodeURIComponent(projectId)}/design-document`);
+        return r.error?.code === "NOT_FOUND" ? ok<DesignDocument | null>(null) : r;
+      },
+      save: (doc, baseRevision) => call<{ revision: number }>("PUT", `/v1/projects/${encodeURIComponent(doc.projectId)}/design-document`, { baseRevision, document: doc }),
     },
 
     runs: {

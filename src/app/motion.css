@@ -1,0 +1,308 @@
+/*
+ * Motion for the living agency: the walkable corridor, the threshold between screens, the department rooms, and the small
+ * answers to hover, focus and press. Additive: it layers on globals.css / screens.css and changes no data or behaviour.
+ * The only existing rules it overrides are the old door-card grid look, which the hall replaces (those were !important,
+ * so the overrides below are scoped under .hall to win on specificity).
+ *
+ * Layers: feedback ~130ms, threshold ~300ms, reveal ~380ms. Everything that travels or loops is switched off at the bottom
+ * for prefers-reduced-motion; location and state are then conveyed by the same markup without movement.
+ */
+
+:root {
+  --ease-out: cubic-bezier(0.22, 0.8, 0.24, 1);
+  --ease-in: cubic-bezier(0.5, 0, 0.75, 0);
+  --t-feedback: 130ms;
+  --t-threshold: 300ms;
+  --t-reveal: 380ms;
+}
+
+/* ---- scenes: how a screen arrives ---------------------------------------------------------- */
+.scene:focus { outline: none; }
+.scene-forward { animation: scene-forward 240ms var(--ease-out) both; }
+.scene-back { animation: scene-back 260ms var(--ease-out) both; }
+.scene-next { animation: scene-next var(--t-reveal) var(--ease-out) both; }
+.scene-prev { animation: scene-prev var(--t-reveal) var(--ease-out) both; }
+.scene-side { animation: scene-side 260ms var(--ease-out) both; }
+@keyframes scene-forward { from { opacity: 0.2; transform: scale(0.985) translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes scene-back { from { opacity: 0.2; transform: scale(1.015); } to { opacity: 1; transform: none; } }
+@keyframes scene-next { from { opacity: 0; transform: translateX(34px); } to { opacity: 1; transform: none; } }
+@keyframes scene-prev { from { opacity: 0; transform: translateX(-34px); } to { opacity: 1; transform: none; } }
+@keyframes scene-side { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+
+/* A wash of light across the change. Fixed under the top bar, never takes pointer events. */
+.veil { position: fixed; inset: 66px 0 0 0; z-index: 20; pointer-events: none; }
+.veil-forward { background: radial-gradient(ellipse at var(--vx, 50%) var(--vy, 55%), oklch(0.8 0.13 78 / 34%) 0%, oklch(0.76 0.146 76 / 12%) 38%, oklch(0.07 0.005 270 / 46%) 85%); animation: veil-forward var(--t-threshold) var(--ease-out) both; }
+.veil-back { background: radial-gradient(ellipse at var(--vx, 50%) var(--vy, 55%), oklch(0.76 0.146 76 / 14%) 0%, oklch(0.07 0.005 270 / 42%) 80%); animation: veil-back var(--t-threshold) var(--ease-out) both; }
+.veil-next, .veil-prev, .veil-side { background: linear-gradient(90deg, transparent, oklch(0.76 0.146 76 / 14%) 50%, transparent); animation: veil-next var(--t-threshold) var(--ease-out) both; }
+.veil-prev { animation-name: veil-prev; }
+@keyframes veil-forward { from { opacity: 1; transform: scale(1.12); } to { opacity: 0; transform: scale(1); } }
+@keyframes veil-back { from { opacity: 1; transform: scale(0.92); } to { opacity: 0; transform: scale(1); } }
+@keyframes veil-next { from { opacity: 1; transform: translateX(14%); } to { opacity: 0; transform: translateX(-14%); } }
+@keyframes veil-prev { from { opacity: 1; transform: translateX(-14%); } to { opacity: 0; transform: translateX(14%); } }
+@media (max-width: 650px) { .veil { inset-block-start: 58px; } }
+
+/* ---- feedback: every button answers a press ------------------------------------------------ */
+.command-center button:not(:disabled):active { scale: 0.97; }
+.command-center button { transition-property: color, background-color, border-color, opacity, translate, scale; transition-duration: var(--t-feedback); transition-timing-function: var(--ease-out); }
+.dossier-row, .resolved-row, .proj-pick { transition: background-color var(--t-feedback) var(--ease-out); }
+.dossier-row:hover, .resolved-row:hover { background: oklch(1 0 0 / 2.5%); }
+
+/* ---- the hall -------------------------------------------------------------------------------- */
+.hallway-wrap.hall-wrap { max-width: none; margin: 30px 0 36px; }
+.hall-wrap h2 { font-size: clamp(40px, 4vw, 60px); margin: 10px 0 6px; }
+.hall-wrap .hallway-subtitle { margin-bottom: 0; }
+.hall { position: relative; margin-top: 22px; }
+.hall-stage {
+  --door-w: clamp(176px, 16vw, 244px);
+  --door-gap: clamp(22px, 3.2vw, 48px);
+  --hall-p: 0;
+  position: relative;
+  height: clamp(400px, calc(100svh - 420px), 620px);
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--border);
+  background: oklch(0.1 0.006 270);
+}
+.hall-scene { position: absolute; inset: 0; transform-origin: var(--ox, 50%) var(--oy, 55%); }
+.hall-backdrop { position: absolute; inset: 0 auto 0 0; width: 120%; z-index: -3; transform: translate3d(calc(var(--hall-p) * -16.6667%), 0, 0); will-change: transform; }
+.hall-backdrop img { object-fit: cover; filter: brightness(0.78) saturate(0.9); }
+.hall-shade { position: absolute; inset: 0; z-index: -2; pointer-events: none; background: linear-gradient(90deg, oklch(0.08 0.005 270 / 74%), transparent 20%, transparent 80%, oklch(0.08 0.005 270 / 74%)), linear-gradient(180deg, oklch(0.08 0.005 270 / 45%), transparent 28%, oklch(0.08 0.005 270 / 62%)); }
+.hall-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 32%; z-index: -1; pointer-events: none; background: radial-gradient(ellipse 26% 70% at 50% 100%, oklch(0.76 0.146 76 / 22%), transparent 70%); }
+
+.hall-track {
+  position: absolute; inset: 0; display: flex; align-items: center; gap: var(--door-gap);
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory; scrollbar-width: none;
+  cursor: grab; user-select: none; -webkit-user-select: none;
+}
+.hall-track::-webkit-scrollbar { display: none; }
+.hall-track::before, .hall-track::after { content: ""; flex: 0 0 calc(50% - var(--door-w) / 2 - var(--door-gap)); }
+.hall-track.is-dragging { scroll-snap-type: none; cursor: grabbing; }
+
+/* The old grid card is replaced by a door; these beat its !important rules by sitting under .hall. */
+.hall .door-card {
+  position: relative; flex: 0 0 var(--door-w) !important; width: var(--door-w); height: calc(100% - 70px) !important; max-height: 540px;
+  padding: 0 !important; display: flex !important; flex-direction: column; align-items: stretch !important; justify-content: flex-start !important; gap: 12px;
+  background: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none; text-align: left; white-space: normal !important;
+  color: var(--foreground); scroll-snap-align: center;
+  transition: translate var(--t-feedback) var(--ease-out), opacity 0.2s linear, scale var(--t-feedback) var(--ease-out) !important;
+}
+.hall .door-card:hover { transform: none; translate: 0 -4px; }
+.hall .door-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 8px; }
+
+.door-body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; transform: perspective(1100px) rotateY(calc(var(--d, 0) * -9deg)) scale(calc(1 - var(--n, 0) * 0.045)); filter: brightness(calc(1 - var(--n, 0) * 0.2)); transform-origin: 50% 60%; }
+.door-leaf { position: relative; flex: 1; min-height: 0; overflow: hidden; border-radius: 3px 3px 0 0; transform-origin: left center; background: repeating-linear-gradient(90deg, oklch(1 0 0 / 0%) 0 9px, oklch(1 0 0 / 2.2%) 9px 10px), linear-gradient(100deg, oklch(0.34 0.05 55), oklch(0.2 0.03 55) 55%, oklch(0.27 0.04 58)); box-shadow: inset 0 0 0 1px oklch(0.76 0.146 76 / 16%), inset 6px 0 0 oklch(0 0 0 / 22%), 0 26px 40px oklch(0 0 0 / 45%); transition: box-shadow 0.35s var(--ease-out), transform var(--t-threshold) var(--ease-out); }
+.door-card[data-active] .door-leaf { box-shadow: inset 0 0 0 1px oklch(0.76 0.146 76 / 55%), inset 6px 0 0 oklch(0 0 0 / 22%), 0 0 46px oklch(0.76 0.146 76 / 20%), 0 26px 40px oklch(0 0 0 / 45%); }
+.door-card[data-quiet] .door-leaf { background: linear-gradient(100deg, oklch(0.25 0.025 55), oklch(0.15 0.014 55) 55%, oklch(0.2 0.02 58)); }
+.door-panels i { position: absolute; left: 14%; right: 14%; border: 1px solid oklch(0.76 0.146 76 / 10%); border-radius: 1px; }
+.door-panels i:first-child { top: 9%; height: 34%; }
+.door-panels i:last-child { top: 50%; height: 40%; }
+.door-number { position: absolute; top: 14px; left: 18px; z-index: 2; font: 23px "Cormorant Garamond", serif; color: var(--primary); }
+.hall .door-icon { position: absolute; inset: 0; z-index: 2; margin: auto; width: 56px; height: 56px; background: oklch(0.1 0.006 270 / 38%); }
+.door-knob { position: absolute; z-index: 2; right: 13px; top: 52%; width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, oklch(0.9 0.1 80), oklch(0.6 0.12 70)); box-shadow: 0 0 6px oklch(0.76 0.146 76 / 50%); }
+
+/* The room's light under the door and through its edge; opens fully as the door swings. */
+.door-peek { position: absolute; inset: 0; z-index: 1; opacity: 0; clip-path: inset(0 0 0 calc(100% - 7px)); transition: clip-path 0.45s var(--ease-out), opacity 0.3s; pointer-events: none; }
+.door-peek img { object-fit: cover; filter: brightness(0.85); }
+.door-card[data-active] .door-peek { opacity: 1; clip-path: inset(0 0 0 calc(100% - 12px)); }
+
+.door-sconce { position: absolute; top: -26px; left: 50%; z-index: 3; width: 16px; height: 22px; margin-left: -8px; border-radius: 3px 3px 8px 8px; background: linear-gradient(180deg, oklch(0.78 0.11 78), oklch(0.5 0.1 68)); }
+.door-sconce::after { content: ""; position: absolute; left: 50%; top: 100%; width: 150px; height: 120px; margin: -30px 0 0 -75px; background: radial-gradient(ellipse at 50% 20%, oklch(0.76 0.146 76 / 34%), transparent 70%); opacity: 0.55; animation: lamp-breathe 6s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -0.7s); pointer-events: none; }
+.door-card[data-active] .door-sconce::after { opacity: 1; }
+@keyframes lamp-breathe { 50% { opacity: 1; } }
+
+.door-plate { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.hall .door-name { font: 28px/1 "Cormorant Garamond", serif; }
+.hall .door-enter { margin-top: auto; opacity: 0; translate: 0 -4px; transition: opacity var(--t-feedback), translate var(--t-feedback) var(--ease-out); }
+.hall .door-card[data-active] .door-enter, .hall .door-card:hover .door-enter, .hall .door-card:focus-visible .door-enter { opacity: 1; translate: 0 0; color: var(--primary); }
+@media (hover: none) { .hall .door-card[data-active] .door-enter { opacity: 1; } }
+
+/* Choosing a door: it swings, its room opens through it, the rest of the hall steps back, and the camera pushes in. */
+.hall-scene { transition: transform var(--t-threshold) var(--ease-in), opacity var(--t-threshold) var(--ease-in); }
+.hall-stage[data-leaving] .hall-scene { transform: scale(2.1); opacity: 0.3; }
+.hall-stage[data-leaving] .door-card:not([data-leaving]) { opacity: 0; }
+.hall-stage[data-leaving] .hall-arrow { opacity: 0; }
+.door-card[data-leaving] .door-leaf { transform: perspective(900px) rotateY(-32deg); }
+.door-card[data-leaving] .door-peek { opacity: 1; clip-path: inset(0); }
+.hall-stage[data-arrive] .hall-scene { animation: hall-arrive var(--t-reveal) var(--ease-out) both; }
+@keyframes hall-arrive { from { transform: scale(1.35); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.hall-arrow { position: absolute; top: 50%; z-index: 4; width: 44px; height: 44px; margin-top: -22px; display: grid; place-items: center; color: var(--primary); background: oklch(0.14 0.006 270 / 70%); border: 1px solid var(--border); backdrop-filter: blur(8px); border-radius: 2px; cursor: pointer; }
+.hall-arrow:hover:not(:disabled) { border-color: var(--primary); background: oklch(0.76 0.146 76 / 14%); }
+.hall-arrow:disabled { opacity: 0.25; cursor: default; }
+.hall-arrow-prev { left: 14px; }
+.hall-arrow-next { right: 14px; }
+
+.hall-status { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 9px; font-weight: 700; letter-spacing: 0.16em; color: var(--muted-foreground); }
+.hall-where { display: inline-flex; align-items: baseline; gap: 10px; min-width: 220px; }
+.hall-where b { font: 400 22px "Cormorant Garamond", serif; color: var(--primary); letter-spacing: 0; }
+.hall-where span { color: var(--foreground); font-size: 11px; letter-spacing: 0.08em; }
+.hall-index { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
+.hall-chip { position: relative; min-width: 34px; height: 36px; padding: 0 4px; color: var(--muted-foreground); background: none; border: 0; font: 600 10px "DM Sans", sans-serif; letter-spacing: 0.1em; cursor: pointer; }
+.hall-chip::after { content: ""; position: absolute; left: 25%; right: 25%; bottom: 5px; height: 2px; background: var(--primary); transform: scaleX(0); transition: transform 0.25s var(--ease-out); }
+.hall-chip:hover { color: var(--foreground); }
+.hall-chip[data-active] { color: var(--primary); }
+.hall-chip[data-active]::after { transform: scaleX(1); }
+.hall-chip:focus-visible { outline: 1px solid var(--primary); outline-offset: 1px; }
+.hall-hint { min-width: 220px; text-align: right; font-weight: 400; letter-spacing: 0.04em; transition: opacity 0.4s; }
+.hall-stage[data-touched] ~ .hall-status .hall-hint { opacity: 0; }
+
+@media (max-width: 900px) { .hall-stage { --door-w: clamp(168px, 34vw, 230px); } .hall-where, .hall-hint { min-width: 0; } }
+@media (max-width: 650px) {
+  .hall-stage { --door-w: min(62vw, 240px); --door-gap: 18px; height: clamp(420px, calc(100svh - 300px), 560px); }
+  .hall-arrow { display: none; }
+  .hall-status { justify-content: center; }
+  .hall-hint { display: none; }
+}
+
+/* ---- department room: hero, rail, pinboard -------------------------------------------------- */
+.room-wrap.room-full { position: relative; }
+.room-wrap.room-full > :not(.room-hero) { position: relative; z-index: 1; }
+.room-hero { position: absolute; z-index: 0; top: -70px; left: 50%; width: 100vw; margin-left: -50vw; height: min(70vh, 600px); overflow: hidden; pointer-events: none; -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 14%, #000 55%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, #000 14%, #000 55%, transparent 100%); }
+.room-hero img { object-fit: cover; object-position: center 40%; filter: brightness(0.58) saturate(0.9); transform: scale(1.06) translate3d(calc(var(--px, 0) * -10px), calc(var(--py, 0) * -6px), 0); transition: transform 0.5s var(--ease-out); animation: hero-settle var(--t-reveal) var(--ease-out) both; }
+.room-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--background) 0%, oklch(0.105 0.006 270 / 55%) 42%, oklch(0.105 0.006 270 / 15%) 100%); }
+@keyframes hero-settle { from { opacity: 0; filter: brightness(0.3); } to { opacity: 1; filter: brightness(0.58) saturate(0.9); } }
+
+.room-rail { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 26px; }
+.rail-door { min-width: 38px; height: 44px; display: grid; place-items: center; color: var(--muted-foreground); background: oklch(0.14 0.006 270 / 60%); border: 1px solid var(--border); border-radius: 2px; font: 600 11px "DM Sans", sans-serif; letter-spacing: 0.08em; cursor: pointer; }
+.rail-door:hover:not(:disabled):not([aria-current]) { translate: 0 -2px; color: var(--foreground); border-color: oklch(0.76 0.146 76 / 45%); }
+.rail-door[aria-current="page"] { color: var(--primary); border-color: var(--primary); background: oklch(0.76 0.146 76 / 10%); box-shadow: 0 0 18px oklch(0.76 0.146 76 / 22%); cursor: default; }
+.rail-door:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.rail-door:disabled { cursor: default; }
+
+.room-wall .pin-card { animation: pin-in var(--t-reveal) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 50ms + 160ms); }
+@keyframes pin-in { from { opacity: 0; translate: 0 -10px; scale: 0.96; } to { opacity: 1; translate: 0 0; scale: 1; } }
+
+/* ---- the office: hotspots answer a press and a keyboard visit ------------------------------- */
+.hotspot:active { scale: 0.9; }
+.hotspot:focus-visible { outline: 2px solid var(--primary); outline-offset: 5px; }
+
+
+/* ---- object to surface: a desk opens out of the thing you pressed and folds back into it ------------ */
+.scene[data-origin].scene-forward { animation: scene-emerge 300ms var(--ease-out) both; }
+.scene[data-origin].scene-back { animation: scene-recede 300ms var(--ease-out) both; }
+@keyframes scene-emerge { from { opacity: 0.15; transform: scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes scene-recede { from { opacity: 0.15; transform: scale(1.08); } to { opacity: 1; transform: none; } }
+/* the place name in the header changes with the place: it settles in rather than swapping silently */
+.workspace-path { animation: path-in 260ms var(--ease-out) 120ms both; }
+@keyframes path-in { from { opacity: 0; translate: 0 4px; } to { opacity: 1; translate: 0 0; } }
+/* data arriving into a screen that was already there (the client room, while its ledger loads) */
+.scene-reveal { animation: scene-reveal 280ms var(--ease-out) both; }
+@keyframes scene-reveal { from { opacity: 0; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
+
+/* ---- tabs: the underline grows from the middle instead of snapping ------------------------------- */
+.command-center .tab { position: relative; border-bottom-color: transparent !important; }
+.command-center .tab.active { border-color: transparent !important; }
+.command-center .tab::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: var(--primary); transform: scaleX(0); transition: transform 0.28s var(--ease-out); }
+.command-center .tab.active::after { transform: scaleX(1); }
+.command-center .tab:not(.active):hover::after { transform: scaleX(0.35); background: oklch(0.76 0.146 76 / 45%); }
+
+/* ---- panels that open (case files, evidence, confirmations) and messages that land ---------------- */
+.case-slot, .sources, .plan-confirm { animation: panel-open 260ms var(--ease-out) both; transform-origin: top; }
+.mmsg, .plan-confirm-note { animation: msg-in 260ms var(--ease-out) both; }
+@keyframes panel-open { from { opacity: 0; translate: 0 -6px; } to { opacity: 1; translate: 0 0; } }
+@keyframes msg-in { from { opacity: 0; translate: 0 4px; } to { opacity: 1; translate: 0 0; } }
+
+/* ---- time of day: the day photograph fades in over the night one ---------------------------------- */
+.lit-day { opacity: 0; transition: opacity 0.9s ease, filter 0.6s; }
+[data-lighting="day"] .lit-day { opacity: 1; }
+/* Photographs carry the scene; the chrome stays dark glass. In daylight the photos are dimmed a little so type and doors keep their contrast. */
+.hall-backdrop img, .room-hero img { transition: filter 0.9s ease, opacity 0.9s ease, transform 0.5s var(--ease-out); }
+[data-lighting="day"] .hall-backdrop img { filter: brightness(0.62) saturate(0.95); }
+[data-lighting="day"] .room-hero img { filter: brightness(0.52) saturate(0.95); }
+[data-lighting="day"] .hall-floor { opacity: 0.35; }
+[data-lighting="day"] .door-sconce::after { animation: none; opacity: 0.18; }
+[data-lighting="day"] .door-card[data-active] .door-sconce::after { opacity: 0.4; }
+[data-lighting="day"] .door-leaf { box-shadow: inset 0 0 0 1px oklch(0.76 0.146 76 / 22%), inset 6px 0 0 oklch(0 0 0 / 22%), 0 22px 36px oklch(0 0 0 / 40%); }
+[data-lighting="day"] .office-vignette { background: linear-gradient(90deg, oklch(0.07 0.005 270 / 80%) 0%, oklch(0.08 0.005 270 / 46%) 42%, transparent 78%), linear-gradient(180deg, oklch(0.07 0.005 270 / 60%) 0%, transparent 35%, transparent 70%, oklch(0.07 0.005 270 / 80%) 100%); }
+.office-vignette { transition: background 0.9s ease; }
+.lighting-toggle[aria-pressed="true"] { color: var(--primary); border-color: oklch(0.76 0.146 76 / 55%); background: oklch(0.76 0.146 76 / 12%); }
+
+/* ---- cursor light: a pool of lamplight that trails a real pointer; off in day lighting and focus mode ---- */
+.cursor-light { position: fixed; left: 0; top: 0; z-index: 4; width: 520px; height: 520px; border-radius: 50%; pointer-events: none; opacity: 0; mix-blend-mode: screen; will-change: transform; background: radial-gradient(circle, oklch(0.82 0.12 80 / 11%) 0%, oklch(0.8 0.12 78 / 4%) 42%, transparent 68%); transition: opacity 0.5s ease; }
+.cursor-light[data-on] { opacity: 1; }
+[data-lighting="day"] .cursor-light, .focus-mode .cursor-light { opacity: 0 !important; }
+
+/* ---- hotspot previews: the panel arrives where the pointer or focus already is ---------------------------- */
+.hotspot.selected { scale: 1.08; }
+
+/* ---- the client room: hotspots sit on the room's objects (table, screen, board, shelf, lamp, coffee) ---------- */
+.hotspot-projects { left: 60%; top: 65%; }
+.hotspot-decisions { left: 94.6%; top: 26%; }
+.hotspot-requests { left: 85.3%; top: 37%; }
+.hotspot-library { left: 27.2%; top: 36%; }
+.hotspot-briefs { left: 32.3%; top: 47%; }
+.hotspot-atmosphere { left: 11.6%; top: 60%; }
+.preview-projects { left: 62%; top: 18%; }
+.preview-decisions { left: 70%; top: 46%; }
+.preview-requests { left: 62%; top: 48%; }
+.preview-library { left: 29%; top: 41%; }
+.preview-briefs { left: 34%; top: 49%; }
+.preview-atmosphere { left: 14%; top: 44%; }
+/* On narrow screens the photo is cropped to the table, so the controls spread across what is visible (the preview panel itself is centred by the existing narrow-screen rule). */
+@media (max-width: 900px) {
+  .hotspot-projects { left: 50%; top: 66%; }
+  .hotspot-decisions { left: 78%; top: 44%; }
+  .hotspot-requests { left: 26%; top: 44%; }
+  .hotspot-library { left: 22%; top: 30%; }
+  .hotspot-briefs { left: 60%; top: 33%; }
+  .hotspot-atmosphere { left: 14%; top: 62%; }
+}
+
+/* ---- desks: count beside a tab, and a row of choices inside a desk ------------------------------------------ */
+.tab-count { margin-left: 8px; color: var(--primary); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
+.desk-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 22px; }
+.desk-chip { height: auto; padding: 9px 16px; color: var(--muted-foreground); background: oklch(0.14 0.006 270 / 60%); border: 1px solid var(--border); border-radius: 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; }
+.desk-chip:hover { color: var(--foreground); border-color: oklch(0.76 0.146 76 / 45%); background: oklch(0.14 0.006 270 / 60%); }
+.desk-chip[aria-pressed="true"] { color: var(--primary); border-color: var(--primary); background: oklch(0.76 0.146 76 / 10%); }
+.desk-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ---- department rooms: three objects per room (wall, calendar, desk), placed on that room's own photograph ---------- */
+.stage-nav { position: absolute; top: 14px; left: 3.4%; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; max-width: 72%; }
+.stage-nav .room-rail { margin-top: 0; }
+.stage-nav .back-link { margin: 0; }
+.stage-nav-links { display: flex; align-items: center; gap: 22px; }
+.stage-note { display: block; margin-top: 6px; }
+.room-stage .hotspot-wall { left: 30%; top: 40%; }
+.room-stage .hotspot-calendar { left: 55%; top: 66%; }
+.room-stage .hotspot-desk { left: 75%; top: 55%; }
+.room-stage .hotspot-workshop { left: 87%; top: 52%; }
+.room-stage.room-design .hotspot-workshop { left: 87.3%; top: 50%; }
+.room-stage.room-business .hotspot-wall { left: 29.2%; top: 40%; } .room-stage.room-business .hotspot-calendar { left: 62.4%; top: 67%; } .room-stage.room-business .hotspot-desk { left: 31.3%; top: 58%; }
+.room-stage.room-market .hotspot-wall { left: 11.6%; top: 40%; } .room-stage.room-market .hotspot-calendar { left: 82.1%; top: 53%; } .room-stage.room-market .hotspot-desk { left: 55.2%; top: 68%; }
+.room-stage.room-brand .hotspot-wall { left: 28.2%; top: 40%; } .room-stage.room-brand .hotspot-calendar { left: 20.9%; top: 72%; } .room-stage.room-brand .hotspot-desk { left: 51%; top: 81%; }
+.room-stage.room-content .hotspot-wall { left: 85.3%; top: 30%; } .room-stage.room-content .hotspot-calendar { left: 76.9%; top: 75%; } .room-stage.room-content .hotspot-desk { left: 58.3%; top: 67%; }
+.room-stage.room-design .hotspot-wall { left: 91.5%; top: 26%; } .room-stage.room-design .hotspot-calendar { left: 33.4%; top: 66%; } .room-stage.room-design .hotspot-desk { left: 55.2%; top: 65%; }
+.room-stage.room-marketing .hotspot-wall { left: 37.5%; top: 42%; } .room-stage.room-marketing .hotspot-calendar { left: 55.2%; top: 63%; } .room-stage.room-marketing .hotspot-desk { left: 27.2%; top: 67%; }
+.room-stage.room-engineering .hotspot-wall { left: 32.3%; top: 38%; } .room-stage.room-engineering .hotspot-calendar { left: 59.3%; top: 64%; } .room-stage.room-engineering .hotspot-desk { left: 78%; top: 44%; }
+.room-stage.room-strategy .hotspot-wall { left: 18.9%; top: 40%; } .room-stage.room-strategy .hotspot-calendar { left: 41.7%; top: 66%; } .room-stage.room-strategy .hotspot-desk { left: 56.2%; top: 67%; }
+.room-stage.room-social_growth .hotspot-wall { left: 34.4%; top: 38%; } .room-stage.room-social_growth .hotspot-calendar { left: 63.5%; top: 63%; } .room-stage.room-social_growth .hotspot-desk { left: 51%; top: 55%; }
+@media (max-width: 900px) {
+  .office-stage.room-stage .hotspot-wall { left: 28%; top: 42%; }
+  .office-stage.room-stage .hotspot-calendar { left: 52%; top: 66%; }
+  .office-stage.room-stage .hotspot-desk { left: 74%; top: 52%; }
+  .office-stage.room-stage .hotspot-workshop { left: 62%; top: 48%; }
+  .stage-nav { max-width: 94%; }
+}
+@media (max-width: 650px) {
+  /* A phone shows a slice of the photograph, so a room's controls stack: the way back, then one row of nine doors that fits the width. */
+  .stage-nav { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 4px; left: 16px; max-width: calc(100% - 32px); }
+  .stage-nav .room-rail { flex-wrap: nowrap; gap: 4px; }
+  .stage-nav .rail-door { min-width: 0; width: calc((100vw - 64px) / 9); height: 36px; font-size: 10px; letter-spacing: 0.02em; }
+  .room-stage .scene-intro { top: 17%; }
+  .office-stage.room-stage .hotspot-wall { left: 28%; top: 56%; }
+  .office-stage.room-stage .hotspot-calendar { left: 50%; top: 71%; }
+  .office-stage.room-stage .hotspot-desk { left: 76%; top: 63%; }
+  .office-stage.room-stage .hotspot-workshop { left: 64%; top: 52%; }
+}
+
+/* ---- reduced motion: same places, same state, no travel --------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .scene, .scene-reveal, .workspace-path, .case-slot, .sources, .plan-confirm, .mmsg, .plan-confirm-note, .veil, .room-hero img, .room-wall .pin-card, .hall-stage[data-arrive] .hall-scene, .door-sconce::after { animation: none !important; }
+  .veil { display: none; }
+  .hall-backdrop, .door-body, .room-hero img { transform: none !important; }
+  .lit-day, .hall-backdrop img, .office-vignette, .cursor-light, .hall-scene, .door-leaf, .door-peek, .rail-door, .hall-chip::after, .command-center .tab::after, .command-center button { transition: none !important; }
+  .hall .door-card { transition: none !important; }
+  .hall-track { scroll-behavior: auto; }
+  .command-center button:not(:disabled):active { scale: 1; }
+}

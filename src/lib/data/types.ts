@@ -1,4 +1,5 @@
-import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
+import type { DesignDocument } from "@/lib/design/sdd";
+import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -33,6 +34,8 @@ export type Capabilities = {
   approvalNotes: boolean;
   /** Free-text timeline updates posted by hand. */
   timelineUpdates: boolean;
+  /** The agency's design service can keep a project's design document. Without it the Design Workshop keeps a working copy on this device and says so. */
+  designDocuments: boolean;
 };
 
 /** Something that arrives with a request. `scope` is where it should live: this request's project, or the client's library. */
@@ -86,6 +89,8 @@ export interface DataSource {
   queries: {
     ownerData(): Promise<OwnerData>;
     clientData(): Promise<ClientData>;
+    /** The domains the agency works in, in order, with their names (the rooms). The same for every signed-in person. */
+    domains(): Promise<DomainView[]>;
   };
 
   commands: {
@@ -122,6 +127,15 @@ export interface DataSource {
    * The work an approved plan became (CC-4). Pausing, resuming and stopping are for the project's decision owner and the CEO; the
    * API decides who may do what and says so plainly. The budget is totals only; cost records stay with the agency.
    */
+  /**
+   * The structured design document of a project (the Design Workshop's source of truth). `save` carries the revision the editor
+   * last saw, so a stale save is refused instead of overwriting a newer one. Approval authority is not decided here: the API's
+   * policy decides what an approval means.
+   */
+  design: {
+    load(projectId: string): Promise<Result<DesignDocument | null>>;
+    save(doc: DesignDocument, baseRevision: number): Promise<Result<{ revision: number }>>;
+  };
   runs: {
     /** Newest first. */
     list(projectId: string): Promise<Result<RunView[]>>;

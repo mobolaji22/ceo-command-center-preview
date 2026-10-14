@@ -3,21 +3,32 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Coffee, DoorOpen, FileCheck2, LogOut, Monitor, PenLine, Phone, Settings2, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Coffee, DoorOpen, FileCheck2, LogOut, Monitor, PenLine, Phone, Settings2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import officeImage from "@/assets/ceo-office.jpg";
 import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
 const ownerKey = ["owner-data"] as const;
 import { attentionCounts, needYou } from "@/lib/attention";
 import { BriefView, ComputerView, ContractsView, DirectiveView, PhoneView } from "@/components/cc/views";
-import { HallwayView, RoomView, departmentName } from "@/components/cc/corridor";
+import { HallwayView, departments } from "@/components/cc/corridor";
+import { useDomains } from "@/lib/domains";
+import { RoomDesk, RoomStage, type RoomSpot } from "@/components/cc/room-stage";
+import { SceneFrame, ThresholdVeil, directionBetween, isOverlayMove, originFor, type SceneOrigin } from "@/components/cc/scene";
+import { DeskOverlay } from "@/components/cc/desk-overlay";
+import type { SceneDir } from "@/lib/motion";
+import { CursorLight } from "@/components/cc/cursor-light";
+import { LightingToggle } from "@/components/cc/lighting-toggle";
+import { OfficeStage } from "@/components/cc/office-stage";
+import { OFFICE_ART } from "@/components/cc/room-art";
 import { ManageView } from "@/components/cc/manage";
 import { ContractsDesk } from "@/components/cc/runs";
 
 
+const CEO_DESKS = ["computer", "phone", "contracts", "directive", "brief", "manage"] as const;
+const isDesk = (v: string): boolean => (CEO_DESKS as readonly string[]).includes(v);
+
 type Hotspot = "focus" | "computer" | "phone" | "contracts" | "directive" | "brief" | "door";
-type View = "office" | "computer" | "phone" | "contracts" | "directive" | "brief" | "hallway" | "room" | "manage";
+type View = "office" | "computer" | "phone" | "contracts" | "directive" | "brief" | "hallway" | "room" | "roomdesk" | "manage";
 
 const hotspotData: Record<Hotspot, { title: string; label: string; description: string; action: string; icon: typeof Coffee }> = {
   focus: { title: "EXECUTIVE FOCUS", label: "Atmosphere", description: "Set the tone for a quieter, more deliberate session.", action: "Toggle focus lighting", icon: Coffee },
@@ -34,6 +45,7 @@ export default function Index() {
   const router = useRouter();
   const ds = useDataSource();
   const qc = useQueryClient();
+  const domains = useDomains();
   useEffect(() => { if (!auth.loading && auth.user && !auth.isOwner) router.replace("/client"); }, [auth, router]);
   const q = useQuery({ queryKey: ownerKey, queryFn: () => ds.queries.ownerData(), enabled: auth.isOwner });
   const refresh = () => qc.invalidateQueries({ queryKey: ownerKey });
@@ -41,14 +53,21 @@ export default function Index() {
   const asked = useQuery({ queryKey: ["questions", "all"], queryFn: async () => { const r = await ds.questions.list(); if (r.error) throw new Error(r.error.message); return r.data!; }, enabled: auth.isOwner });
 
   const [view, setView] = useState<View>("office");
-  const [activeHotspot, setActiveHotspot] = useState<Hotspot | null>(null);
   const [focus, setFocus] = useState(false);
   const [dept, setDept] = useState("");
+  // Which object in a department room was pressed, and where it sits, so its desk opens out of it and folds back into it.
+  const [roomSpot, setRoomSpot] = useState<RoomSpot>("wall");
+  const [roomAt, setRoomAt] = useState<SceneOrigin | undefined>();
   const [focusProject, setFocusProject] = useState<string | undefined>();
+  // Which way the last screen change travelled. It only decides how the next screen arrives; nothing else reads it.
+  const [dir, setDir] = useState<SceneDir>("none");
+  const [origin, setOrigin] = useState<SceneOrigin | undefined>();
 
-  const openView = (next: View, projectId?: string) => { setActiveHotspot(null); setFocusProject(projectId); setView(next); };
+  // A desk opens over its room (the room stays mounted behind it), so moving between a room and its desks is not a change of scene.
+  const overlay = (next: View) => isOverlayMove(view, next, CEO_DESKS, "office") || isOverlayMove(view, next, ["roomdesk"], "room") || (isDesk(view) && isDesk(next));
+  const openView = (next: View, projectId?: string, at?: SceneOrigin) => { setDir(overlay(next) ? "none" : directionBetween(view, next)); setOrigin(at ?? originFor(view, next)); setFocusProject(projectId); setView(next); };
   const actOnHotspot = (spot: Hotspot) => {
-    if (spot === "focus") { setFocus(!focus); setActiveHotspot(null); return; }
+    if (spot === "focus") { setFocus(!focus); return; }
     openView(spot === "door" ? "hallway" : spot);
   };
   const signOut = async () => { await qc.cancelQueries(); qc.clear(); await ds.auth.signOut(); router.replace("/auth"); };
@@ -65,41 +84,61 @@ export default function Index() {
       <div className="brand"><span className="brand-mark"><span /></span><span>DEVPLAYBOOK <em>/</em> CEO</span></div>
       <div className="topbar-center"><span className="live-dot" /> SYSTEM ONLINE <span className="topbar-divider" /> {pending} AWAITING SIGNATURE</div>
       <div className="topbar-right"><span className="topbar-date">{today}</span>
+        <LightingToggle />
         <Button variant="ghost" size="icon" className="icon-button" aria-label="Manage records and clients" title="Manage" onClick={() => openView("manage")}><Settings2 size={16} /></Button>
         <Button variant="ghost" size="icon" className="icon-button" aria-label="Sign out" title="Sign out" onClick={signOut}><LogOut size={16} /></Button>
         <span className="avatar">{initials}</span></div>
     </header>
 
-    {view === "office" && <div className="office-stage">
-      <img className="office-image" src={officeImage.src} width={1920} height={1088} alt="Warmly lit executive office overlooking the city at night" />
-      <div className="office-vignette" />
-      <div className="scene-intro"><div className="eyebrow"><span className="short-line" /> YOUR PRIVATE WORKSPACE</div><h1>The command center<span className="period">.</span></h1><p>{data ? `${data.projects.length} projects · ${pending} awaiting your signature.` : "Synchronizing with the ledger…"}</p></div>
-      <div className="scene-side-label">DPL — 01 <span /> EXECUTIVE OFFICE</div>
-      {(["door", "focus", "contracts", "phone", "computer", "directive", "brief"] as Hotspot[]).map((spot) => <Button key={spot} variant="ghost" size="icon" className={`hotspot hotspot-${spot} ${activeHotspot === spot ? "selected" : ""}`} aria-label={`Preview ${hotspotData[spot].label}`} aria-describedby={count(spot) > 0 ? `hotspot-note-${spot}` : undefined} title={hotspotData[spot].label} onClick={() => setActiveHotspot(activeHotspot === spot ? null : spot)}><span className="hotspot-center" />
-        {count(spot) > 0 && <><span className="hotspot-badge" aria-hidden="true">{count(spot) > 9 ? "9+" : count(spot)}</span><span id={`hotspot-note-${spot}`} className="sr-only">{needYou(count(spot))}</span></>}</Button>)}
-      {activeHotspot && <div className={`hotspot-preview preview-${activeHotspot}`}>
-        <div className="preview-top"><span className="preview-icon">{(() => { const Icon = hotspotData[activeHotspot].icon; return <Icon size={17} />; })()}</span><Button variant="ghost" size="icon" className="icon-button tiny" aria-label="Close preview" onClick={() => setActiveHotspot(null)}><X size={15} /></Button></div>
-        <div className="eyebrow gold">{hotspotData[activeHotspot].title}</div>
-        <p className="preview-description">{activeHotspot === "contracts" ? (pending ? `${pending} authorization${pending > 1 ? "s" : ""} awaiting your signature.` : "No authorizations awaiting you.") : hotspotData[activeHotspot].description}</p>
-        <Button variant="ghost" className="text-action" disabled={activeHotspot !== "focus" && !data} onClick={() => actOnHotspot(activeHotspot)}>{hotspotData[activeHotspot].action} <ArrowRight size={15} /></Button>
-      </div>}
-      <div className="scene-bottom"><div className="hotspot-status"><span className="pulse-dot" /> HOTSPOTS ACTIVE <span className="status-separator">/</span><span className="status-list">Computer · Phone · Contracts · Directive · Brief · Door</span></div><div className="scene-coordinate">40° 43′ N &nbsp; / &nbsp; 73° 59′ W</div></div>
-    </div>}
+    <CursorLight />
 
-    {view !== "office" && <div className="workspace">
-      <div className="workspace-heading"><Button variant="ghost" className="back-link" onClick={() => openView("office")}><ArrowLeft size={16} /> BACK TO OFFICE</Button><span className="workspace-path">DEVPLAYBOOK &nbsp; / &nbsp; {view === "room" ? departmentName(dept).toUpperCase() : view.toUpperCase()}</span><span className="workspace-right"><span className="live-dot" /> LIVE LEDGER</span></div>
+    <ThresholdVeil sceneKey={view === "room" ? `room:${dept}` : view === "roomdesk" ? `roomdesk:${dept}:${roomSpot}` : view} dir={dir} origin={origin} />
+
+    {(view === "office" || isDesk(view)) && <SceneFrame sceneKey="office" dir={dir} origin={origin} inert={isDesk(view)}>
+      <OfficeStage
+        art={OFFICE_ART}
+        alt="Warmly lit executive office overlooking the city"
+        eyebrow="YOUR PRIVATE WORKSPACE"
+        heading="The command center"
+        line={data ? `${data.projects.length} projects · ${pending} awaiting your signature.` : "Synchronizing with the ledger…"}
+        sideLabel={["DPL — 01", "EXECUTIVE OFFICE"]}
+        spots={(["door", "focus", "contracts", "phone", "computer", "directive", "brief"] as Hotspot[]).map((id) => ({ id, ...hotspotData[id], count: count(id), countNote: needYou(count(id)) }))}
+        previewText={(id) => (id === "contracts" ? (pending ? `${pending} authorization${pending > 1 ? "s" : ""} awaiting your signature.` : "No authorizations awaiting you.") : undefined)}
+        actionDisabled={(id) => id !== "focus" && !data}
+        onAct={actOnHotspot}
+        statusList="Computer · Phone · Contracts · Directive · Brief · Door"
+        coordinate={<>40° 43′ N &nbsp; / &nbsp; 73° 59′ W</>}
+      />
+    </SceneFrame>}
+
+    {(view === "room" || view === "roomdesk") && data && <SceneFrame sceneKey={`room:${dept}`} dir={dir} origin={origin} inert={view === "roomdesk"}>
+      <RoomStage data={data} dept={dept} back={() => openView("hallway")} toOffice={() => openView("office")} goTo={(d) => { if (d === dept) return; const order = departments(data, domains.list); setDir(order.indexOf(d) > order.indexOf(dept) ? "next" : "prev"); setOrigin(undefined); setFocusProject(undefined); setDept(d); }} onAct={(spot, at) => { setRoomSpot(spot); setRoomAt(at); openView("roomdesk", undefined, at); }} />
+    </SceneFrame>}
+
+    {view === "hallway" && <div className="workspace">
+      <div className="workspace-heading"><Button variant="ghost" className="back-link" onClick={() => openView("office")}><ArrowLeft size={16} /> BACK TO OFFICE</Button><span key={view} className="workspace-path">DEVPLAYBOOK &nbsp; / &nbsp; {view.toUpperCase()}</span><span className="workspace-right"><span className="live-dot" /> LIVE LEDGER</span></div>
+      <SceneFrame sceneKey={view} dir={dir} origin={origin}>
       {q.isError && <div className="empty-state"><b>Couldn't load the ledger.</b><p>{(q.error as Error).message}</p></div>}
       {!data && !q.isError && <div className="empty-state"><span className="pulse-dot" /><b>Synchronizing…</b></div>}
       {data && <>
+        {view === "hallway" && <HallwayView data={data} startAt={dept || undefined} enter={(d) => { setDept(d); openView("room"); }} openManage={() => openView("manage")} />}
+      </>}
+      </SceneFrame>
+    </div>}
+
+    {isDesk(view) && data && <DeskOverlay label={view === "manage" ? "Records explorer" : `${view} desk`} backLabel="BACK TO OFFICE" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {view === "manage" ? "RECORDS" : view.toUpperCase()}</>} surface={view} origin={origin} onBack={() => openView("office")}>
+      <div key={view} className="scene scene-side">
         {view === "computer" && <ComputerView data={data} refresh={refresh} openContracts={(id) => openView("contracts", id)} openBrief={() => openView("brief")} openManage={(id) => openView("manage", id)} />}
         {view === "phone" && <PhoneView data={data} refresh={refresh} openBrief={() => openView("brief")} openContracts={(id) => openView("contracts", id)} />}
         {view === "contracts" && <><ContractsView data={data} refresh={refresh} focusProjectId={focusProject} /><ContractsDesk data={data} onChanged={refresh} /></>}
         {view === "directive" && <DirectiveView data={data} refresh={refresh} close={() => openView("office")} />}
-        {view === "brief" && <BriefView data={data} refresh={refresh} openContracts={(id) => openView("contracts", id)} openComputer={() => openView("computer")} />}
-        {view === "hallway" && <HallwayView data={data} enter={(d) => { setDept(d); openView("room"); }} openManage={() => openView("manage")} />}
-        {view === "room" && <RoomView data={data} dept={dept} back={() => openView("hallway")} openManage={(id) => openView("manage", id)} />}
         {view === "manage" && <ManageView data={data} refresh={refresh} initialProjectId={focusProject} />}
-      </>}
-    </div>}
+        {view === "brief" && <BriefView data={data} refresh={refresh} openContracts={(id) => openView("contracts", id)} openComputer={() => openView("computer")} />}
+      </div>
+    </DeskOverlay>}
+
+    {view === "roomdesk" && data && <DeskOverlay label={`${domains.nameOf(dept)} ${roomSpot}`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {domains.nameOf(dept).toUpperCase()} &nbsp; / &nbsp; {roomSpot.toUpperCase()}</>} surface={`room-${roomSpot}`} wide={roomSpot === "workshop"} origin={origin} onBack={() => openView("room", undefined, roomAt)}>
+      <div className="scene scene-side"><RoomDesk data={data} dept={dept} spot={roomSpot} openManage={(id) => openView("manage", id)} /></div>
+    </DeskOverlay>}
   </main>;
 }

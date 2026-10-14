@@ -39,7 +39,12 @@ export function Library({ organizationId, projectId, canWrite, canPromote, uploa
     if (r.error) { setMsg(r.error.message); return; }
     setAssets(r.data);
   }, [ds, organizationId, projectId]);
-  useEffect(() => { void load(); }, [load]);
+  // Ignore a reply that arrives after the scope changed, so an older list never replaces the current one.
+  useEffect(() => {
+    let live = true;
+    void ds.assets.list({ organizationId, projectId }).then((r) => { if (!live) return; if (r.error) setMsg(r.error.message); else setAssets(r.data); });
+    return () => { live = false; };
+  }, [ds, organizationId, projectId]);
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();

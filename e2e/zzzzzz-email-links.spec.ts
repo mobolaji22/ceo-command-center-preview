@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { actionLinksFor, aClientBriefId, forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openClientDesk, openClientProject } from "./client-room";
 
 /**
  * The two pages an email opens (CC-5b). A question can be answered from the email without signing in, but only by pressing the
@@ -29,6 +30,7 @@ test("a client resumes held work from the email: opening answers nothing, the bu
   // the owner holds their own work, which is a question only they can lift
   await signInFrom(page, OWNER);
   await page.goto("/client");
+  await openClientProject(page, /checkout/i);
   const room = page.locator(".project-room", { hasText: /checkout/i }).first();
   await room.getByRole("button", { name: /^Show progress of/i }).click();
   const file = room.getByLabel("Case file");
@@ -51,6 +53,7 @@ test("a client resumes held work from the email: opening answers nothing, the bu
   await stranger.reload();
   await expect(stranger.getByRole("button", { name: "Confirm: resume the work" })).toBeVisible();
   await page.reload();
+  await openClientProject(page, /checkout/i);
   await room.getByRole("button", { name: /^Show progress of/i }).click();
   await expect(room.getByLabel("Case file").locator(".pill").first()).toHaveText("PAUSED");
 
@@ -58,6 +61,7 @@ test("a client resumes held work from the email: opening answers nothing, the bu
   await expect(stranger.getByRole("heading", { name: "Done." })).toBeVisible();
   await shot(stranger, "Pressing the button answered it, as the person the link was sent to");
   await page.reload();
+  await openClientProject(page, /checkout/i);
   await room.getByRole("button", { name: /^Show progress of/i }).click();
   await expect(room.getByLabel("Case file").locator(".pill").first()).toHaveText("UNDER WAY");
 

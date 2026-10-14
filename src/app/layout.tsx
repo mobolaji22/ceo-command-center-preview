@@ -1,7 +1,22 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+// The two typefaces ship with the app (bundled, not fetched from a third party), so a page never waits on, or reports an error
+// for, an outside font request. Cormorant Garamond for names and headings, DM Sans for working text.
+import "@fontsource/cormorant-garamond/400.css";
+import "@fontsource/cormorant-garamond/500.css";
+import "@fontsource/cormorant-garamond/600.css";
+import "@fontsource/cormorant-garamond/400-italic.css";
+import "@fontsource/cormorant-garamond/500-italic.css";
+import "@fontsource/dm-sans/400.css";
+import "@fontsource/dm-sans/500.css";
+import "@fontsource/dm-sans/600.css";
+import "@fontsource/dm-sans/700.css";
 import "./globals.css";
 import "./screens.css";
+import "./motion.css";
+import "./desks.css";
+import "./day.css";
+import "./workshop.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
@@ -19,14 +34,6 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@400;500;600;700&display=swap"
-        />
-      </head>
       <body>
         <Providers>{children}</Providers>
       </body>

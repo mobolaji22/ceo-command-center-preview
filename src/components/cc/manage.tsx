@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUp, ChevronRight, Folder, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { OwnerData } from "@/lib/model";
@@ -7,6 +8,9 @@ import { label, statusTone, fmtDate } from "@/lib/format";
 import { useDataSource } from "@/lib/data";
 import { Empty } from "./views";
 import { Library } from "./library";
+import { useDomains } from "@/lib/domains";
+import { FindBar, Marked } from "./find-bar";
+import { useProjectFind } from "@/lib/find";
 import { useStepUp } from "./step-up";
 import type { OrgRole } from "@/lib/model";
 
@@ -23,15 +27,71 @@ function useAction(refresh: () => void) {
   return { msg, setMsg, run };
 }
 
+type FolderName = "Projects" | "People" | "Organizations" | "Library";
+const FOLDERS: FolderName[] = ["Projects", "People", "Organizations", "Library"];
+
+/**
+ * Records and access, as a computer's file explorer: a window with a folder sidebar, folders for each project, an Up button and
+ * a path. The four top-level folders are still tabs (same names), and every form and list inside is the same component as before;
+ * only how you move between them changed. A project is a folder you open; Up goes back to the folder it was in.
+ */
 export function ManageView({ data, refresh, initialProjectId }: P) {
-  const [tab, setTab] = useState<"Projects" | "People" | "Organizations" | "Library">("Projects");
-  return <div className="manage-wrap"><div className="eyebrow gold">CEO OFFICE / MANAGEMENT</div><h2 className="manage-title">Records & access<span className="period">.</span></h2>
-    <div className="computer-tabs" role="tablist">{(["Projects", "People", "Organizations", "Library"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</div>
-    {tab === "Projects" && <Projects data={data} refresh={refresh} initialProjectId={initialProjectId} />}
-    {tab === "People" && <People data={data} refresh={refresh} />}
-    {tab === "Organizations" && <Orgs data={data} refresh={refresh} />}
-    {tab === "Library" && <OrgLibrary data={data} />}
-  </div>;
+  const [folder, setFolder] = useState<FolderName>("Projects");
+  const [project, setProject] = useState<string | null>(initialProjectId ?? null);
+  const open = data.projects.find((p) => p.id === project) ?? null;
+  const { nameOf } = useDomains();
+  const find = useProjectFind(data.projects, nameOf);
+  const counts: Record<FolderName, number> = { Projects: data.projects.length, People: data.clients.length, Organizations: data.organizations.length, Library: data.organizations.length };
+  const go = (f: FolderName) => { setFolder(f); setProject(null); };
+  const items = folder === "Projects" ? (open ? 1 : find.results.length) : counts[folder];
+  return (
+    <div className="explorer" data-desk="explorer">
+      <h2 className="sr-only">Records & access</h2>
+      <div className="window-bar"><div className="traffic-dots"><i /><i /><i /></div><span>&gt; DevPlaybook Records // Explorer</span><span className="window-more">{FOLDERS.length} folders</span></div>
+      <div className="explorer-toolbar">
+        <Button variant="ghost" className="explorer-up" aria-label="Up one folder" disabled={!open} onClick={() => setProject(null)}><ArrowUp size={15} /> Up</Button>
+        <nav className="explorer-path" aria-label="Where you are">
+          <span>Records</span><ChevronRight size={13} />
+          <button type="button" className="crumb" disabled={!open} onClick={() => setProject(null)}>{folder}</button>
+          {open && <><ChevronRight size={13} /><span className="crumb here">{open.name}</span></>}
+        </nav>
+      </div>
+      <div className="explorer-body">
+        <div className="explorer-side" role="tablist" aria-orientation="vertical" aria-label="Folders">
+          <div className="explorer-side-label">RECORDS</div>
+          {FOLDERS.map((f) => (
+            <div key={f}>
+              <Button role="tab" aria-selected={folder === f} variant="ghost" className={`explorer-folder${folder === f ? " active" : ""}`} onClick={() => go(f)}>
+                {folder === f ? <FolderOpen size={17} /> : <Folder size={17} />}<span>{f}</span><em aria-hidden="true">{counts[f]}</em>
+              </Button>
+              {f === "Projects" && folder === "Projects" && data.projects.length > 0 && (
+                <ul className="explorer-sub">{find.results.slice(0, 8).map((p) => <li key={p.id}><button type="button" className={`explorer-sub-item${p.id === project ? " active" : ""}`} onClick={() => setProject(p.id)}><Folder size={14} /> <span><Marked text={p.name} q={find.q} /></span></button></li>)}{find.results.length > 8 && <li className="explorer-more">+ {find.results.length - 8} more. Search to narrow.</li>}{find.results.length === 0 && <li className="explorer-more">No match.</li>}</ul>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="explorer-pane" role="tabpanel">
+          {folder === "Projects" && (open
+            ? <ProjectDetail key={open.id} data={data} refresh={refresh} projectId={open.id} />
+            : <>
+              <p className="pd-sub">Projects begin as intents or directives. Issue one from the Directive desk.</p>
+              <FindBar find={find} shown={find.results.length} showDept showSort onOnly={() => { const only = find.results[0]; if (only) setProject(only.id); }} />
+              {data.projects.length === 0 ? <Empty title="No projects yet." /> : find.results.length === 0 ? <Empty title="No project matches.">Try fewer words, or clear the filters.</Empty> : <div className="folder-grid">{find.results.map((p) => (
+                <button key={p.id} type="button" className="folder-tile" onClick={() => setProject(p.id)}>
+                  <span className="folder-icon" aria-hidden="true" />
+                  <b><Marked text={p.name} q={find.q} /></b>
+                  <span className={`pill ${statusTone(p.status)}`}>{label(p.status).toUpperCase()}</span>
+                  <small>Opened {fmtDate(p.created_at)}</small>
+                </button>))}</div>}
+            </>)}
+          {folder === "People" && <People data={data} refresh={refresh} />}
+          {folder === "Organizations" && <Orgs data={data} refresh={refresh} />}
+          {folder === "Library" && <OrgLibrary data={data} />}
+        </div>
+      </div>
+      <div className="explorer-status"><span>{items} item{items === 1 ? "" : "s"}</span><span>{open ? `Records / Projects / ${open.name}` : `Records / ${folder}`}</span></div>
+    </div>
+  );
 }
 
 function Orgs({ data, refresh }: P) {
@@ -77,18 +137,6 @@ function OrgLibrary({ data }: { data: OwnerData }) {
   if (data.organizations.length === 0) return <Empty title="Add an organization first." />;
   return <div><select aria-label="Organization library" value={orgId} onChange={(e) => setOrgId(e.target.value)}>{data.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
     <Library key={orgId} organizationId={orgId} canWrite uploadedBy="CEO_PROVIDED" /></div>;
-}
-
-function Projects({ data, refresh, initialProjectId }: P) {
-  const ds = useDataSource();
-  const [selected, setSelected] = useState<string | null>(initialProjectId ?? data.projects[0]?.id ?? null);
-  const { msg, run } = useAction(refresh);
-  const p = data.projects.find((x) => x.id === selected);
-  return <div className="manage-grid">
-    <div><p className="pd-sub">Projects begin as intents or directives. Issue one from the Directive desk.</p>
-      <div className="mlist">{data.projects.map((x) => <button key={x.id} className={`proj-pick ${x.id === selected ? "active" : ""}`} onClick={() => setSelected(x.id)}>{x.name}<span className={`pill ${statusTone(x.status)}`}>{label(x.status).toUpperCase()}</span></button>)}</div></div>
-    {p ? <ProjectDetail key={p.id} data={data} refresh={refresh} projectId={p.id} /> : <Empty title="Select a project." />}
-  </div>;
 }
 
 function ProjectDetail({ data, refresh, projectId }: P & { projectId: string }) {

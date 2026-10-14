@@ -11,6 +11,9 @@ import { label, riskLabel, reversibilityLabel, statusTone, fmtDate, fmtAgo, pad 
 import { useDataSource } from "@/lib/data";
 import { useAuth } from "@/lib/auth";
 import { Composer, IntentCard } from "./intents";
+import { useDomains } from "@/lib/domains";
+import { FindBar, Marked } from "./find-bar";
+import { useProjectFind } from "@/lib/find";
 
 type Common = { data: OwnerData; refresh: () => void };
 const CLOSED = ["COMPLETED", "CANCELLED", "ARCHIVED"];
@@ -24,6 +27,11 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
   const ds = useDataSource();
   const [tab, setTab] = useState("Cases & Engagements");
   const active = data.projects.filter((p) => !CLOSED.includes(p.status));
+  // The dossiers open on what is in motion; the scope lets you look at what is finished, or at everything.
+  const [scope, setScope] = useState<"ACTIVE" | "CLOSED" | "ALL">("ACTIVE");
+  const scoped = useMemo(() => data.projects.filter((p) => (scope === "ALL" ? true : scope === "ACTIVE" ? !CLOSED.includes(p.status) : CLOSED.includes(p.status))), [data.projects, scope]);
+  const { nameOf } = useDomains();
+  const find = useProjectFind(scoped, nameOf);
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
   const exceptions = pending.length + blocked.length;
@@ -32,10 +40,11 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
     <div className="computer-body"><div className="computer-heading"><div><div className="eyebrow gold">THE ORGANIZATIONAL NERVOUS SYSTEM</div><h2>Operating overview<span className="period">.</span></h2><p>{data.projects.length} projects · {data.tasks.length} tasks · {data.decisions.length} decisions on record.</p></div><div className="system-time"><Radio size={15} /> {ds.kind === "api" ? "LIVE FROM DEVPLAYBOOK V4" : "DEMO FIXTURES"}</div></div>
       <div className="computer-tabs" role="tablist">{["Cases & Engagements", "Decision Ledger", "Security/Gov"].map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</div>
       {tab === "Cases & Engagements" && <div className="computer-content"><div className="section-label"><span>ACTIVE DOSSIERS</span><span>{pad(active.length)} IN MOTION</span></div>
-        {active.length === 0 ? <Empty title="No active projects yet.">Projects begin when a request or a directive is sent. Open the Directive desk to send one.</Empty> :
-        <div className="dossier-list">{active.map((p, i) => {
+        {data.projects.length > 0 && <FindBar find={find} shown={find.results.length} showDept extra={<select className="find-select" aria-label="Show" value={scope} onChange={(e) => setScope(e.target.value as "ACTIVE" | "CLOSED" | "ALL")}><option value="ACTIVE">In motion</option><option value="CLOSED">Finished</option><option value="ALL">Everything</option></select>} />}
+        {active.length === 0 && scope === "ACTIVE" ? <Empty title="No active projects yet.">Projects begin when a request or a directive is sent. Open the Directive desk to send one.</Empty> : find.results.length === 0 ? <Empty title="No project matches.">Try fewer words, another scope, or clear the filters.</Empty> :
+        <div className="dossier-list">{find.results.map((p, i) => {
           const hasPending = pending.some((a) => a.project_id === p.id);
-          return <div key={p.id} className="dossier-row with-case"><span className="row-index">{pad(i + 1)}</span><div><b>{p.name}</b><small>{p.domains.length ? p.domains.join(" · ") : "No department"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /><Button variant="ghost" size="icon" className="icon-button" aria-label={`Open ${p.name}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><ArrowRight size={17} /></Button></div>;
+          return <div key={p.id} className="dossier-row with-case"><span className="row-index">{pad(i + 1)}</span><div><b><Marked text={p.name} q={find.q} /></b><small>{p.domains.length ? p.domains.join(" · ") : "No department"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /><Button variant="ghost" size="icon" className="icon-button" aria-label={`Open ${p.name}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><ArrowRight size={17} /></Button></div>;
         })}</div>}
         <div className="computer-lower"><div><div className="section-label">SIGNAL HEALTH</div><h3>{exceptions === 0 ? "Steady. Nothing needs you." : `Steady, with ${exceptions} exception${exceptions > 1 ? "s" : ""}.`}</h3><p>{pending.length} approval{pending.length === 1 ? "" : "s"} awaiting signature · {blocked.length} blocked or failed task{blocked.length === 1 ? "" : "s"}.</p></div><Button variant="ghost" className="inline-arrow" onClick={openBrief}>VIEW EXECUTIVE BRIEF <ArrowRight size={16} /></Button></div></div>}
       {tab === "Decision Ledger" && <div className="computer-content"><div className="section-label"><span>DECISION LEDGER</span><span>TRACEABLE BY DESIGN</span></div>
@@ -103,7 +112,10 @@ export function ContractsView({ data, refresh, focusProjectId }: Common & { focu
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  useEffect(() => { setText(tab === "Modify Constraints & Scope" ? a?.constraints ?? "" : tab === "Request Evidence" ? a?.evidence_request ?? "" : ""); }, [tab, a?.id]);
+  // Start the text from the record whenever the tab or the authorization changes (adjusted during render, not in an effect).
+  const draftFor = `${tab}:${a?.id ?? ""}`;
+  const [textFor, setTextFor] = useState(draftFor);
+  if (textFor !== draftFor) { setTextFor(draftFor); setText(tab === "Modify Constraints & Scope" ? a?.constraints ?? "" : tab === "Request Evidence" ? a?.evidence_request ?? "" : ""); }
 
   const resolved = data.approvals.filter((x) => x.status !== "REQUESTED").slice(0, 6);
   if (!a) return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span></div>
@@ -164,8 +176,10 @@ export function DirectiveView({ data, refresh, close }: Common & { close: () => 
 export function BriefView({ data, openContracts, openComputer }: Common & { openContracts: (projectId?: string) => void; openComputer: () => void }) {
   const ds = useDataSource();
   const [since, setSince] = useState<string | null>(null);
-  useEffect(() => { void ds.commands.markSeen().then((d) => setSince(d ?? new Date(Date.now() - 7 * 864e5).toISOString())); }, [ds]);
-  const s = since ? new Date(since).getTime() : Date.now() - 7 * 864e5;
+  // Without a last visit, the brief covers the week before it was opened.
+  const [weekAgo] = useState(() => Date.now() - 7 * 864e5);
+  useEffect(() => { void ds.commands.markSeen().then((d) => setSince(d ?? new Date(weekAgo).toISOString())); }, [ds, weekAgo]);
+  const s = since ? new Date(since).getTime() : weekAgo;
   const recent = useMemo(() => data.events.filter((e) => new Date(e.created_at).getTime() > s), [data.events, s]);
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const waitingDecisions = data.decisions.filter((d) => d.status === "WAITING_FOR_HUMAN" || d.status === "PROPOSED");

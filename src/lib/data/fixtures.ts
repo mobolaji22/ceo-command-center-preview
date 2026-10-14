@@ -1,3 +1,4 @@
+import { loadDraft, saveDraft } from "@/lib/design/draft-store";
 import type {
   Answer,
   Approval,
@@ -19,6 +20,7 @@ import type {
   RunView,
   Session,
   V4Event,
+  DomainView,
 } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
@@ -271,6 +273,13 @@ function save(s: Store) {
 
 const toSession = (u: User): Session => ({ userId: u.id, email: u.email, displayName: u.displayName, role: u.role, memberships: u.memberships });
 
+/** What `GET /v1/domains` serves, for the demo. The only list of domains in this repo; the real one comes from the API (ADR-0017). */
+const DEMO_DOMAINS: DomainView[] = ([
+  ["BUSINESS", "Business", "advisory-standin"], ["MARKET", "Market", "contract"], ["BRAND", "Brand", "contract"], ["CONTENT", "Content", "advisory-standin"],
+  ["DESIGN", "Design", "contract"], ["MARKETING", "Marketing", "advisory-standin"], ["ENGINEERING", "Engineering", "advisory-standin"],
+  ["STRATEGY", "Strategy", "advisory-standin"], ["SOCIAL_GROWTH", "Social Growth", "advisory-standin"],
+] as const).map(([code, name, basis]) => ({ code, name, pack: { version: "0.1.0", basis, stages: ["plan"] } }));
+
 const DEMO_CODE = "123456";
 
 export function createFixturesDataSource(): DataSource {
@@ -294,7 +303,7 @@ export function createFixturesDataSource(): DataSource {
 
   return {
     kind: "fixtures",
-    capabilities: { approvalNotes: true, timelineUpdates: true },
+    capabilities: { approvalNotes: true, timelineUpdates: true, designDocuments: true },
 
     auth: {
       async getSession() {
@@ -347,6 +356,9 @@ export function createFixturesDataSource(): DataSource {
     queries: {
       async ownerData() {
         return structuredClone(load().data);
+      },
+      async domains() {
+        return structuredClone(DEMO_DOMAINS);
       },
       async clientData(): Promise<ClientData> {
         const s = load();
@@ -537,6 +549,15 @@ export function createFixturesDataSource(): DataSource {
         if (p.quiet_hours && p.quiet_hours.start === p.quiet_hours.end) return fail("Quiet hours need a start and a different end.");
         const r = mutate((s) => { const uid = currentUserId(); if (uid) s.prefs[uid] = structuredClone(p); });
         return r.error ? { data: null, error: r.error } : ok(structuredClone(p));
+      },
+    },
+
+    design: {
+      async load(projectId) { return ok(loadDraft(projectId)); },
+      async save(doc, baseRevision) {
+        const stored = loadDraft(doc.projectId);
+        if (stored && stored.revision !== baseRevision) return fail("Someone else saved a newer version. Reload to see it.", "REVISION_CONFLICT");
+        return saveDraft(doc) ? ok({ revision: doc.revision }) : fail("This browser could not keep the design. Export it to be safe.", "STORAGE_FULL");
       },
     },
 
