@@ -59,7 +59,6 @@ export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: O
       spots={spotsFor(dept).map((id) => ({ id, ...spotData[id], count: id === "desk" ? desk.waiting : 0, countNote: id === "desk" ? `${desk.waiting} waiting` : "" }))}
       statusList={dept === "DESIGN" ? "Wall · Calendar · Desk · Workshop" : "Wall · Calendar · Desk"}
       coordinate={<>40° 43′ N &nbsp; / &nbsp; 73° 59′ W</>}
-      autoPlace
       nav={<>
         <div className="stage-nav-links">
           <Button variant="ghost" className="back-link" onClick={back}><ArrowLeft size={16} /> ALL ROOMS</Button>

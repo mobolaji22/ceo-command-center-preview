@@ -41,7 +41,6 @@ export function OfficeStage<K extends string>({
   actionDisabled,
   className,
   nav,
-  autoPlace,
   onAct,
 }: {
   art: LitArt;
@@ -59,8 +58,6 @@ export function OfficeStage<K extends string>({
   className?: string | undefined;
   /** Controls pinned to the top-left of the room (a way back and a way sideways), above the photograph. */
   nav?: ReactNode;
-  /** Put each preview beside the hotspot that opened it instead of at a fixed place; for rooms whose hotspots move with the photograph. */
-  autoPlace?: boolean | undefined;
   /** `at` is where the pressed object sits on the stage, in percent, so the next screen can open out of it. */
   onAct: (id: K, at: { x: number; y: number }) => void;
 }) {
@@ -91,18 +88,45 @@ export function OfficeStage<K extends string>({
     const el = stage?.querySelector<HTMLElement>(`.hotspot-${id}`);
     return stage && el ? { x: ((el.offsetLeft + el.offsetWidth / 2) / stage.offsetWidth) * 100, y: ((el.offsetTop + el.offsetHeight / 2) / stage.offsetHeight) * 100 } : { x: 50, y: 55 };
   };
+  // Put the preview beside the object that opened it, covering as few hotspots as possible (ideally none), kept inside
+  // the stage: every position on a 12px grid is scored by hotspots covered, then by how far it sits from 30px off its
+  // object, with a slight preference for the side nearer the middle. Placed again when the stage changes size, because
+  // hotspots sit in percent of the photograph. Narrow screens centre the preview in CSS instead (globals.css).
   useLayoutEffect(() => {
     const stage = stageRef.current;
     const panel = panelRef.current;
-    if (!autoPlace || !shown || !stage || !panel) return;
-    const el = stage.querySelector<HTMLElement>(`.hotspot-${shown}`);
-    if (!el) return;
-    const cx = el.offsetLeft + el.offsetWidth / 2;
-    const cy = el.offsetTop + el.offsetHeight / 2;
-    const left = cx > stage.offsetWidth * 0.5 ? cx - panel.offsetWidth - 30 : cx + 30;
-    panel.style.left = `${Math.max(16, Math.min(left, stage.offsetWidth - panel.offsetWidth - 16))}px`;
-    panel.style.top = `${Math.max(90, Math.min(cy - panel.offsetHeight / 2, stage.offsetHeight - panel.offsetHeight - 90))}px`;
-  }, [autoPlace, shown]);
+    if (!shown || !stage || !panel) return;
+    const place = () => {
+      const el = stage.querySelector<HTMLElement>(`.hotspot-${shown}`);
+      if (!el) return;
+      const sw = stage.offsetWidth, sh = stage.offsetHeight, pw = panel.offsetWidth, ph = panel.offsetHeight;
+      const cx = el.offsetLeft + el.offsetWidth / 2;
+      const cy = el.offsetTop + el.offsetHeight / 2;
+      const minX = 16, maxX = Math.max(minX, sw - pw - 16), minY = 90, maxY = Math.max(minY, sh - ph - 90);
+      // Each hotspot with room for its count badge.
+      const pad = 10;
+      const dots = Array.from(stage.querySelectorAll<HTMLElement>(".hotspot")).map((h) => ({ l: h.offsetLeft - pad, t: h.offsetTop - pad, r: h.offsetLeft + h.offsetWidth + pad, b: h.offsetTop + h.offsetHeight + pad }));
+      const axis = (lo: number, hi: number) => { const v: number[] = []; for (let a = lo; a < hi; a += 12) v.push(a); v.push(hi); return v; };
+      const xs = axis(minX, maxX), ys = axis(minY, maxY);
+      const nearLeft = cx > sw / 2;
+      let best = { x: minX, y: minY, score: Infinity };
+      for (const y of ys) {
+        for (const x of xs) {
+          const covered = dots.filter((d) => d.l < x + pw && d.r > x && d.t < y + ph && d.b > y).length;
+          const away = Math.hypot(Math.max(x - cx, 0, cx - (x + pw)), Math.max(y - cy, 0, cy - (y + ph)));
+          const farSide = nearLeft ? x > cx : x + pw < cx;
+          const score = covered * 1e6 + Math.abs(away - 30) + (farSide ? 40 : 0);
+          if (score < best.score) best = { x, y, score };
+        }
+      }
+      panel.style.left = `${best.x}px`;
+      panel.style.top = `${best.y}px`;
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(stage);
+    return () => ro.disconnect();
+  }, [shown]);
   const close = () => {
     window.clearTimeout(timer.current);
     setPinned(null);
