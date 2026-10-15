@@ -10,9 +10,6 @@ import type { OwnerData, Question, RunStatus, RunTask } from "@/lib/model";
 import { PlanPanel } from "./plans";
 import { useStepUp } from "./step-up";
 
-/** Answers that commit money or authority need a fresh proof of who is answering, as approving a plan does. */
-const COMMITS = ["RAISE_BUDGET", "APPROVE", "GRANT_EXCEPTION", "ACCEPT_RISK"];
-
 /**
  * The case file for a project: the work in order, how much of the approved budget it has used, what it is waiting to ask, and the
  * hand on the brake. One component for the CEO's computer and the client's room; the audience only changes the words and what
@@ -24,7 +21,14 @@ const WHY: Record<string, string> = {
   AWAITING_APPROVAL: "your go-ahead", AWAITING_CLARIFICATION: "an answer", AWAITING_CONTEXT: "some information", AWAITING_CREDENTIAL: "access",
   POLICY_BLOCK: "a rule", NEGOTIATION_CONFLICT: "a disagreement to be settled", BUDGET_EXCEEDED: "the budget", QUALITY_BLOCK: "a quality check",
   ANOMALY: "something unexpected", HUMAN_TASK: "a person to do it", EXTERNAL_DEPENDENCY: "an outside service", PAUSED_BY_OWNER: "being resumed",
+  AWAITING_CONSULTATION: "another department's review", CONSULTATION_OBJECTION: "a decision on an objection", CONSULTATION_ESCALATION: "a decision on who should review it",
+  SUBSTITUTE_INVALIDATED: "a decision on the plan",
 };
+/**
+ * Reasons that hold work until a person decides. Time passing never releases them: a review that is late is still owed, and an
+ * unanswered question is never taken as a yes.
+ */
+const HELD_UNTIL_DECIDED = ["AWAITING_CONSULTATION", "CONSULTATION_OBJECTION", "CONSULTATION_ESCALATION", "SUBSTITUTE_INVALIDATED"];
 export const whyWords = (reason: string | null) => (reason ? WHY[reason] ?? label(reason).toLowerCase() : "");
 
 export function runWords(status: RunStatus, reason: string | null): string {
@@ -46,9 +50,20 @@ function stepWords(t: RunTask): { text: string; tone: string } {
     case "READY": return { text: t.stale ? "Being redone" : "Ready to start", tone: "next" };
     case "PENDING": return { text: t.stale ? "Being redone, once what it depends on is ready" : "Waiting for earlier steps", tone: "later" };
     case "WAITING": case "WAITING_FOR_HUMAN": return { text: `Waiting for ${whyWords(t.wait_reason)}`, tone: "ask" };
-    case "BLOCKED": return { text: "Settling a problem with an earlier step", tone: "ask" };
+    case "BLOCKED": return { text: heldWords(t.wait_reason), tone: "ask" };
     case "FAILED": return { text: "Stopped: something went wrong", tone: "bad" };
     case "CANCELLED": return { text: "Stopped", tone: "bad" };
+  }
+}
+
+/** Why a step is held. A held step starts only once what holds it is settled; nobody can simply resume it. */
+function heldWords(reason: string | null): string {
+  switch (reason) {
+    case "AWAITING_CONSULTATION": case "CONSULTATION_OBJECTION": case "CONSULTATION_ESCALATION":
+      return "On hold: what it builds on is waiting for another department's review or a decision, and it starts only once that is settled";
+    case "SUBSTITUTE_INVALIDATED":
+      return "On hold: the approved file the plan relied on in place of this work can no longer be relied on, and it waits for a decision on the plan";
+    default: return "Settling a problem with an earlier step";
   }
 }
 
@@ -131,8 +146,11 @@ export function CaseFile({ projectId, audience, canControl, onChanged }: { proje
 const OPTION: Record<string, string> = {
   APPROVE: "Approve this step", GRANT_EXCEPTION: "Grant an exception", RAISE_BUDGET: "Raise the budget", REWORK: "Do it again", ACCEPT_RISK: "Accept it anyway",
   RETRY: "Try again", MARK_DONE: "It is done", RESUME: "Resume the work", UPSTREAM_STANDS: "Keep the earlier result", CONSTRAINT_STANDS: "Redo the earlier result", STOP_RUN: "Stop the work",
+  OUTPUT_STANDS: "Let the work stand over the objection", REDO_OUTPUT: "Redo the work", REQUEST_QUALIFIED_REVIEW: "Ask a qualified reviewer", REVISE_PLAN: "Revise the plan",
 };
 const optionWords = (o: string) => OPTION[o] ?? label(o);
+/** Answers that ask their own question in place of the optional note. */
+const NOTE_ASKED = ["RAISE_BUDGET", "MARK_DONE", "ACCEPT_RISK", "OUTPUT_STANDS", "REQUEST_QUALIFIED_REVIEW"];
 
 export function QuestionsList({ projectId, audience, onChanged, quiet }: { projectId?: string | undefined; audience: Audience; onChanged?: (() => void) | undefined; quiet?: boolean | undefined }) {
   const ds = useDataSource();
@@ -147,6 +165,8 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
   const ds = useDataSource();
   const qc = useQueryClient();
   const [choice, setChoice] = useState<string | null>(null);
+  const chosen = x.options.find((o) => o.id === choice) ?? null;
+  const held = HELD_UNTIL_DECIDED.includes(x.reason);
   const [note, setNote] = useState("");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
@@ -168,12 +188,12 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
   };
 
   return <article className="question" aria-label={x.title}>
-    <div className="question-head"><b>{x.title}</b><small>{audience === "agency" ? `${label(x.reason)} · ` : ""}{x.deadline && x.reason !== "PAUSED_BY_OWNER" ? `answer by ${fmtDate(x.deadline)}` : x.status === "EXPIRED" ? "overdue" : ""}</small></div>
+    <div className="question-head"><b>{x.title}</b><small>{audience === "agency" ? `${label(x.reason)} · ` : ""}{x.deadline && x.reason !== "PAUSED_BY_OWNER" ? `answer by ${fmtDate(x.deadline)}` : x.status === "EXPIRED" ? (held ? "overdue · the work stays on hold until it is answered" : "overdue") : ""}</small></div>
     <p>{x.summary}</p>
     {audience === "agency" && x.detail && <p className="question-detail">{x.detail}</p>}
     {askedOf && <small className="question-asked">{askedOf}</small>}
     <div className="question-options" role="group" aria-label="Answers">
-      {x.options.map((o) => <Button key={o} variant={o === "STOP_RUN" ? "outline" : "ghost"} className={`${o === "STOP_RUN" ? "reject-btn " : ""}${choice === o ? "chosen" : ""}`} aria-pressed={choice === o} onClick={() => { setChoice(choice === o ? null : o); setMsg(null); }}>
+      {x.options.map(({ id: o }) => <Button key={o} variant={o === "STOP_RUN" ? "outline" : "ghost"} className={`${o === "STOP_RUN" ? "reject-btn " : ""}${choice === o ? "chosen" : ""}`} aria-pressed={choice === o} onClick={() => { setChoice(choice === o ? null : o); setMsg(null); }}>
         {optionWords(o)}{x.recommendation?.option === o ? <em className="recommended"> · RECOMMENDED</em> : null}</Button>)}
     </div>
     {x.recommendation && <small className="question-why">{x.recommendation.why}</small>}
@@ -181,9 +201,11 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
       {choice === "RAISE_BUDGET" && <label>Raise the budget to (US dollars)<input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>}
       {choice === "MARK_DONE" && <label>What was done?<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "ACCEPT_RISK" && <label>Why is this acceptable? It is recorded with your name.<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
-      {choice !== "RAISE_BUDGET" && choice !== "MARK_DONE" && choice !== "ACCEPT_RISK" && <label>Add a note (optional)<input value={note} onChange={(e) => setNote(e.target.value)} /></label>}
+      {choice === "OUTPUT_STANDS" && <label>Why should the work stand? It is recorded with your name.<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
+      {choice === "REQUEST_QUALIFIED_REVIEW" && <label>Who is qualified to review it, and why?<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
+      {!NOTE_ASKED.includes(choice) && <label>Add a note (optional)<input value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "STOP_RUN" && <p>This ends the work for good.</p>}
-      {COMMITS.includes(choice) && <small className="plan-confirm-note">For safety we will ask you for a six-digit code, which we email to you.</small>}
+      {chosen?.stepUp && <small className="plan-confirm-note">For safety we will ask you for a six-digit code, which we email to you.</small>}
       <Button className={choice === "STOP_RUN" ? "reject-btn" : "approve-btn"} disabled={busy} onClick={confirm}>Confirm: {optionWords(choice).toLowerCase()}</Button>
       {stepUpPanel}
     </div>}

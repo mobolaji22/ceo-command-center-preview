@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { forgetSignInRequests, stopRunAtBudget } from "./db";
+import { askAboutAnObjection, forgetSignInRequests, stopRunAtBudget, withdrawQuestion } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk, openClientProject } from "./client-room";
@@ -35,6 +35,9 @@ test("approving a step outside the plan asks the client's owner for the emailed 
   await openClientDesk(page, "Board", /Questions/);
   const question = asking(page);
   await expect(question).toBeVisible();
+  // The warning follows the API's word on the chosen answer: stopping needs no code, approving does.
+  await question.getByRole("button", { name: "Stop the work" }).click();
+  await expect(question.getByText("we will ask you for a six-digit code")).toHaveCount(0);
   await question.getByRole("button", { name: "Approve this step" }).click();
   await expect(question.getByText("we will ask you for a six-digit code")).toBeVisible();
   await question.getByRole("button", { name: /^Confirm: approve this step/i }).click();
@@ -53,4 +56,35 @@ test("approving a step outside the plan asks the client's owner for the emailed 
   await box.getByPlaceholder("Six-digit code").fill(code.meta!.code!);
   await box.getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(asking(page)).toHaveCount(0);
+});
+
+test("letting work stand over another department's objection warns of the code and is refused without it; redoing it does not warn", async ({ page }) => {
+  const title = "Another department objects to this work";
+  const id = askAboutAnObjection("%checkout%", title);
+  try {
+    const asking = (p: Page) => p.getByRole("article", { name: title });
+    await signIn(page, OWNER);
+    await page.goto("/client");
+    await openClientDesk(page, "Board", /Questions/);
+    const question = asking(page);
+    await expect(question).toBeVisible();
+
+    await question.getByRole("button", { name: "Redo the work" }).click();
+    await expect(question.getByText("we will ask you for a six-digit code")).toHaveCount(0);
+    await question.getByRole("button", { name: "Let the work stand over the objection" }).click();
+    await expect(question.getByText("we will ask you for a six-digit code")).toBeVisible();
+    await expect(question.getByLabel("Why should the work stand? It is recorded with your name.")).toBeVisible();
+
+    // Showing the warning enforces nothing; the API does. Confirming without a fresh code is refused and the box appears.
+    const before = mailCount();
+    await question.getByRole("button", { name: /^Confirm: let the work stand/i }).click();
+    await expect(question.getByRole("form", { name: "Confirm it's you" })).toBeVisible();
+    await mailTo(OWNER, "step-up", before);
+    await shot(page, "Letting work stand over an objection asks for the emailed code first");
+    await page.reload();
+    await openClientDesk(page, "Board", /Questions/);
+    await expect(asking(page)).toBeVisible();
+  } finally {
+    withdrawQuestion(id);
+  }
 });

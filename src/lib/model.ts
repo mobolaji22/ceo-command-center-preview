@@ -348,6 +348,8 @@ export type RunView = {
 /** How much of what the client approved has been used. Totals only. */
 export type BudgetView = { run_id: string; run_status: RunStatus; approved_usd: number | null; used_usd: number; used_percent: number | null };
 
+/** One answer a question offers. `stepUp` is the API's word on whether choosing it needs a fresh emailed code; the UI keeps no list of its own. */
+export type QuestionOption = { id: string; stepUp: boolean };
 /** "A human is needed": what a stopped run is waiting for somebody to answer. */
 export type Question = {
   id: string; project_id: string; organization_id: string; run_id: string; task_id: string | null;
@@ -355,7 +357,7 @@ export type Question = {
   title: string; summary: string;
   /** The system's own account of what went wrong. Only the agency receives it. */
   detail: string | null;
-  options: string[]; recommendation: { option: string; why: string } | null; deadline: string | null; created_at: string;
+  options: QuestionOption[]; recommendation: { option: string; why: string } | null; deadline: string | null; created_at: string;
 };
 export type Answer = { option: string; note?: string; toUsd?: number; evidence?: string };
 
