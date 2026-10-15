@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { LobbyArrival } from "@/components/cc/lobby-arrival";
 import { useAuth } from "@/lib/auth";
 import { rememberDestination } from "@/lib/destination";
 
@@ -13,5 +14,5 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     if (!auth.loading && !auth.user) { rememberDestination(window.location.pathname); router.replace("/auth"); }
   }, [auth.loading, auth.user, router]);
   if (auth.loading || !auth.user) return null;
-  return <>{children}</>;
+  return <>{children}<LobbyArrival /></>;
 }
