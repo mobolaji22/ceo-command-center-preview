@@ -50,7 +50,7 @@ function SignIn() {
     if (r.error || !r.data) { setBusy(false); setMsg(r.error?.message ?? "Sign-in failed."); setShake((n) => n + 1); return; }
     const session = r.data;
     setAccepted(true);
-    leave(() => router.replace(landingFor(session)));
+    leave(landingFor(session));
   };
 
   return <VisitorCard eyebrow={step === "email" ? "Visitors" : "Your code"} onSubmit={step === "email" ? send : verify} shake={shake}>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Lobby, useLobby, VisitorCard } from "@/components/cc/lobby";
@@ -19,7 +19,6 @@ export function ConfirmLink({ kind }: { kind: "sign-in" | "invitation" }) {
 
 function Confirm({ kind }: { kind: "sign-in" | "invitation" }) {
   const token = useSearchParams().get("token");
-  const router = useRouter();
   const ds = useDataSource();
   const { leave } = useLobby();
   const [busy, setBusy] = useState(false);
@@ -32,7 +31,7 @@ function Confirm({ kind }: { kind: "sign-in" | "invitation" }) {
     const r = kind === "sign-in" ? await ds.auth.verifyLink(token) : await ds.auth.acceptInvitation(token);
     if (r.error || !r.data) { setBusy(false); setMsg(r.error?.message ?? "That link didn't work."); setShake((n) => n + 1); return; }
     const session = r.data;
-    leave(() => router.replace(landingFor(session)));
+    leave(landingFor(session));
   };
 
   return <VisitorCard eyebrow={kind === "sign-in" ? "Your link" : "Invitation"} shake={shake}>
