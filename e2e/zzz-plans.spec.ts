@@ -2,6 +2,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { allowCeoToDecideFor, forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openClientDesk } from "./client-room";
+import { answerEveryQuestion } from "./answers";
 
 /**
  * Plans (P3.6): the plan for a request is a document a person can read and decide on. The client's owner asks for a change
@@ -36,10 +38,15 @@ async function signIn(page: Page, email: string) {
 }
 
 async function sendRequest(page: Page, text: string) {
+  await openClientDesk(page, "Board", /Your requests/);
   const composer = page.getByLabel("New request");
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill(text);
   await composer.getByRole("button", { name: "Send request" }).click();
-  await expect(composer.getByRole("status")).toContainText("A plan is being prepared");
+  await expect(composer.getByRole("status")).toContainText("Received.");
+  // v4 may ask before it plans; the questions are not what these tests are about.
+  const card = page.locator(".intent-card", { hasText: text.slice(0, 30) }).first();
+  await answerEveryQuestion(card);
+  await expect(card.locator(".intent-head .pill")).toHaveText("PLANNED");
 }
 
 const money = async (text: string | null) => Number(/\$(\d+\.\d\d) to \$(\d+\.\d\d)/.exec(text ?? "")![2]);
@@ -135,6 +142,7 @@ test("the CEO sees the plan but cannot decide it for the client until the client
 
   // And the client sees it, in their own words.
   await page.reload();
+  await openClientDesk(page, "Board", /Your requests/);
   const again = page.locator(".intent-card", { hasText: "Redesign our pricing page" }).first().getByLabel("Plan");
   await expect(again.locator(".plan-history")).toContainText("The agency's CEO, on your behalf");
   await expect(again.locator(".resolved-row .pill").first()).toHaveText("APPROVED");

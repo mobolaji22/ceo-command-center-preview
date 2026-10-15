@@ -2,6 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openClientDesk } from "./client-room";
+import { answerEveryQuestion } from "./answers";
 
 /**
  * Requests (P2.5): a client sends a request with attachments, is asked what matters, answers, settles the materials list,
@@ -27,7 +29,8 @@ test.beforeEach(() => forgetSignInRequests());
 
 test("a client sends a request with a file and a link, answers the questions, settles the materials, and the project opens", async ({ page }) => {
   await signIn(page, OWNER);
-  await expect(page.getByRole("heading", { name: /Your projects/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The client room." })).toBeVisible();
+  await openClientDesk(page, "Board", /Your requests/);
 
   const composer = page.getByLabel("New request");
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("We want a better website for our customers");
@@ -41,13 +44,17 @@ test("a client sends a request with a file and a link, answers the questions, se
 
   const card = page.locator(".intent-card", { hasText: "We want a better website" });
   await expect(card.locator(".intent-head .pill")).toHaveText("NEEDS ANSWERS");
-  await expect(card.locator(".question")).toHaveCount(2);
+  // What v4 asks today: the direction (the request could be read either way), whether a duty brings Compliance in, and the result to aim at.
+  await expect(card.locator(".question")).toHaveCount(3);
 
   // One ask: the questions and the materials list are together.
   await expect(card.getByText("WHAT WE NEED FROM YOU")).toBeVisible();
   await expect(card.locator('.material[aria-label="Brand guidelines"]')).toBeVisible();
 
-  await card.getByRole("button", { name: /More sales or sign-ups/ }).click();
+  await card.getByRole("button", { name: /^Keep the current direction/ }).click();
+  await card.getByRole("button", { name: /^No, none applies/ }).click();
+  await card.getByRole("button", { name: /^More sales or sign-ups/ }).click();
+  // Timing is asked once the rest is known.
   await card.getByRole("button", { name: /Within the quarter/ }).click();
   await expect(card.locator(".intent-head .pill")).toHaveText("PLANNED");
   await expect(card.locator(".question")).toHaveCount(0);
@@ -62,12 +69,14 @@ test("a client sends a request with a file and a link, answers the questions, se
   await card.locator('.material[aria-label="Access to where this will live"]').getByRole("button", { name: "I don't have this" }).click();
   await expect(card.getByText("Nothing more is needed from you right now.")).toBeVisible();
 
-  // The project opened when the request was understood, and the link we sent to the library is there.
-  await expect(page.locator(".resolved-row", { hasText: "We want a better website" }).first()).toBeVisible();
-  await expect(page.locator(".library .resolved-row", { hasText: "example.com/current-site" })).toBeVisible();
-
   // The assumption we made instead of asking is shown, not hidden.
   await expect(card.locator(".ask-block").getByText("We are going with:")).toBeVisible();
+
+  // The project opened when the request was understood (on the table), and the link we sent to the library is there (on the shelf).
+  await openClientDesk(page, "Table");
+  await expect(page.locator("[data-desk]").getByText(/^1 project ·/)).toBeVisible();
+  await openClientDesk(page, "Shelf", /Your library/);
+  await expect(page.locator(".library .resolved-row", { hasText: "example.com/current-site" })).toBeVisible();
 });
 
 test("the old directive route is gone and says where to go", async ({ page }) => {
@@ -98,7 +107,6 @@ test("the CEO sends a directive for a client, answers its questions, and sees wh
   const card = page.locator(".intent-card", { hasText: "Refresh the brand" });
   await expect(card.locator(".intent-head .pill")).toHaveText("NEEDS ANSWERS");
   await expect(card.getByText("from the agency")).toBeVisible();
-  await card.getByRole("button", { name: /More sales or sign-ups/ }).click();
-  await card.getByRole("button", { name: /As soon as possible/ }).click();
+  await answerEveryQuestion(card);
   await expect(card.locator(".intent-head .pill")).toHaveText("PLANNED");
 });

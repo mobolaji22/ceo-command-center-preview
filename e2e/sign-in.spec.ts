@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openClientDesk } from "./client-room";
 
 const CEO = "ceo@agency.example";
 const OWNER = "owner@orbit.example";
@@ -113,14 +114,15 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
   const owner = await ownerCtx.newPage();
   await owner.goto(invite.meta!.link!);
   await owner.getByRole("button", { name: "Accept invitation" }).click();
-  await expect(owner.getByRole("heading", { name: /Your projects/ })).toBeVisible();
+  await expect(owner.getByRole("heading", { name: "The client room." })).toBeVisible();
   await shot(owner, "The invited owner signs in from the invitation and lands in their own room");
 
   // A client cannot reach the CEO's office.
   await owner.goto("/");
   await expect(owner).toHaveURL(/\/client$/);
 
-  // They add a file to their library; it is scanned before it can be downloaded.
+  // They add a file to their library (on the shelf); it is scanned before it can be downloaded.
+  await openClientDesk(owner, "Shelf", /Your library/);
   const library = owner.locator(".library");
   await library.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: PNG });
   await library.getByRole("button", { name: "Upload" }).click();
