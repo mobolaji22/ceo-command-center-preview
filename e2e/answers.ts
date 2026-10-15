@@ -9,7 +9,10 @@ import { expect, type Locator } from "@playwright/test";
 const PREFER = [/^Keep the current direction/, /^No, none applies/];
 
 export async function answerEveryQuestion(card: Locator) {
+  const planned = card.locator(".intent-head .pill", { hasText: "PLANNED" });
   for (let asked = 0; asked < 10; asked++) {
+    // Wait until the card has settled on asking or planned: questions arrive with the card, and the next may follow an answer.
+    await expect(card.locator(".question").first().or(planned)).toBeVisible();
     const question = card.locator(".question").first();
     if (!(await question.count())) return;
     const asking = (await question.getAttribute("aria-label")) ?? "";
