@@ -5,6 +5,8 @@ import office from "@/assets/ceo-office.jpg";
 import officeDay from "@/assets/ceo-office-day.jpg";
 import clientRoom from "@/assets/agency-client-room.jpg";
 import clientRoomDay from "@/assets/agency-client-room-day.jpg";
+import lobby from "@/assets/agency-lobby.jpg";
+import lobbyDay from "@/assets/agency-lobby-day.jpg";
 import business from "@/assets/agency-room-business.jpg";
 import businessDay from "@/assets/agency-room-business-day.jpg";
 import market from "@/assets/agency-room-market.jpg";
@@ -58,4 +60,6 @@ const ROOMS: Record<string, LitArt> = {
 export const CORRIDOR_ART: LitArt = { night: corridor, day: corridorDay };
 export const OFFICE_ART: LitArt = { night: office, day: officeDay };
 export const CLIENT_ART: LitArt = { night: clientRoom, day: clientRoomDay };
+/** The street entrance, where everyone signs in: it keeps the visitor's own time of day, not the building's setting. */
+export const LOBBY_ART: LitArt = { night: lobby, day: lobbyDay };
 export const roomArt = (code: string): LitArt | null => ROOMS[code] ?? null;

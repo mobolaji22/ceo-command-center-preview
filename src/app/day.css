@@ -71,14 +71,13 @@ html[data-lighting="day"] .desk-scrim { background: oklch(0.96 0.012 85 / 58%); 
 html[data-lighting="day"] .desk-bar.workspace-heading { background: oklch(0.99 0.006 85 / 86%); }
 html[data-lighting="day"] :is(.desk-panel[data-surface="contracts"], .desk-panel[data-surface="directive"], .desk-panel[data-surface="brief"]) .desk-scroll { background: oklch(0.99 0.006 85 / 94%); }
 html[data-lighting="day"] .topbar { background: oklch(0.985 0.008 85 / 94%); }
-html[data-lighting="day"] .workspace, html[data-lighting="day"] .auth-page { background: radial-gradient(ellipse at 80% 0%, oklch(0.9 0.05 80 / 38%), transparent 40%), var(--background); }
+html[data-lighting="day"] .workspace { background: radial-gradient(ellipse at 80% 0%, oklch(0.9 0.05 80 / 38%), transparent 40%), var(--background); }
 
 /* ---- legacy panels with dark colours written into them -------------------------------------------------- */
 html[data-lighting="day"] :is(.computer-frame, .contract-wrap) { background: oklch(0.995 0.005 85 / 90%); box-shadow: 0 24px 60px oklch(0.3 0.03 60 / 22%); }
 html[data-lighting="day"] :is(.brief-reader, .case-file) { background: oklch(0.985 0.008 85); }
 html[data-lighting="day"] :is(.client-card, .mform) { background: oklch(0.99 0.005 85 / 80%); }
-html[data-lighting="day"] :is(.auth-card input:not([type="checkbox"]), .mform input:not([type="checkbox"]), .tab-pane textarea, .directive-form textarea, .plan-confirm textarea, .plan-confirm input) { background: oklch(0.997 0.003 85); color: var(--foreground); }
-html[data-lighting="day"] .auth-card { background: linear-gradient(180deg, oklch(0.995 0.005 85 / 96%), oklch(0.975 0.008 85 / 94%)); }
+html[data-lighting="day"] :is(.mform input:not([type="checkbox"]), .tab-pane textarea, .directive-form textarea, .plan-confirm textarea, .plan-confirm input) { background: oklch(0.997 0.003 85); color: var(--foreground); }
 html[data-lighting="day"] .philosophy { background: linear-gradient(90deg, oklch(0.5 0.125 66 / 10%), oklch(0.97 0.01 85 / 70%)); }
 html[data-lighting="day"] .question { background: linear-gradient(145deg, oklch(0.9 0.05 80 / 50%), oklch(0.985 0.008 85)); }
 html[data-lighting="day"] .contract-lead { color: oklch(0.3 0.015 60); }
@@ -100,7 +99,6 @@ html[data-lighting="day"] .lighting-toggle[aria-pressed="true"] { background: ok
 
 /* ---- form fields and the sign-in card ---------------------------------------------------------------------- */
 html[data-lighting="day"] :is(.mform input:not([type="checkbox"]):not([type="file"]), .mform textarea, .mform select, .directive-targets select, .pd-head select, .resolved-row select) { background: oklch(0.997 0.003 85); color: var(--foreground); }
-html[data-lighting="day"] .auth-card h1 { color: var(--foreground); }
 
 /* ---- the shelf is wood, not black ---------------------------------------------------------------------------- */
 html[data-lighting="day"] .surface-shelf { background: linear-gradient(180deg, oklch(0.3 0.045 55), oklch(0.22 0.035 52)); }

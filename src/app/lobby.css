@@ -1,0 +1,440 @@
+/*
+ * The lobby: the street entrance where every way in begins (src/components/cc/lobby.tsx). One photograph in two lights, kept in
+ * the visitor's own time; lights drawn over the places they are in the picture; a visitor card of glass with a brass edge.
+ *
+ * Positions over the photograph are percentages of the picture itself: .lobby-frame always has the photograph's proportions and
+ * covers the screen, so 88% 40% is the DEVPLAYBOOK sign at every size. Motion: arrival from the street (~1.7s), the walk to
+ * "Rooms 01-13" after sign-in (950ms, LEAVE_MS), the envelope (700ms, SEND_MS). With reduced motion nothing travels.
+ */
+
+.lobby {
+  --brass: oklch(0.78 0.13 78);
+  --brass-soft: oklch(0.78 0.13 78 / 30%);
+  --ink: oklch(0.07 0.006 60);
+  --ease-settle: cubic-bezier(0.16, 0.84, 0.24, 1);
+  --ease-walk: cubic-bezier(0.55, 0, 0.75, 0.25);
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--ink);
+  color: oklch(0.96 0.01 80);
+}
+
+/* ---- the photograph, its proportions kept, covering the screen ------------------------------- */
+.lobby-frame {
+  /* Which point of the picture sits at the centre of the screen. Right of centre, so on screens narrower than the picture the
+     sign stays in view and the crop falls on the shelving behind the card. */
+  --fx: 55%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100vw, 177.03vh);
+  height: max(100vh, 56.49vw);
+  transform: translate(calc(-1 * var(--fx)), -50%);
+  pointer-events: none;
+}
+.lobby-walk { position: absolute; inset: 0; transform-origin: 59% 48%; }
+.lobby-cam {
+  position: absolute;
+  inset: 0;
+  scale: 1.04;
+  translate: calc(var(--px, 0) * -1.2%) calc(var(--py, 0) * -1%);
+}
+.lobby-photo { object-fit: cover; user-select: none; }
+.lit-day-own { opacity: 0; transition: opacity 1.8s ease; }
+[data-lit="day"] .lit-day-own { opacity: 1; }
+
+/* ---- lights in the picture ------------------------------------------------------------------- */
+.lobby-glow {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--w);
+  height: var(--h, var(--w));
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, oklch(0.88 0.12 82 / 55%), oklch(0.8 0.13 76 / 18%) 55%, transparent);
+  mix-blend-mode: screen;
+  opacity: 0.75;
+  transition: opacity 0.8s ease, scale 0.8s var(--ease-settle);
+  animation: lobby-breathe 6s ease-in-out infinite;
+}
+.lobby-glow-sign { --x: 88.2%; --y: 40%; --w: 26%; --h: 13%; animation-duration: 7s; }
+.lobby-glow-lamp { --x: 23%; --y: 55.5%; --w: 8.5%; animation-delay: -2s; }
+.lobby-glow-sconce { --w: 5.4%; --h: 9%; animation-name: lobby-flicker; animation-duration: 9s; }
+.lobby-glow-sconce-a { --x: 33.6%; --y: 36%; }
+.lobby-glow-sconce-b { --x: 38.3%; --y: 36.6%; animation-delay: -4.5s; }
+.lobby-glow-rooms { --x: 5.2%; --y: 41.5%; --w: 7%; --h: 5%; opacity: 0.25; }
+/* Someone at the desk: the building notices. */
+.lobby[data-attend] .lobby-glow-sign { opacity: 1; scale: 1.1; }
+/* By day the lamp and sconces are off; the sign still glows. */
+.lobby[data-lit="day"] :is(.lobby-glow-lamp, .lobby-glow-sconce) { opacity: 0; animation: none; }
+.lobby[data-lit="day"] .lobby-glow-sign { opacity: 0.55; }
+.lobby[data-lit="day"][data-attend] .lobby-glow-sign { opacity: 0.85; }
+
+@keyframes lobby-breathe { 50% { opacity: 0.95; scale: 1.04; } }
+@keyframes lobby-flicker { 0%, 100% { opacity: 0.7; } 46% { opacity: 0.85; } 48% { opacity: 0.55; } 50% { opacity: 0.9; } 70% { opacity: 0.78; } }
+
+/* The street through the glass doors: traffic at night, light on the water by day. */
+.lobby-street { position: absolute; left: 49.4%; top: 16%; width: 20.6%; height: 60%; overflow: hidden; mix-blend-mode: screen; }
+.lobby-street::before, .lobby-street::after {
+  content: "";
+  position: absolute;
+  top: 58%;
+  left: 0;
+  width: 46%;
+  height: 7%;
+  border-radius: 50%;
+  filter: blur(6px);
+  background: radial-gradient(closest-side, oklch(0.95 0.04 90 / 80%), transparent) 0 0 / 22% 100% no-repeat,
+              radial-gradient(closest-side, oklch(0.95 0.04 90 / 80%), transparent) 26% 0 / 22% 100% no-repeat;
+  animation: lobby-traffic 9s linear infinite;
+}
+.lobby-street::after {
+  top: 63%;
+  background: radial-gradient(closest-side, oklch(0.62 0.22 25 / 85%), transparent) 0 0 / 22% 100% no-repeat,
+              radial-gradient(closest-side, oklch(0.62 0.22 25 / 85%), transparent) 26% 0 / 22% 100% no-repeat;
+  animation-duration: 12s;
+  animation-direction: reverse;
+  animation-delay: -5s;
+}
+@keyframes lobby-traffic { from { translate: -120% 0; } to { translate: 260% 0; } }
+.lobby[data-lit="day"] .lobby-street::before, .lobby[data-lit="day"] .lobby-street::after {
+  top: 62%;
+  width: 140%;
+  height: 10%;
+  filter: blur(10px);
+  background: repeating-linear-gradient(100deg, transparent 0 8%, oklch(1 0.02 220 / 35%) 10%, transparent 14%);
+  animation: lobby-water 14s linear infinite;
+}
+.lobby[data-lit="day"] .lobby-street::after { top: 70%; opacity: 0.6; animation-duration: 19s; animation-direction: reverse; }
+@keyframes lobby-water { from { translate: -30% 0; } to { translate: 0 0; } }
+
+/* Sunlight across the floor, with dust in it. Day only. */
+.lobby-beam {
+  position: absolute;
+  left: 14%;
+  top: 52%;
+  width: 56%;
+  height: 48%;
+  opacity: 0;
+  background: linear-gradient(112deg, transparent 18%, oklch(0.98 0.04 85 / 16%) 42%, oklch(0.98 0.04 85 / 4%) 58%, transparent 72%);
+  mix-blend-mode: screen;
+  transition: opacity 1.8s ease;
+}
+.lobby[data-lit="day"] .lobby-beam { opacity: 1; animation: lobby-beam 10s ease-in-out infinite; }
+@keyframes lobby-beam { 50% { opacity: 0.6; } }
+.lobby-mote {
+  position: absolute;
+  left: calc(30% + var(--i) * 6.5%);
+  top: 78%;
+  width: 0.28%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: oklch(1 0.03 85 / 70%);
+  opacity: 0;
+}
+.lobby[data-lit="day"] .lobby-mote { animation: lobby-mote 14s linear infinite; animation-delay: calc(var(--i) * -2.3s); }
+@keyframes lobby-mote {
+  0% { opacity: 0; translate: 0 0; }
+  15% { opacity: 0.8; }
+  85% { opacity: 0.6; }
+  100% { opacity: 0; translate: 3vw -22vh; }
+}
+
+/* ---- legibility: shade behind the card, vignette at the edges --------------------------------- */
+.lobby-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, oklch(0.05 0.006 60 / 78%) 0%, oklch(0.05 0.006 60 / 46%) 34%, transparent 58%),
+    radial-gradient(ellipse 80% 90% at 62% 50%, transparent 55%, oklch(0.03 0.004 60 / 60%) 100%);
+  transition: opacity 1.2s ease;
+}
+.lobby[data-lit="day"] .lobby-shade { opacity: 0.85; }
+
+/* ---- the plaque by the door ------------------------------------------------------------------ */
+.lobby-plaque {
+  position: absolute;
+  z-index: 2;
+  top: 24px;
+  left: clamp(20px, 6vw, 96px);
+  right: clamp(20px, 6vw, 96px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+.lobby-plaque em { font-style: normal; color: var(--brass); }
+.lobby-plaque-time {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--brass-soft);
+  background: oklch(0.08 0.006 60 / 45%);
+  backdrop-filter: blur(8px);
+  color: oklch(0.92 0.02 80);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.lobby-plaque-time i { width: 6px; height: 6px; border-radius: 50%; background: var(--brass); box-shadow: 0 0 10px var(--brass); animation: lobby-pulse 2.4s ease-in-out infinite; }
+@keyframes lobby-pulse { 50% { opacity: 0.35; } }
+
+/* ---- the visitor card ------------------------------------------------------------------------ */
+.lobby-desk {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: clamp(20px, 6vw, 96px);
+  width: min(430px, calc(100vw - 40px));
+  translate: calc(var(--px, 0) * 6px) calc(-50% + var(--py, 0) * 4px);
+}
+.lobby-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 30px 34px 30px;
+  background: linear-gradient(165deg, oklch(0.19 0.014 62 / 74%), oklch(0.1 0.007 60 / 86%));
+  border: 1px solid oklch(0.78 0.13 78 / 22%);
+  box-shadow: 0 40px 90px oklch(0 0 0 / 55%), inset 0 1px 0 oklch(1 0 0 / 7%);
+  backdrop-filter: blur(20px) saturate(1.15);
+}
+/* The brass edge, with light running along it now and then. */
+.lobby-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px -1px auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brass) 20%, oklch(0.95 0.08 88) 50%, var(--brass) 80%, transparent) 0 0 / 300% 100%;
+  animation: lobby-sheen 7s ease-in-out infinite;
+}
+@keyframes lobby-sheen { 0%, 60% { background-position: 100% 0; } 100% { background-position: -200% 0; } }
+.lobby-card::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--brass), var(--brass)) top left / 10px 1px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) bottom right / 10px 1px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) bottom right / 1px 10px no-repeat;
+  opacity: 0.55;
+}
+.lobby[data-lit="day"] .lobby-card { background: linear-gradient(165deg, oklch(0.24 0.018 64 / 68%), oklch(0.13 0.01 60 / 82%)); }
+
+.lobby-card-plate { display: flex; align-items: center; gap: 12px; font-size: 9px; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--brass); }
+.lobby-card-plate i { flex: 1; height: 1px; background: linear-gradient(90deg, var(--brass-soft), transparent); }
+.lobby-title { margin: 2px 0 0; font: 400 clamp(40px, 5vw, 54px)/0.98 "Cormorant Garamond", Georgia, serif; letter-spacing: -0.01em; animation: lobby-title 0.6s var(--ease-settle) both; }
+.lobby-title .period { color: var(--brass); }
+@keyframes lobby-title { from { opacity: 0; translate: 0 8px; filter: blur(4px); } }
+.lobby-sub { margin: 0; color: oklch(0.82 0.015 75); font-size: 12.5px; line-height: 1.7; }
+.lobby-sub b { color: oklch(0.97 0.01 80); font-weight: 500; }
+.lobby-demo { padding: 10px 12px; border: 1px dashed var(--brass-soft); font-size: 11.5px; }
+
+.lobby-field { display: flex; flex-direction: column; gap: 9px; font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: var(--brass); }
+.lobby-field > input {
+  width: 100%;
+  padding: 14px 15px;
+  background: oklch(0.07 0.005 60 / 72%);
+  color: oklch(0.97 0.01 80);
+  border: 1px solid oklch(1 0 0 / 11%);
+  border-radius: 2px;
+  font: 15px/1.4 "DM Sans", sans-serif;
+  letter-spacing: 0.01em;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.3s;
+}
+.lobby-field > input::placeholder { color: oklch(0.6 0.01 70); }
+.lobby-field > input:focus { border-color: var(--brass); box-shadow: 0 0 0 4px oklch(0.78 0.13 78 / 12%), 0 0 30px oklch(0.78 0.13 78 / 14%); }
+
+.lobby-msg { animation: lobby-title 0.35s var(--ease-settle) both; }
+.lobby-actions { position: relative; }
+.lobby-go { width: 100%; height: 48px; letter-spacing: 0.14em; text-transform: uppercase; font-size: 11px; position: relative; overflow: hidden; }
+.lobby-go::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  translate: -110% 0;
+  background: linear-gradient(100deg, transparent 30%, oklch(1 0.03 88 / 38%) 50%, transparent 70%);
+  transition: translate 0.7s var(--ease-settle);
+}
+.lobby-go:hover::after, .lobby-go:focus-visible::after { translate: 110% 0; }
+.lobby-go[data-ready] { animation: lobby-ready 1.8s ease-in-out infinite; }
+@keyframes lobby-ready { 50% { box-shadow: 0 0 0 6px oklch(0.78 0.13 78 / 16%), 0 0 34px oklch(0.78 0.13 78 / 30%); } }
+
+.lobby-links { display: flex; flex-wrap: wrap; gap: 20px; }
+.lobby-links :is(button, a) { background: none; border: 0; padding: 0 0 2px; color: oklch(0.72 0.015 70); font-size: 11px; letter-spacing: 0.06em; cursor: pointer; text-decoration: none; background-image: linear-gradient(var(--brass), var(--brass)); background-size: 0 1px; background-position: 0 100%; background-repeat: no-repeat; transition: color 0.2s, background-size 0.3s var(--ease-settle); }
+.lobby-links :is(button, a):hover, .lobby-links :is(button, a):focus-visible { color: oklch(0.97 0.01 80); background-size: 100% 1px; }
+.lobby-links button:disabled { opacity: 0.5; cursor: default; }
+
+/* An emailed action link (/act/:token): what confirming does, and the seal once it is done. */
+.lobby-does { padding: 13px 15px; border: 1px solid var(--brass-soft); border-left-width: 2px; border-left-color: var(--brass); background: oklch(0.07 0.005 60 / 55%); }
+.lobby-does b { font-size: 13px; font-weight: 600; }
+.lobby-does p { margin: 6px 0 0; color: oklch(0.8 0.015 75); font-size: 12px; line-height: 1.6; }
+.lobby-seal {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, oklch(0.92 0.1 86), oklch(0.7 0.13 74));
+  box-shadow: 0 0 0 4px oklch(0.78 0.13 78 / 18%), 0 10px 26px oklch(0 0 0 / 45%);
+  animation: lobby-stamp 0.55s var(--ease-settle) both;
+}
+.lobby-seal svg { fill: none; stroke: oklch(0.16 0.02 60); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; animation: lobby-tick 0.4s 0.3s ease-out forwards; }
+@keyframes lobby-stamp { from { scale: 1.8; opacity: 0; rotate: -18deg; } 70% { scale: 0.94; opacity: 1; } }
+@keyframes lobby-tick { to { stroke-dashoffset: 0; } }
+
+/* A refused answer: one firm shake. Two names so each refusal plays it again. */
+.lobby-card[data-shake="1"] { animation: lobby-shake-a 0.42s ease both; }
+.lobby-card[data-shake="0"] { animation: lobby-shake-b 0.42s ease both; }
+@keyframes lobby-shake-a { 20% { translate: -8px 0; } 40% { translate: 7px 0; } 60% { translate: -4px 0; } 80% { translate: 2px 0; } }
+@keyframes lobby-shake-b { 20% { translate: -8px 0; } 40% { translate: 7px 0; } 60% { translate: -4px 0; } 80% { translate: 2px 0; } }
+
+/* ---- the six brass tiles --------------------------------------------------------------------- */
+.code-tiles { position: relative; display: block; }
+.code-tiles-input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  opacity: 0.001;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px; /* no zoom on focus in mobile Safari */
+  cursor: text;
+}
+.code-tiles-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.code-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 60px;
+  border: 1px solid oklch(0.78 0.13 78 / 22%);
+  background: linear-gradient(180deg, oklch(0.2 0.02 68 / 70%), oklch(0.09 0.008 60 / 85%));
+  font: 500 30px/1 "Cormorant Garamond", Georgia, serif;
+  color: oklch(0.92 0.09 84);
+  transition: border-color 0.2s, box-shadow 0.25s, background 0.4s;
+}
+.code-tile[data-filled] { border-color: oklch(0.78 0.13 78 / 60%); box-shadow: inset 0 0 18px oklch(0.78 0.13 78 / 12%); animation: tile-set 0.26s var(--ease-settle) both; }
+@keyframes tile-set { from { scale: 0.9; } 60% { scale: 1.04; } }
+.code-tile[data-next] { border-color: var(--brass); box-shadow: 0 0 0 3px oklch(0.78 0.13 78 / 12%); }
+.code-tile[data-next]::after { content: ""; width: 1px; height: 26px; background: var(--brass); animation: tile-caret 1s steps(1) infinite; }
+@keyframes tile-caret { 50% { opacity: 0; } }
+.code-tiles:has(.code-tiles-input:focus-visible) .code-tiles-row { outline: 1px dashed oklch(0.78 0.13 78 / 40%); outline-offset: 5px; }
+.code-tiles[data-state="checking"] .code-tile { animation: tile-check 1.1s ease-in-out infinite; animation-delay: calc(var(--i) * 90ms); }
+@keyframes tile-check { 50% { border-color: var(--brass); box-shadow: 0 0 22px oklch(0.78 0.13 78 / 35%); } }
+.code-tiles[data-state="accepted"] .code-tile {
+  color: oklch(0.15 0.02 60);
+  background: linear-gradient(180deg, oklch(0.88 0.12 85), oklch(0.7 0.13 74));
+  border-color: oklch(0.9 0.1 85);
+  animation: tile-turn 0.5s var(--ease-settle) both;
+  animation-delay: calc(var(--i) * 70ms);
+}
+@keyframes tile-turn { from { transform: perspective(300px) rotateX(-90deg); } }
+
+/* ---- the envelope leaving for the street ----------------------------------------------------- */
+.lobby-envelope {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  pointer-events: none;
+  translate: -50% -50%;
+  animation: lobby-envelope 0.7s var(--ease-walk) both;
+}
+.lobby-envelope svg { display: block; fill: oklch(0.16 0.015 62); stroke: var(--brass); stroke-width: 1.4; filter: drop-shadow(0 6px 14px oklch(0 0 0 / 50%)); }
+.lobby-envelope circle { fill: var(--brass); stroke: none; }
+@keyframes lobby-envelope {
+  0% { opacity: 0; transform: translate(0, 10px) scale(0.6); }
+  22% { opacity: 1; transform: translate(0, -34px) scale(1.05) rotate(-4deg); }
+  100% { opacity: 0; transform: translate(44vw, -32vh) scale(0.22) rotate(18deg); }
+}
+
+/* ---- arriving from the street; leaving for the rooms ----------------------------------------- */
+.lobby-fade { position: absolute; inset: 0; z-index: 4; pointer-events: none; background: var(--ink); opacity: 0; }
+.lobby[data-phase="arriving"] .lobby-fade { animation: lobby-unveil 1s ease-out both; }
+.lobby[data-phase="arriving"] .lobby-walk { animation: lobby-arrive 1.7s var(--ease-settle) both; }
+.lobby[data-phase="arriving"] .lobby-card { animation: lobby-card-in 0.9s 0.55s var(--ease-settle) both; }
+.lobby[data-phase="arriving"] .lobby-plaque { animation: lobby-card-in 0.8s 0.3s var(--ease-settle) both; }
+@keyframes lobby-unveil { from { opacity: 1; } }
+@keyframes lobby-arrive { from { transform: scale(1.16) translateX(1.5%); filter: brightness(0.35) blur(3px); } }
+@keyframes lobby-card-in { from { opacity: 0; translate: 0 22px; filter: blur(6px); } }
+
+/*
+ * The walk to the rooms (1.5s, WALK_MS): the card steps aside; the camera turns across the lobby until the passage beside
+ * "Rooms 01-13" is in the middle of the screen, then walks up to it, with a step's rise and fall, and stops in front of it, the
+ * plaque beside it, the lights a little lower. The script measures where the passage is on screen (--walk-ox/oy, its point in the frame; --walk-dx/dy, the
+ * distance to the centre). The next page opens when the walk arrives; until it is ready the end of the walk holds, with the
+ * corridor's light ahead ("entered").
+ */
+.lobby:is([data-phase="leaving"], [data-phase="entered"]) .lobby-walk {
+  transform-origin: var(--walk-ox, 10.7%) var(--walk-oy, 49%);
+  animation: lobby-walk 1.5s cubic-bezier(0.45, 0, 0.35, 1) forwards;
+}
+.lobby:is([data-phase="leaving"], [data-phase="entered"]) .lobby-glow-rooms { opacity: 1; scale: 1.6; transition-duration: 0.5s; animation: none; }
+.lobby:is([data-phase="leaving"], [data-phase="entered"]) :is(.lobby-card, .lobby-plaque) { animation: lobby-card-out 0.42s var(--ease-walk) forwards; }
+.lobby:is([data-phase="leaving"], [data-phase="entered"]) .lobby-fade { animation: lobby-cover 0.5s 1s ease-in forwards; }
+@keyframes lobby-walk {
+  0% { transform: none; filter: none; }
+  36% { transform: translate(calc(var(--walk-dx, 0px) * 0.9), calc(var(--walk-dy, 0px) * 0.9)) scale(1.3); filter: brightness(0.95); }
+  52% { transform: translate(var(--walk-dx, 0px), calc(var(--walk-dy, 0px) + 0.7vh)) scale(1.7); }
+  68% { transform: translate(var(--walk-dx, 0px), calc(var(--walk-dy, 0px) - 0.3vh)) scale(2.4); }
+  84% { transform: translate(var(--walk-dx, 0px), calc(var(--walk-dy, 0px) + 0.4vh)) scale(3.1); filter: brightness(0.85); }
+  100% { transform: translate(var(--walk-dx, 0px), var(--walk-dy, 0px)) scale(3.4); filter: brightness(0.8); }
+}
+@keyframes lobby-card-out { to { opacity: 0; translate: 0 16px; filter: blur(6px); } }
+@keyframes lobby-cover { to { opacity: 0.32; } }
+/* In the passage, waiting for the next page: the corridor's light ahead, breathing. */
+.lobby-ahead {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 50%;
+  width: min(46vw, 420px);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, oklch(0.86 0.12 80 / 42%), oklch(0.78 0.13 76 / 12%) 50%, transparent);
+  opacity: 0;
+}
+.lobby[data-phase="entered"] .lobby-ahead { animation: lobby-ahead 1.6s ease-in-out infinite alternate; }
+@keyframes lobby-ahead { from { opacity: 0.35; scale: 0.9; } to { opacity: 0.9; scale: 1.08; } }
+
+/* ---- phones: the card is the lower half, the doors and the sign above it ---------------------- */
+@media (max-width: 760px) {
+  /* Only the top of the screen shows the room, so the picture is sized to it: the doors and the sign, above the card. */
+  .lobby-frame { --fx: 76%; top: 0; height: 62vh; height: 62dvh; width: calc(62dvh * 1.7703); transform: translateX(calc(-1 * var(--fx))); }
+  .lobby-shade { background: linear-gradient(0deg, oklch(0.05 0.006 60 / 88%) 0%, oklch(0.05 0.006 60 / 55%) 45%, transparent 72%); }
+  .lobby-plaque { top: 16px; }
+  .lobby-plaque-name { display: none; }
+  .lobby-desk { top: auto; bottom: 0; left: 0; width: 100%; translate: none; }
+  .lobby-card { padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); border-width: 1px 0 0; max-height: 78vh; overflow-y: auto; }
+  .code-tiles-row { gap: 6px; }
+  .code-tile { height: 52px; font-size: 26px; }
+  @keyframes lobby-envelope {
+    0% { opacity: 0; transform: translate(0, 10px) scale(0.6); }
+    22% { opacity: 1; transform: translate(0, -30px) scale(1.05) rotate(-4deg); }
+    100% { opacity: 0; transform: translate(6vw, -58vh) scale(0.2) rotate(12deg); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby *, .lobby *::before, .lobby *::after { animation: none !important; transition: none !important; }
+  .lobby-cam { translate: none; }
+  .lobby-desk { translate: 0 -50%; }
+  .lobby-envelope { display: none; }
+}
+@media (prefers-reduced-motion: reduce) and (max-width: 760px) { .lobby-desk { translate: none; } }
