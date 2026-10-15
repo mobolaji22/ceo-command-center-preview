@@ -168,7 +168,7 @@ function seed(): Store {
   const questions: Question[] = [{
     id: "q-1", project_id: "p-2", organization_id: "o-2", run_id: "r-2", task_id: "r2-c", reason: "BUDGET_EXCEEDED", routed_to: "CLIENT_OWNER", status: "OPEN",
     title: "The budget has been reached", summary: "The work has reached the budget that was approved ($1.50). Nothing more has been spent. You can allow more, or stop here.",
-    detail: "Publish the new intake form: this would take the run past the budget the client approved.", options: ["RAISE_BUDGET", "STOP_RUN"],
+    detail: "Publish the new intake form: this would take the run past the budget the client approved.", options: [{ id: "RAISE_BUDGET", stepUp: true }, { id: "STOP_RUN", stepUp: false }],
     recommendation: { option: "RAISE_BUDGET", why: "Raising the limit to $1.88 lets the plan finish." }, deadline: ago(-24 * 3), created_at: ago(5),
   }];
   const budgets: Record<string, BudgetView> = { "p-2": { run_id: "r-2", run_status: "WAITING", approved_usd: 1.5, used_usd: 1.5, used_percent: 100 } };
@@ -231,7 +231,7 @@ function endRunFixture(s: Store, run: RunView) {
 
 /** What answering a question does, in the demo: the work goes on or ends, and the question is closed. */
 function applyAnswer(s: Store, q: Question, answer: Answer) {
-  if (!q.options.includes(answer.option)) throw new Error("That is not one of the answers offered.");
+  if (!q.options.some((o) => o.id === answer.option)) throw new Error("That is not one of the answers offered.");
   const run = s.runs.find((r) => r.id === q.run_id);
   if (!run) throw new Error("This was already answered.");
   if (answer.option === "STOP_RUN") { endRunFixture(s, run); return; }
@@ -593,7 +593,7 @@ export function createFixturesDataSource(): DataSource {
             id: id(), project_id: projectId, organization_id: project?.organization_id ?? "", run_id: run.id, task_id: null, reason: "PAUSED_BY_OWNER",
             routed_to: by === "the agency" ? "CEO" : "CLIENT_OWNER", status: "OPEN", title: "The work is paused",
             summary: `The work was paused by ${by}${note ? `: ${note}` : ""}. Work already under way was allowed to finish; nothing new has started and nothing will until it is resumed.`,
-            detail: null, options: ["RESUME", "STOP_RUN"], recommendation: null, deadline: null, created_at: new Date().toISOString(),
+            detail: null, options: [{ id: "RESUME", stepUp: false }, { id: "STOP_RUN", stepUp: false }], recommendation: null, deadline: null, created_at: new Date().toISOString(),
           });
         });
       },
@@ -622,8 +622,9 @@ export function createFixturesDataSource(): DataSource {
         return ok(structuredClone(mine).map((q) => (agency ? q : { ...q, detail: null })));
       },
       async answer(questionId, answer) {
-        // Spending more, letting work go ahead that was not allowed, and accepting a result that failed our checks need a fresh proof.
-        if (["RAISE_BUDGET", "APPROVE", "GRANT_EXCEPTION", "ACCEPT_RISK"].includes(answer.option) && !steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        // As the API does: an answer the question marks as needing a fresh proof is refused until the person has given one.
+        const offered = load().questions.find((x) => x.id === questionId)?.options.find((o) => o.id === answer.option);
+        if (offered?.stepUp && !steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
         return mutate((s) => {
           const q = s.questions.find((x) => x.id === questionId);
           if (!q) throw new Error("This was already answered.");

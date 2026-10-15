@@ -77,3 +77,27 @@ export function stopRunAtBudget(projectNameFragment: string): { reason: string; 
   });
   return JSON.parse(out.trim().split("\n").at(-1)!) as { reason: string; id: string };
 }
+
+/**
+ * Stands in for a consultation objection reaching the client's owner (ADR-0025): one branch question on the project's live run,
+ * offering what the API offers for an objection. Only the question card is under test here; its answer is refused for want of
+ * the emailed code before any consultation record would be read. Returns the question's id, for `withdrawQuestion`.
+ */
+export function askAboutAnObjection(projectNamePattern: string, title: string): string {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const sql = `INSERT INTO "Intervention" (id, "organizationId", "projectId", "runId", "taskId", reason, "taskScoped", "routedTo", status, title, summary, options)
+    SELECT gen_random_uuid()::text, r."organizationId", r."projectId", r.id, (SELECT t.id FROM "Task" t WHERE t."runId" = r.id AND t.status <> 'COMPLETED' ORDER BY t."createdAt" LIMIT 1),
+      'CONSULTATION_OBJECTION', true, 'CLIENT_OWNER', 'OPEN', '${title}', 'Another department reviewed this work and objects to it. Decide whether it stands or is redone.',
+      '[{"id":"OUTPUT_STANDS"},{"id":"REDO_OUTPUT"},{"id":"STOP_RUN"}]'::jsonb
+    FROM "Run" r JOIN "Project" p ON p.id = r."projectId" WHERE p.name ILIKE '${projectNamePattern}' AND r.status IN ('RUNNING', 'WAITING') ORDER BY r."startedAt" DESC LIMIT 1
+    RETURNING id`;
+  return execFileSync("psql", [u.toString(), "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c", sql], { encoding: "utf8" }).trim().split("\n")[0]!;
+}
+
+/** Withdraws a question a test raised, so later tests see the project as they expect. */
+export function withdrawQuestion(id: string) {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  execFileSync("psql", [u.toString(), "-v", "ON_ERROR_STOP=1", "-c", `UPDATE "Intervention" SET status = 'CANCELLED', "resolvedAt" = now() WHERE id = '${id}'`], { stdio: "pipe" });
+}

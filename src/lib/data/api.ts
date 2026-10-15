@@ -105,7 +105,7 @@ type ApiRunTask = { id: string; planTaskId: string | null; title: string; domain
 const toRunTask = (t: ApiRunTask): RunTask => ({ id: t.id, plan_task_id: t.planTaskId ?? t.id, title: t.title, domain: t.domain, status: t.status, wait_reason: t.waitReason, depends_on: t.dependencies, stale: t.staleAt !== null });
 type ApiQuestion = {
   id: string; projectId: string; organizationId: string; runId: string; taskId: string | null; reason: string; routedTo: Question["routed_to"]; status: Question["status"];
-  title: string; summary: string; detail?: string | null; options: Array<{ id: string }>; recommendation: { option: string; why: string } | null; deadline: string | null; createdAt: string;
+  title: string; summary: string; detail?: string | null; options: Array<{ id: string; stepUp?: boolean }>; recommendation: { option: string; why: string } | null; deadline: string | null; createdAt: string;
 };
 type ApiBrief = { id: string; organizationId: string; projectId: string | null; type: BriefType; audience: "CLIENT" | "AGENCY"; title: string; attentionLevel: number; compiledAt: string };
 type ApiCitation = { type: string; id?: string; ids?: string[]; path?: string; expect?: string | number; expectSum?: number };
@@ -119,7 +119,7 @@ const toDelegation = (d: ApiDelegation): DelegationView => ({
 });
 const toQuestion = (q: ApiQuestion): Question => ({
   id: q.id, project_id: q.projectId, organization_id: q.organizationId, run_id: q.runId, task_id: q.taskId, reason: q.reason, routed_to: q.routedTo, status: q.status,
-  title: q.title, summary: q.summary, detail: q.detail ?? null, options: q.options.map((o) => o.id), recommendation: q.recommendation, deadline: q.deadline, created_at: q.createdAt,
+  title: q.title, summary: q.summary, detail: q.detail ?? null, options: q.options.map((o) => ({ id: o.id, stepUp: o.stepUp === true })), recommendation: q.recommendation, deadline: q.deadline, created_at: q.createdAt,
 });
 
 const toPlan = (c: ApiPlan): PlanContent => ({
