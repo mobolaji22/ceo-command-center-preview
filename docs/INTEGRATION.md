@@ -133,6 +133,34 @@ with email going to a file the test reads) and this app built against it, then d
 link and by code, a used link, step-up, an invitation, a client's first sign-in and a file upload that is scanned before
 it can be downloaded. Needs `psql`, Postgres (`E2E_PG_ADMIN`, a superuser URL) and Redis. `E2E_SKIP_BUILD=1` reuses a build.
 
+The suite drops and recreates its own database, `cc_e2e`, so it refuses an `E2E_PG_ADMIN` that is not a Postgres on this
+machine (localhost or a socket). `E2E_LOG_DIR` keeps the API's and the app's output; `E2E_EVIDENCE` keeps screenshots.
+
+### End-to-end in CI
+
+The suite is the only test of the two repositories together, so it runs in both, and each repository's change is tested
+against the other's `main`:
+
+| Where | Tests | Against | Check |
+| ----- | ----- | ------- | ----- |
+| This repository (`.github/workflows/e2e.yml`) | the pull request's code | dev-playbook-v4 `main` | `e2e` |
+| dev-playbook-v4 (`.github/workflows/cc-e2e.yml`) | the pull request's code | this repository's `main` | `cc-e2e` |
+
+Each run starts its own Postgres and Redis containers, so nothing outside the job is touched. Logs, screenshots, the HTML
+report and Playwright traces are uploaded as the `e2e-output` artifact, failed or not. The job summary names both commits.
+
+dev-playbook-v4 is private. Checking it out here needs the Actions secret `V4_READ_TOKEN`: a fine-grained token with
+read-only access to that repository's contents and nothing else. If the secret is missing, the check fails and says so.
+
+**Pull requests from forks.** GitHub never gives secrets to a pull request from a fork, so `e2e` cannot run there and
+fails with that reason; it is never reported as passing. A maintainer reviews the change first (its code would run with
+the token), then pushes its commits to a branch in this repository and opens a pull request from that branch, where the
+check runs. The fork's pull request is closed in favour of it; the commits keep their author. `pull_request_target` is not
+used, because it would run a fork's code with the secret.
+
+Each side tests against the other's `main`, so two changes made at the same time in both repositories are not tested
+together until the first is merged. If cross-repository changes become frequent, a coordinated check will be needed.
+
 ## Pages an email opens
 
 - `/act/:token` answers one low-consequence question without signing in. It describes the question and what answering would do, and answers only when the button is pressed (mail scanners open links). Its address carries a credential, so the page sends no referrer and asks not to be indexed.
