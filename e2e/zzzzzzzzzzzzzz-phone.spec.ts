@@ -24,6 +24,8 @@ async function signIn(page: Page, email: string) {
 
 /** What a phone screen must not do. The room behind an open desk is inert and hidden from the check, as it is from people. */
 async function expectFitsThePhone(page: Page, where: string) {
+  // A desk is checked once it has finished opening (desk-overlay.tsx marks that), not mid-animation.
+  if (await page.locator(".desk-overlay").count()) await expect(page.locator("html[data-desk-open]")).toHaveCount(1);
   const found = await page.evaluate(() => {
     const W = innerWidth, H = innerHeight;
     const shown = (e: Element) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none" && !e.closest("[inert],[aria-hidden='true']"); };
@@ -36,15 +38,18 @@ async function expectFitsThePhone(page: Page, where: string) {
       if (r.top < 0 || r.bottom > H || r.left < 0 || r.right > W) return false;
       const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return !!top && top !== e && !e.contains(top) && !top.contains(e) && !top.closest("label,button,a,.demo-banner") && !e.closest(".demo-banner");
-    }).map((e) => `"${(e as HTMLElement).innerText.trim().slice(0, 30)}"`);
+    }).map((e) => { const r = e.getBoundingClientRect(); return `"${(e as HTMLElement).innerText.trim().slice(0, 30)}" under ${name(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)!)}`; });
+    // Text needs a gutter: nothing to read may touch the edge of the screen.
+    const edge = all.filter((e) => e.children.length === 0 && (e as HTMLElement).innerText?.trim().length > 2 && !inScroller(e)).filter((e) => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= H && (r.left < 8 || r.right > W - 8); }).map((e) => `"${(e as HTMLElement).innerText.trim().slice(0, 30)}"`);
     const bar = document.querySelector(".desk-bar");
     const scroll = document.querySelector(".desk-scroll");
-    const first = scroll ? [...scroll.querySelectorAll("*")].filter((e) => shown(e) && e.children.length === 0 && (e as HTMLElement).innerText?.trim()).map((e) => e.getBoundingClientRect().top).sort((a, b) => a - b)[0] : undefined;
-    return { sideways: document.documentElement.scrollWidth > W, off: [...new Set(off)].slice(0, 5), covered: [...new Set(covered)].slice(0, 5), gap: bar && first !== undefined ? Math.round(first - bar.getBoundingClientRect().bottom) : null };
+    const first = scroll ? [...scroll.querySelectorAll("*")].filter((e) => shown(e) && [...e.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim())).map((e) => e.getBoundingClientRect().top).sort((a, b) => a - b)[0] : undefined;
+    return { edge: [...new Set(edge)].slice(0, 5), sideways: document.documentElement.scrollWidth > W, off: [...new Set(off)].slice(0, 5), covered: [...new Set(covered)].slice(0, 5), gap: bar && first !== undefined ? Math.round(first - bar.getBoundingClientRect().bottom) : null };
   });
   expect(found.sideways, `${where}: the page scrolls sideways`).toBe(false);
   expect(found.off, `${where}: off the screen`).toEqual([]);
   expect(found.covered, `${where}: text with something over it`).toEqual([]);
+  expect(found.edge, `${where}: text touching the edge of the screen`).toEqual([]);
   if (found.gap !== null) expect(found.gap, `${where}: content starts right under the bar`).toBeLessThanOrEqual(40);
 }
 
