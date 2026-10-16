@@ -80,6 +80,8 @@ html[data-lighting="day"] :is(.client-card, .mform) { background: oklch(0.99 0.0
 html[data-lighting="day"] :is(.mform input:not([type="checkbox"]), .tab-pane textarea, .directive-form textarea, .plan-confirm textarea, .plan-confirm input) { background: oklch(0.997 0.003 85); color: var(--foreground); }
 html[data-lighting="day"] .philosophy { background: linear-gradient(90deg, oklch(0.5 0.125 66 / 10%), oklch(0.97 0.01 85 / 70%)); }
 html[data-lighting="day"] .question { background: linear-gradient(145deg, oklch(0.9 0.05 80 / 50%), oklch(0.985 0.008 85)); }
+html[data-lighting="day"] .cv-question { background: linear-gradient(145deg, oklch(0.9 0.05 80 / 50%), oklch(0.985 0.008 85)); }
+html[data-lighting="day"] .cv-summary { background: oklch(0.97 0.02 80 / 70%); }
 html[data-lighting="day"] .contract-lead { color: oklch(0.3 0.015 60); }
 html[data-lighting="day"] :is(.pill.green, .directive-confirm, .room-signal, .flip-done span, .workspace-right, .window-bar strong, .system-time) { color: oklch(0.4 0.11 155); }
 html[data-lighting="day"] .flip-start span { color: oklch(0.42 0.12 235); }

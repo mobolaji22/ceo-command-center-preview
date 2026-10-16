@@ -231,3 +231,43 @@
 .standing { display: grid; gap: 10px; text-align: left; } .standing fieldset { border: 1px solid var(--border); padding: 10px 12px; display: grid; gap: 8px; } .standing legend { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); padding: 0 6px; }
 .hotspot-badge { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--primary); color: oklch(0.15 0.01 270); font-size: 10px; font-weight: 700; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px oklch(0.15 0.006 270); pointer-events: none; }
 .standing-org { display: grid; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--border); text-align: left; } .standing-org > b { font-size: 13px; }
+
+/* ---- what a client reads (P6.20): the request card and the plan, sized and ordered for a quick read --------------------- */
+.cv { font-size: 16px; line-height: 1.6; }
+.cv p, .cv li { max-width: 70ch; }
+.cv h3 { font-size: 20px; line-height: 1.35; font-weight: 600; margin: 4px 0 6px; }
+.cv h4 { font-size: 15px; font-weight: 600; color: var(--primary); letter-spacing: 0; text-transform: none; margin: 22px 0 8px; }
+.cv h5 { font-size: 15px; font-weight: 600; margin: 14px 0 4px; }
+.cv ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.cv .cv-sub, .cv small { font-size: 14px; opacity: .78; }
+.cv .cv-k { display: block; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--primary); font-weight: 600; }
+.cv-head { display: grid; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid oklch(0.76 0.146 76 / 18%); }
+.cv-status { font-size: 20px; font-weight: 600; margin: 0; }
+.cv-request { margin: 0; font-size: 15px; opacity: .85; }
+.cv-question { margin-top: 16px; padding: 18px 20px; border: 1px solid oklch(0.76 0.146 76 / 35%); background: linear-gradient(145deg, oklch(0.2 0.02 76 / 40%), oklch(0.14 0.006 270)); display: grid; gap: 8px; }
+.cv-options { display: grid; gap: 10px; margin-top: 6px; }
+.cv-option { height: auto; min-height: 52px; justify-content: flex-start; text-align: left; white-space: normal; display: grid; gap: 2px; padding: 12px 16px; font-size: 16px; }
+.cv-option small { font-size: 14px; }
+.cv-free { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cv-free input { flex: 1 1 220px; min-height: 44px; font-size: 16px; }
+.cv-block { margin-top: 6px; }
+.cv-more { margin-top: 16px; }
+.cv-more > summary { cursor: pointer; font-size: 15px; font-weight: 600; color: var(--primary); padding: 6px 0; }
+.cv-summary { display: grid; gap: 14px; padding: 18px 20px; border: 1px solid oklch(0.76 0.146 76 / 35%); background: oklch(0.16 0.01 76 / 60%); }
+.cv-lead { font-size: 18px; line-height: 1.5; margin: 0; }
+.cv-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.cv-fact { display: grid; gap: 4px; align-content: start; }
+.cv-total { font-size: 28px; font-weight: 600; line-height: 1.2; }
+.cv-total.cv-muted { font-size: 18px; opacity: .85; }
+.cv-dates { list-style: none; padding: 0 !important; }
+.cv-dates li { display: grid; }
+.cv-dates b { font-size: 17px; }
+.cv-dates span { font-size: 14px; opacity: .78; }
+.cv-phase { margin-bottom: 10px; }
+.cv-decisions li { display: grid; }
+.cv-who { font-size: 14px; color: var(--primary); }
+.cv-delegate { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; margin: 8px 0; }
+.cv-delegate input { margin-top: 5px; width: 18px; height: 18px; }
+.cv-delegate small { display: block; font-size: 14px; opacity: .78; }
+.cv .plan-actions { margin-top: 2px; }
+@media (max-width: 760px) { .cv-total { font-size: 24px; } .cv-question, .cv-summary { padding: 14px; } }

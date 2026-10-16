@@ -101,3 +101,21 @@ export function withdrawQuestion(id: string) {
   u.pathname = "/cc_e2e";
   execFileSync("psql", [u.toString(), "-v", "ON_ERROR_STOP=1", "-c", `UPDATE "Intervention" SET status = 'CANCELLED', "resolvedAt" = now() WHERE id = '${id}'`], { stdio: "pipe" });
 }
+
+/**
+ * Stands in for the CEO pricing the agency (ADR-0028; the Command Center has no screen for it yet, and the API's own tests cover
+ * the routes with their step-up): a 15% agency fee and a default rate for each effort level, so plans made after this carry a price.
+ */
+export function priceTheAgency(ceoEmail: string) {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const sql = `INSERT INTO "FeePolicy" (id, scope, "agencyFeeBps", "setByUserId", "updatedAt")
+      SELECT gen_random_uuid()::text, 'agency', 1500, id, now() FROM "User" WHERE email = '${ceoEmail}'
+      ON CONFLICT (scope) DO UPDATE SET "agencyFeeBps" = 1500;
+    INSERT INTO "RateCard" (id, capability, rigor, "unitCents", "setByUserId", "updatedAt")
+      SELECT gen_random_uuid()::text, '*', r.rigor, r.cents, u.id, now()
+      FROM "User" u, (VALUES ('light', 30000), ('standard', 80000), ('strict', 150000), ('critical', 250000)) AS r(rigor, cents)
+      WHERE u.email = '${ceoEmail}'
+      ON CONFLICT (capability, rigor) DO UPDATE SET "unitCents" = EXCLUDED."unitCents";`;
+  execFileSync("psql", [u.toString(), "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio: "pipe" });
+}

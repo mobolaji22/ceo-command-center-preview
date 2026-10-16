@@ -1,5 +1,5 @@
 import type { DesignDocument } from "@/lib/design/sdd";
-import type { ActionLinkView, AuditChain, Asset, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
+import type { ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -278,6 +278,22 @@ export function createApiDataSource(): DataSource {
         }
         return voidResult(await call("POST", `/v1/requirements/${requirementId}/respond`, answer));
       },
+      async clientView(intentId) {
+        type Need = { id: string; name: string; why: string; ifMissing: string; ways: MaterialWay[]; sourcing: boolean };
+        const r = await call<{
+          id: string; text: string; createdAt: string; status: ClientIntentView["status"];
+          questions: Array<{ id: string; position: number; of: number; question: string; why: string; options: Array<{ id: string; label: string; tradeoff: string }>; defaultOptionId: string | null }>;
+          needs: { required: Need[]; optional: Need[] }; assumed: Array<{ id: string; question: string; answer: string }>; plan: ClientIntentView["plan"];
+        }>("GET", `/v1/intents/${intentId}/client-view`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        const need = (n: Need) => ({ requirement_id: n.id, name: n.name, why: n.why, if_missing: n.ifMissing, ways: n.ways, sourcing: n.sourcing });
+        const v = r.data;
+        return ok({
+          id: v.id, text: v.text, created_at: v.createdAt, status: v.status,
+          questions: v.questions.map((q) => ({ id: q.id, position: q.position, of: q.of, question: q.question, why: q.why, options: q.options, default_option_id: q.defaultOptionId })),
+          needs: { required: v.needs.required.map(need), optional: v.needs.optional.map(need) }, assumed: v.assumed, plan: v.plan,
+        });
+      },
     },
 
     design: {
@@ -426,6 +442,36 @@ export function createApiDataSource(): DataSource {
         // A standing permission never covers a plan of risk above 3 (the API's own limit); a single-decision one names this plan.
         return r.data.some((p) => p.status === "ACTIVE" && (!p.expiresAt || new Date(p.expiresAt).getTime() > now)
           && (p.scope === "DECISION" ? p.proposalId === plan.id && !p.usedAt : (p.projectId === null || p.projectId === plan.project_id) && plan.impact <= 3));
+      },
+      async clientView(proposalId) {
+        type Range = { lowUsd: number; highUsd: number };
+        const range = (x: Range) => ({ low: x.lowUsd, high: x.highUsd });
+        const r = await call<{
+          id: string; projectId: string; version: number; status: ClientPlanView["status"];
+          summary: { objective: string; price: { projectFee: Range; agencyFeePct: number; agencyFee: Range; passThrough: Array<{ item: string } & Range>; total: Range } | null; priceNote: string; milestones: Array<{ name: string; target: string | null }> };
+          phases: ClientPlanView["phases"]; needs: ClientPlanView["needs"]; assumed: string[];
+          decisions: Array<{ description: string; decidedBy: "YOU" | "YOU_OR_AGENCY" }>; delegation: { inForce: boolean; alwaysYours: string[] };
+          more: { included: string[]; notIncluded: string[]; measures: Array<{ target: string; how: string; window: string }>; risks: Array<{ risk: string; mitigation: string }> };
+          changes: { since: number; lines: string[] } | null;
+        }>("GET", `/v1/proposals/${proposalId}/client-view`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        const v = r.data;
+        const price = v.summary.price;
+        return ok({
+          id: v.id, project_id: v.projectId, version: v.version, status: v.status,
+          summary: {
+            objective: v.summary.objective, price_note: v.summary.priceNote, milestones: v.summary.milestones,
+            price: price ? { project_fee: range(price.projectFee), agency_fee_pct: price.agencyFeePct, agency_fee: range(price.agencyFee), pass_through: price.passThrough.map((x) => ({ item: x.item, ...range(x) })), total: range(price.total) } : null,
+          },
+          phases: v.phases, needs: v.needs, assumed: v.assumed,
+          decisions: v.decisions.map((d) => ({ description: d.description, decided_by: d.decidedBy })),
+          delegation: { in_force: v.delegation.inForce, always_yours: v.delegation.alwaysYours },
+          more: { included: v.more.included, not_included: v.more.notIncluded, measures: v.more.measures, risks: v.more.risks },
+          changes: v.changes,
+        });
+      },
+      async allowAgencyToDecide({ organizationId, projectId }) {
+        return voidResult(await call("POST", `/v1/organizations/${organizationId}/permissions/grants`, { scope: "STANDING", projectId }));
       },
     },
 

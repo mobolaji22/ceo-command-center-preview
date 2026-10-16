@@ -1,6 +1,7 @@
 import { loadDraft, saveDraft } from "@/lib/design/draft-store";
 import type {
   Answer,
+  ClientIntentView,
   Approval,
   Asset,
   ActionLinkView,
@@ -45,7 +46,43 @@ const id = () => crypto.randomUUID();
 type Membership = { organizationId: string; role: "CLIENT_OWNER" | "CLIENT_MEMBER" };
 type User = { id: string; email: string; displayName: string; role: "owner" | "client"; memberships: Membership[] };
 
-type Store = { data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView> };
+/**
+ * The demo's rate card and agency share (ADR-0028): the fixtures price plans the way v4 does, from stated figures, so the demo
+ * shows a price. They are demo numbers, not the agency's.
+ */
+const DEMO_RATES: Record<string, number> = { light: 300, standard: 800, strict: 1500, critical: 2500 };
+const DEMO_AGENCY_FEE_PCT = 15;
+const DEMO_REVISION_ALLOWANCE = 0.2;
+const fee = (n: number) => Math.round(n * DEMO_AGENCY_FEE_PCT) / 100;
+function demoPrice(plan: PlanContent) {
+  const low = plan.tasks.reduce((sum, t) => sum + (DEMO_RATES[t.rigor] ?? 0), 0);
+  const project = { low, high: Math.round(low * (1 + DEMO_REVISION_ALLOWANCE)) };
+  const agency = { low: fee(project.low), high: fee(project.high) };
+  return { project, agency, total: { low: project.low + agency.low, high: project.high + agency.high } };
+}
+const usdText = (r: { low: number; high: number }) => `$${r.low.toLocaleString("en-US")} to $${r.high.toLocaleString("en-US")}`;
+/** What a client is told changed between versions, the way v4 words it: the price, what they get, the dates and the scope. */
+function demoChanges(from: PlanContent, to: PlanContent): string[] {
+  const lines: string[] = [];
+  const [a, b] = [demoPrice(from).total, demoPrice(to).total];
+  if (a.low !== b.low || a.high !== b.high) lines.push(`Price: ${usdText(b)} (was ${usdText(a)})`);
+  const diff = (x: string[], y: string[], added: string, removed: string) => {
+    for (const n of y) if (!x.includes(n)) lines.push(`${added}: ${n}`);
+    for (const n of x) if (!y.includes(n)) lines.push(`${removed}: ${n}`);
+  };
+  diff(from.deliverables.map((d) => d.name), to.deliverables.map((d) => d.name), "Added", "Removed");
+  diff(from.scope_in, to.scope_in, "Now included", "No longer included");
+  return lines;
+}
+/** The same order v4's client views use: what is asked, by impact, as it was stored. */
+const STATUS_LINE = (i: { status: string; questions: unknown[] }, planReady: boolean): ClientIntentView["status"] =>
+  i.questions.length ? { kind: "QUESTIONS", line: i.questions.length === 1 ? "One question for you." : `${i.questions.length} questions for you.` }
+  : i.status === "RECEIVED" || i.status === "AWAITING_REASONING" ? { kind: "READING", line: "We're reading your request." }
+  : planReady ? { kind: "PLAN_READY", line: "Your plan is ready." }
+  : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
+  : { kind: "PLANNING", line: "We're preparing your plan." };
+
+type Store = { standingProjects?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView> };
 
 /** A demo plan: enough to show every part of the page. */
 const demoPlan = (): PlanContent => ({
@@ -506,6 +543,20 @@ export function createFixturesDataSource(): DataSource {
       async respond(requirementId) {
         return mutate((s) => { for (const i of s.data.intents) i.materials = i.materials.filter((m) => m.requirement_id !== requirementId); });
       },
+      async clientView(intentId) {
+        const s = load();
+        const i = s.data.intents.find((x) => x.id === intentId);
+        if (!i) return fail("That request couldn't be found.", "NOT_FOUND");
+        const plan = i.project_id ? [...s.plans].filter((p) => p.project_id === i.project_id && p.status !== "DRAFT").sort((a, b) => b.version - a.version)[0] : undefined;
+        const need = (m: (typeof i.materials)[number]) => ({ requirement_id: m.requirement_id, name: m.name, why: m.why, if_missing: m.if_missing, ways: m.ways, sourcing: m.sourcing });
+        return ok({
+          id: i.id, text: i.text, created_at: i.created_at, status: STATUS_LINE(i, Boolean(plan)),
+          questions: i.questions.map((q, n) => ({ id: q.id, position: n + 1, of: i.questions.length, question: q.question, why: q.why, options: q.options, default_option_id: q.default_option_id })),
+          needs: { required: i.materials.filter((m) => m.required).map(need), optional: i.materials.filter((m) => !m.required).map(need) },
+          assumed: i.assumptions.map((a) => ({ id: a.id, question: a.question, answer: a.assumed })),
+          plan: plan ? { id: plan.id, version: plan.version, status: plan.status } : null,
+        });
+      },
     },
 
     actionLinks: {
@@ -740,8 +791,42 @@ export function createFixturesDataSource(): DataSource {
       async revokeDelegation(delegationId, reason) {
         return mutate((s) => { const d = s.delegations.find((x) => x.id === delegationId); if (d && !d.revoked_at) { d.revoked_at = new Date().toISOString(); d.revoked_reason = reason || "Revoked"; } });
       },
-      async mayDecideForClient() {
-        return false; // Off by default; the demo has no screen for a client to switch it on.
+      async mayDecideForClient(plan) {
+        // Off until the client's owner lets the agency decide routine steps on this project; never above risk 3.
+        return (load().standingProjects ?? []).includes(plan.project_id) && plan.impact <= 3;
+      },
+      async clientView(proposalId) {
+        const s = load();
+        const p = s.plans.find((x) => x.id === proposalId);
+        if (!p) return fail("That plan couldn't be found.", "NOT_FOUND");
+        const plan = p.plan;
+        const { project, agency, total } = demoPrice(plan);
+        const prev = s.plans.find((x) => x.project_id === p.project_id && x.version === p.version - 1);
+        const inForce = (s.standingProjects ?? []).includes(p.project_id);
+        const task = (id?: string) => plan.tasks.find((t) => t.id === id);
+        return ok({
+          id: p.id, project_id: p.project_id, version: p.version, status: p.status,
+          summary: {
+            objective: plan.objective,
+            price: { project_fee: project, agency_fee_pct: DEMO_AGENCY_FEE_PCT, agency_fee: agency, pass_through: [], total },
+            price_note: "Demo figures. The range allows for one round of revisions.",
+            milestones: plan.milestones.map((m) => ({ name: m.name, target: null })),
+          },
+          phases: [{ phase: null, deliverables: plan.deliverables.map((d) => ({ name: d.name, due: null })) }],
+          needs: { required: plan.open_context_needs.map((n) => ({ name: n, why: "" })), optional: [] },
+          assumed: plan.assumptions,
+          decisions: plan.decision_points.map((d) => {
+            const t = task(d.task_id ?? undefined);
+            return { description: d.description, decided_by: inForce && !(t && (t.risk > 3 || t.reversibility === 1)) ? "YOU_OR_AGENCY" as const : "YOU" as const };
+          }),
+          delegation: { in_force: inForce, always_yours: ["Anything with a risk above 3 of 5: each needs its own permission", "Spending beyond the approved total", "Anything that cannot be undone, or moves money: you and the agency both decide"] },
+          more: { included: plan.scope_in, not_included: plan.scope_out, measures: plan.success_metrics.map((m) => ({ target: m.target, how: m.measurement, window: m.window })), risks: plan.risks },
+          changes: prev ? { since: prev.version, lines: demoChanges(prev.plan, plan) } : null,
+        });
+      },
+      async allowAgencyToDecide({ projectId }) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        return mutate((s) => { s.standingProjects = [...new Set([...(s.standingProjects ?? []), projectId])]; });
       },
     },
 

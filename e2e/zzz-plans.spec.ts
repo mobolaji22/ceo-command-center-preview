@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { allowCeoToDecideFor, forgetSignInRequests } from "./db";
+import { allowCeoToDecideFor, forgetSignInRequests, priceTheAgency } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk } from "./client-room";
@@ -46,26 +46,35 @@ async function sendRequest(page: Page, text: string) {
   // v4 may ask before it plans; the questions are not what these tests are about.
   const card = page.locator(".intent-card", { hasText: text.slice(0, 30) }).first();
   await answerEveryQuestion(card);
-  await expect(card.locator(".intent-head .pill")).toHaveText("PLANNED");
+  await expect(card.locator('[data-stage="PLAN_READY"]')).toBeVisible();
 }
 
-const money = async (text: string | null) => Number(/\$(\d+\.\d\d) to \$(\d+\.\d\d)/.exec(text ?? "")![2]);
+/** The high end of a price as the client reads it ("$1,840 to $2,208"). */
+const money = async (text: string | null) => Number(/\$([\d,.]+) to \$([\d,.]+)/.exec(text ?? "")![2].replace(/,/g, ""));
 
 test.describe.configure({ mode: "serial" });
 evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
 test("a client reads the plan, asks for a change, sees what changed, approves it, and takes the permission back", async ({ page }) => {
+  priceTheAgency(CEO);
   await signIn(page, OWNER);
   await sendRequest(page, ASK);
 
   const card = page.locator(".intent-card", { hasText: "Redesign our online checkout" }).first();
-  await expect(card.locator(".intent-head .pill")).toHaveText("PLANNED");
+  await expect(card.locator('[data-stage="PLAN_READY"]')).toBeVisible();
   const plan = card.getByLabel("Plan");
   await expect(plan.getByText("Version 1")).toBeVisible();
-  await expect(plan.locator(".plan-doc .pill, .resolved-row .pill").first()).toHaveText("AWAITING A DECISION");
-  for (const heading of ["What we will do", "What you get", "The work", "What it may cost", "What we assumed"]) await expect(plan.getByRole("heading", { name: heading })).toBeVisible();
-  const before = await money(await plan.getByLabel("Estimated cost").textContent());
+  await expect(plan.locator(".resolved-row .pill").first()).toHaveText("AWAITING A DECISION");
+  // A client reads the plan in the order they need it (P6.20): the price and the decision first, then what they get. The
+  // internal work (tasks, domains, effort levels) is not theirs to read.
+  const price = plan.getByLabel("Price");
+  await expect(price).toContainText(/\$[\d,]+ to \$[\d,]+/);
+  await expect(price).toContainText("Agency fee 15%");
+  for (const heading of ["What you get", "What we assumed"]) await expect(plan.getByRole("heading", { name: heading })).toBeVisible();
+  for (const heading of ["The work", "What it may cost"]) await expect(plan.getByRole("heading", { name: heading })).toHaveCount(0);
+  await shot(page, "The plan as a client reads it: the price and the decision first");
+  const before = await money(await price.locator(".cv-total").textContent());
 
   // Ask for a change: the answer is the next version, with what changed.
   await plan.getByRole("button", { name: "Ask for a change" }).click();
@@ -73,9 +82,10 @@ test("a client reads the plan, asks for a change, sees what changed, approves it
   await plan.getByRole("button", { name: "Send" }).click();
   await expect(plan.getByRole("status")).toContainText("Version 2 is ready for you");
   await expect(plan.getByRole("tab", { name: "v2" })).toHaveAttribute("aria-selected", "true");
-  expect(await money(await plan.getByLabel("Estimated cost").textContent())).toBeLessThan(before);
+  expect(await money(await plan.getByLabel("Price").locator(".cv-total").textContent())).toBeLessThan(before);
   await plan.getByRole("button", { name: "What changed since version 1" }).click();
-  await expect(plan.getByLabel("What changed").getByText(/^Budget:/)).toBeVisible();
+  await expect(plan.getByLabel("What changed").getByText(/^Price:/)).toBeVisible();
+  await expect(plan.getByLabel("What changed").getByText(/^Budget:|effort/)).toHaveCount(0);
   await plan.getByRole("tab", { name: "v1" }).click();
   await expect(plan.locator(".resolved-row .pill").first()).toHaveText("REPLACED");
   await expect(plan.getByRole("button", { name: "Approve" })).toHaveCount(0); // an old version cannot be decided
