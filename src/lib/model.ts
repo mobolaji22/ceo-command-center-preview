@@ -148,7 +148,7 @@ export type V4Event = {
   type: string
 };
 
-export type IntentStatus = "PROPOSED" | "RECEIVED" | "CLARIFYING" | "UNDERSTOOD" | "PLANNED" | "SUPERSEDED" | "REJECTED";
+export type IntentStatus = "PROPOSED" | "RECEIVED" | "CLARIFYING" | "AWAITING_REASONING" | "UNDERSTOOD" | "PLANNED" | "SUPERSEDED" | "REJECTED";
 export type MaterialWay = "UPLOAD" | "LINK" | "CONNECT" | "NONE" | "SOURCE";
 
 /** What someone asked for, where it stands, and what we are asking back (at most three questions and one materials list). */
@@ -215,6 +215,52 @@ export type PlanVersion = {
   /** The CEO decided for the client, under a permission their owner gave. */
   on_behalf: boolean
   plan: PlanContent
+};
+
+/** A range of money, low to high, in US dollars. */
+export type UsdRange = { low: number; high: number };
+
+/** A material still needed from the client (the client views list required ones first). */
+export type ClientNeed = { requirement_id: string; name: string; why: string; if_missing: string; ways: MaterialWay[]; sourcing: boolean };
+
+/**
+ * What a client reads about one request (P6.20): one status line, the open questions in order with their place, what is still
+ * needed (required first), what was assumed. Ordered and trimmed by v4; the UI renders it as it is.
+ */
+export type ClientIntentView = {
+  id: string
+  text: string
+  created_at: string
+  status: { kind: "READING" | "QUESTIONS" | "PLANNING" | "PLAN_READY" | "CLOSED"; line: string }
+  questions: Array<{ id: string; position: number; of: number; question: string; why: string; options: Array<{ id: string; label: string; tradeoff: string }>; default_option_id: string | null }>
+  needs: { required: ClientNeed[]; optional: ClientNeed[] }
+  assumed: Array<{ id: string; question: string; answer: string }>
+  plan: { id: string; version: number; status: PlanStatus } | null
+};
+
+/**
+ * What a client reads about a plan (P6.20): the summary they decide on (what, price, when), what they get by phase, what is
+ * needed from them, what was assumed, the decisions to come and who makes them, and the rest folded. No internal work.
+ */
+export type ClientPlanView = {
+  id: string
+  project_id: string
+  version: number
+  status: PlanStatus
+  summary: {
+    objective: string
+    price: { project_fee: UsdRange; agency_fee_pct: number; agency_fee: UsdRange; pass_through: Array<{ item: string } & UsdRange>; total: UsdRange } | null
+    price_note: string
+    milestones: Array<{ name: string; target: string | null }>
+  }
+  phases: Array<{ phase: number | null; deliverables: Array<{ name: string; due: string | null }> }>
+  needs: { required: Array<{ name: string; why: string }>; optional: Array<{ name: string; why: string }> }
+  assumed: string[]
+  decisions: Array<{ description: string; decided_by: "YOU" | "YOU_OR_AGENCY" }>
+  delegation: { in_force: boolean; always_yours: string[] }
+  more: { included: string[]; not_included: string[]; measures: Array<{ target: string; how: string; window: string }>; risks: Array<{ risk: string; mitigation: string }> }
+  /** What changed since the previous version, in the client's terms (price, what they get, dates, scope); null on version 1. */
+  changes: { since: number; lines: string[] } | null
 };
 
 /** What changed between two versions, in plain sentences, with the money called out. */

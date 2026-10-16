@@ -43,21 +43,22 @@ test("a client sends a request with a file and a link, answers the questions, se
   await expect(composer.getByRole("status")).toContainText("Received. A few questions");
 
   const card = page.locator(".intent-card", { hasText: "We want a better website" });
-  await expect(card.locator(".intent-head .pill")).toHaveText("NEEDS ANSWERS");
+  // The client reads where it stands in one line, then one question at a time with its place in the round (P6.20).
   // What v4 asks today: the direction (the request could be read either way), whether a duty brings Compliance in, and the result to aim at.
-  await expect(card.locator(".question")).toHaveCount(3);
+  await expect(card.locator('[data-stage="QUESTIONS"]')).toBeVisible();
+  await expect(card.locator(".cv-status")).toHaveText("3 questions for you.");
+  await expect(card.getByText("Question 1 of 3")).toBeVisible();
+  await expect(card.locator(".cv-question")).toHaveCount(1);
+  await shot(page, "A client's request: where it stands, then one question at a time");
 
-  // One ask: the questions and the materials list are together.
-  await expect(card.getByText("WHAT WE NEED FROM YOU")).toBeVisible();
+  // One ask: the question and the materials list are together.
+  await expect(card.getByRole("heading", { name: "What we need from you" })).toBeVisible();
   await expect(card.locator('.material[aria-label="Brand guidelines"]')).toBeVisible();
 
-  await card.getByRole("button", { name: /^Keep the current direction/ }).click();
-  await card.getByRole("button", { name: /^No, none applies/ }).click();
-  await card.getByRole("button", { name: /^More sales or sign-ups/ }).click();
   // Timing is asked once the rest is known.
-  await card.getByRole("button", { name: /Within the quarter/ }).click();
-  await expect(card.locator(".intent-head .pill")).toHaveText("PLANNED");
-  await expect(card.locator(".question")).toHaveCount(0);
+  await answerEveryQuestion(card, [/^Keep the current direction/, /^No, none applies/, /^More sales or sign-ups/, /Within the quarter/]);
+  await expect(card.locator('[data-stage="PLAN_READY"]')).toBeVisible();
+  await expect(card.locator(".cv-question")).toHaveCount(0);
 
   // Settle the materials list, each in a different way.
   await card.getByLabel("Upload for Brand guidelines").setInputFiles({ name: "brand.txt", mimeType: "text/plain", buffer: Buffer.from("Warm and direct.") });
@@ -67,10 +68,10 @@ test("a client sends a request with a file and a link, answers the questions, se
   await expect(card.locator('.material[aria-label="Address of the page or site to redesign"]')).toHaveCount(0);
   await expect(card.locator('.material[aria-label="Access to where this will live"]')).toBeVisible();
   await card.locator('.material[aria-label="Access to where this will live"]').getByRole("button", { name: "I don't have this" }).click();
-  await expect(card.getByText("Nothing more is needed from you right now.")).toBeVisible();
+  await expect(card.locator(".cv-block").getByRole("heading", { name: "What we need from you" })).toHaveCount(0);
 
-  // The assumption we made instead of asking is shown, not hidden.
-  await expect(card.locator(".ask-block").getByText("We are going with:")).toBeVisible();
+  // What we assumed instead of asking is shown, not hidden: the plan states it.
+  await expect(card.getByLabel("Plan").getByRole("heading", { name: "What we assumed" })).toBeVisible();
 
   // The project opened when the request was understood (on the table), and the link we sent to the library is there (on the shelf).
   await openClientDesk(page, "Table");

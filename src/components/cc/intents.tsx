@@ -5,13 +5,13 @@ import { Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import type { NewAttachment } from "@/lib/data/types";
-import type { Asset, Intent, MaterialWay } from "@/lib/model";
+import type { Asset, ClientIntentView, Intent, MaterialWay } from "@/lib/model";
 import { fmtAgo, label, statusTone } from "@/lib/format";
 import { Empty } from "./views";
 import { PlanPanel } from "./plans";
 
 const STATUS_WORDS: Record<string, string> = {
-  RECEIVED: "Received", CLARIFYING: "Needs answers", UNDERSTOOD: "Understood", PLANNED: "Planned", REJECTED: "Withdrawn", SUPERSEDED: "Replaced", PROPOSED: "Proposed",
+  RECEIVED: "Received", CLARIFYING: "Needs answers", AWAITING_REASONING: "Waiting for reasoning", UNDERSTOOD: "Understood", PLANNED: "Planned", REJECTED: "Withdrawn", SUPERSEDED: "Replaced", PROPOSED: "Proposed",
 };
 const tone = (status: string) => (status === "CLARIFYING" ? "amber" : status === "UNDERSTOOD" || status === "PLANNED" ? "green" : "muted");
 
@@ -98,6 +98,71 @@ export function IntentCard({ intent, canAnswer, refresh }: { intent: Intent; can
 
     {intent.project_id && (intent.status === "PLANNED" || intent.status === "UNDERSTOOD") && <PlanPanel projectId={intent.project_id} organizationId={intent.organization_id} onChanged={refresh} />}
   </div>;
+}
+
+/**
+ * One request as its client reads it (P6.20): where it stands in one line, then the one question to answer now (with its place
+ * in the round), what we need from them (required first, the rest folded), and what we assumed; the plan when there is one.
+ * It renders v4's client view as it is (INV-27): the order and what is left out are decided there.
+ */
+export function ClientIntentCard({ intent, canAnswer, refresh }: { intent: Intent; canAnswer: boolean; refresh: () => void }) {
+  const ds = useDataSource();
+  const [view, setView] = useState<ClientIntentView | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let live = true;
+    void ds.intents.clientView(intent.id).then((r) => { if (live) setView(r.data); });
+    return () => { live = false; };
+  }, [ds, intent.id, intent.status, tick]);
+  const reload = () => { setTick((n) => n + 1); refresh(); };
+  const answer = async (a: { optionId?: string; text?: string; useDefault?: boolean }, done: string) => {
+    if (!view?.questions[0]) return;
+    setMsg(null);
+    const r = await ds.intents.answer(intent.id, view.questions[0].id, a);
+    if (r.error) { setMsg(r.error.message); return; }
+    setMsg(done); setText(""); reload();
+  };
+  if (!view) return <div className="intent-card cv" data-status={intent.status}><p className="cv-sub">Loading…</p></div>;
+  const q = view.questions[0];
+
+  return <div className="intent-card cv" data-status={intent.status}>
+    <div className="cv-head" data-stage={view.status.kind}>
+      <p className="cv-status" role="status">{view.status.line}</p>
+      <p className="cv-request">“{view.text}”<span className="cv-sub"> · {fmtAgo(view.created_at)}</span></p>
+    </div>
+    {msg && <p className="mmsg" role="status">{msg}</p>}
+
+    {q && <div className="cv-question" aria-label={q.question}>
+      <span className="cv-k">Question {q.position} of {q.of}</span>
+      <h3>{q.question}</h3>
+      <p className="cv-sub">{q.why}</p>
+      {canAnswer ? <>
+        <div className="cv-options">{q.options.map((o) => <Button key={o.id} variant="outline" className="cv-option" onClick={() => void answer({ optionId: o.id }, "Thank you.")}>{o.label}<small>{o.tradeoff}</small></Button>)}</div>
+        <div className="cv-free"><input aria-label="Something else" placeholder="Something else…" value={text} onChange={(e) => setText(e.target.value)} />
+          <Button variant="ghost" disabled={!text.trim()} onClick={() => void answer({ text: text.trim() }, "Thank you.")}>Send</Button>
+          {q.default_option_id && <Button variant="ghost" onClick={() => void answer({ useDefault: true }, "We will go with our usual choice.")}>You decide</Button>}</div>
+      </> : <p className="cv-sub">Waiting for the account owner to answer.</p>}
+    </div>}
+
+    {view.needs.required.length > 0 && <div className="cv-block"><h4>What we need from you</h4>
+      {view.needs.required.map((m) => <Material key={m.requirement_id} item={{ ...m, required: true }} organizationId={intent.organization_id} canAnswer={canAnswer} onDone={(done) => { setMsg(done); reload(); }} onError={setMsg} />)}</div>}
+    {view.needs.optional.length > 0 && <details className="cv-more"><summary>Helpful if you have them ({view.needs.optional.length})</summary>
+      {view.needs.optional.map((m) => <Material key={m.requirement_id} item={{ ...m, required: false }} organizationId={intent.organization_id} canAnswer={canAnswer} onDone={(done) => { setMsg(done); reload(); }} onError={setMsg} />)}</details>}
+
+    {/* Once there is a plan, it states what was assumed; saying it twice would only make the page longer. */}
+    {!view.plan && view.assumed.length > 0 && <div className="cv-block"><h4>What we assumed</h4>
+      <ul>{view.assumed.map((a) => <li key={a.id}>{a.question}<span className="cv-sub"> · We are going with: {a.answer}</span></li>)}</ul></div>}
+
+    {view.plan && intent.project_id && <PlanPanel projectId={intent.project_id} organizationId={intent.organization_id} onChanged={reload} />}
+  </div>;
+}
+
+/** A client's requests, each as they read it. */
+export function ClientIntentList({ intents, canAnswer, refresh, empty }: { intents: Intent[]; canAnswer: (i: Intent) => boolean; refresh: () => void; empty: string }) {
+  if (intents.length === 0) return <Empty title={empty} />;
+  return <div className="intent-list">{intents.map((i) => <ClientIntentCard key={i.id} intent={i} canAnswer={canAnswer(i)} refresh={refresh} />)}</div>;
 }
 
 function Material({ item, organizationId, canAnswer, onDone, onError }: { item: Intent["materials"][number]; organizationId: string; canAnswer: boolean; onDone: (m: string) => void; onError: (m: string) => void }) {

@@ -5,7 +5,8 @@ import { Check, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
-import type { DecisionEntry, DelegationView, PlanChange, PlanVersion } from "@/lib/model";
+import type { ClientPlanView, DecisionEntry, DelegationView, PlanChange, PlanVersion } from "@/lib/model";
+import { ClientPlanDoc } from "./client-plan";
 import { fmtAgo, fmtDate, label } from "@/lib/format";
 import { useStepUp } from "./step-up";
 
@@ -37,6 +38,9 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [mayState, setMayState] = useState<{ id: string; ok: boolean } | null>(null);
+  // A client reads v4's client view of the plan (P6.20), not the agency's working document.
+  const [loadedView, setClientView] = useState<ClientPlanView | null>(null);
+  const [letAgency, setLetAgency] = useState(false);
 
   const isCEO = auth.isOwner;
   const isClientOwner = auth.user?.memberships.some((m) => m.organizationId === organizationId && m.role === "CLIENT_OWNER") ?? false;
@@ -62,7 +66,16 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
     return () => { live = false; };
   }, [ds, latest, onBehalf]);
   const mayForClient = mayState !== null && mayState.id === latest?.id && mayState.ok;
+  const shownId = shown?.id;
+  useEffect(() => {
+    if (isCEO || !shownId) return;
+    let live = true;
+    void ds.plans.clientView(shownId).then((r) => { if (live) setClientView(r.data); });
+    return () => { live = false; };
+  }, [ds, isCEO, shownId, versions]);
   const change = changeFor && changeFor.id === shown?.id ? changeFor.change : null;
+  // Only the shown version's view: while the next one loads, an older version's price must not sit under its header.
+  const clientView = loadedView && loadedView.id === shown?.id ? loadedView : null;
 
   if (!versions || !shown || !latest) return null;
 
@@ -76,6 +89,12 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
       setBusy(false);
       if (r.error || !r.data) { setMsg(r.error?.message ?? "That didn't go through."); return; }
       setMsg(done(r.data.nextVersion)); setMode(null); setText(""); setPicked(null);
+      // The owner chose, while approving, to let the agency's CEO approve routine steps on this project (ADR-0015).
+      if (action === "APPROVE" && letAgency && isClientOwner) {
+        const g = await ds.plans.allowAgencyToDecide({ organizationId, projectId });
+        setMsg(g.error ? `Approved. We could not record your permission for routine decisions: ${g.error.message}` : "Approved. The work can begin, and the agency may approve routine steps for you.");
+        setLetAgency(false);
+      }
       await load(); onChanged();
     });
     setBusy(false);
@@ -99,13 +118,34 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
   };
   const live = delegations.filter((d) => !d.revoked_at);
 
+  const actionsBlock = <>
+    {onBehalf && isCurrent && shown.status === "SUBMITTED" && <p className="mmsg"><ShieldCheck size={14} /> This is the client&apos;s decision. {mayForClient ? "Their owner has given you permission to decide it; they will see that you did." : "You can make it only if their owner gives you permission."}</p>}
+    {canDecide && <div className="plan-actions" aria-label="Decide">
+      {mode === null && <>
+        <Button className="approve-btn" onClick={() => setMode("approve")}><Check size={15} /> Approve{onBehalf ? " for the client" : ""}</Button>
+        <Button variant="outline" onClick={() => setMode("change")}>Ask for a change</Button>
+        <Button variant="outline" className="reject-btn" onClick={() => setMode("decline")}>Decline</Button>
+      </>}
+      {mode === "approve" && <div className="plan-confirm"><p>{onBehalf ? "You are deciding for the client. They will see that you did, and it is recorded. " : ""}Approving lets us do this work without asking again, within these limits: nothing above medium risk, nothing hard to undo, nothing outside the list above. You can take that back at any time.</p>
+        {!isCEO && isClientOwner && clientView && !clientView.delegation.in_force && <label className="cv-delegate"><input type="checkbox" checked={letAgency} onChange={(e) => setLetAgency(e.target.checked)} /> <span>Let the agency approve routine decisions on this project<small>Still always yours: {clientView.delegation.always_yours.join("; ")}. You can take it back at any time.</small></span></label>}
+        <Button className="approve-btn" disabled={busy} onClick={() => decide("APPROVE", () => "Approved. The work can begin.")}>Confirm approval</Button> <Button variant="ghost" onClick={() => setMode(null)}>Cancel</Button>
+        <small className="plan-confirm-note">For safety we will ask you for a six-digit code, which we email to you.</small>{stepUpPanel}</div>}
+      {mode === "change" && <div className="plan-confirm"><label htmlFor="plan-change-text">WHAT WOULD YOU LIKE CHANGED?</label>
+        <textarea id="plan-change-text" value={text} maxLength={2000} onChange={(e) => setText(e.target.value)} placeholder="For example: make it cheaper, or drop the blog posts." />
+        <Button className="approve-btn" disabled={busy || !text.trim()} onClick={() => decide("REQUEST_REVISION", (n) => (n ? `Thank you. Version ${n} is ready for you.` : "Thank you. We will send a new version."))}>Send</Button> <Button variant="ghost" onClick={() => { setMode(null); setText(""); }}>Cancel</Button></div>}
+      {mode === "decline" && <div className="plan-confirm"><label htmlFor="plan-decline-text">WHY? (OPTIONAL)</label>
+        <textarea id="plan-decline-text" value={text} maxLength={2000} onChange={(e) => setText(e.target.value)} />
+        <Button className="reject-btn" variant="outline" disabled={busy} onClick={() => decide("REJECT", () => "Declined. Nothing will start.")}>Decline this plan</Button> <Button variant="ghost" onClick={() => { setMode(null); setText(""); }}>Cancel</Button></div>}
+    </div>}
+  </>;
+
   return <section className="plan" aria-label="Plan">
     <div className="section-label"><span>THE PLAN</span>
       <span className="plan-versions" role="tablist" aria-label="Versions">{versions.map((v) => <button key={v.id} role="tab" aria-selected={v.id === shown.id} className={v.id === shown.id ? "active" : ""} onClick={() => { setPicked(v.version); setMode(null); }}>v{v.version}</button>)}</span></div>
     <div className="resolved-row"><span>Version {shown.version}{shown.rationale && <small>{shown.rationale}</small>}</span><span className={`pill ${tone(shown.status)}`}>{(STATUS_WORDS[shown.status] ?? label(shown.status)).toUpperCase()}</span></div>
     {msg && <p className="mmsg" role="status">{msg}</p>}
 
-    <div className="plan-doc">
+    {!isCEO ? (clientView ? <ClientPlanDoc view={clientView} actions={actionsBlock} /> : null) : <div className="plan-doc">
       <h4>What we will do</h4><p>{p.objective}</p>
       <h4>Included</h4><ul>{p.scope_in.map((x) => <li key={x}>{x}</li>)}</ul>
       {p.scope_out.length > 0 && <><h4>Not included</h4><ul>{p.scope_out.map((x) => <li key={x}>{x}</li>)}</ul></>}
@@ -118,30 +158,18 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
       {p.assumptions.length > 0 && <><h4>What we assumed</h4><ul>{p.assumptions.map((a) => <li key={a}>{a}</li>)}</ul></>}
       {p.open_context_needs.length > 0 && <><h4>What we still need from you</h4><ul>{p.open_context_needs.map((a) => <li key={a}>{a}</li>)}</ul></>}
       {p.decision_points.length > 0 && <><h4>Where we will ask you</h4><ul>{p.decision_points.map((d) => <li key={d.description}>{d.description}</li>)}</ul></>}
-    </div>
+    </div>}
 
     {shown.version > 1 && <div className="plan-change">
       <Button variant="ghost" onClick={showChange}>{change ? "Hide what changed" : `What changed since version ${shown.version - 1}`}</Button>
-      {change && <div aria-label="What changed">{change.unchanged ? <p>Nothing changed.</p> : <ul>{change.summary.map((s) => <li key={s}>{s}</li>)}</ul>}</div>}
+      {/* A client reads the change in their terms (v4's client view); the CEO reads the full comparison. */}
+      {change && <div aria-label="What changed">{(() => {
+        const lines = isCEO ? (change.unchanged ? [] : change.summary) : (clientView?.changes?.lines ?? []);
+        return lines.length ? <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul> : <p>{isCEO ? "Nothing changed." : "Nothing that affects you changed."}</p>;
+      })()}</div>}
     </div>}
 
-    {onBehalf && isCurrent && shown.status === "SUBMITTED" && <p className="mmsg"><ShieldCheck size={14} /> This is the client&apos;s decision. {mayForClient ? "Their owner has given you permission to decide it; they will see that you did." : "You can make it only if their owner gives you permission."}</p>}
-    {canDecide && <div className="plan-actions" aria-label="Decide">
-      {mode === null && <>
-        <Button className="approve-btn" onClick={() => setMode("approve")}><Check size={15} /> Approve{onBehalf ? " for the client" : ""}</Button>
-        <Button variant="outline" onClick={() => setMode("change")}>Ask for a change</Button>
-        <Button variant="outline" className="reject-btn" onClick={() => setMode("decline")}>Decline</Button>
-      </>}
-      {mode === "approve" && <div className="plan-confirm"><p>{onBehalf ? "You are deciding for the client. They will see that you did, and it is recorded. " : ""}Approving lets us do this work without asking again, within these limits: nothing above medium risk, nothing hard to undo, nothing outside the list above. You can take that back at any time.</p>
-        <Button className="approve-btn" disabled={busy} onClick={() => decide("APPROVE", () => "Approved. The work can begin.")}>Confirm approval</Button> <Button variant="ghost" onClick={() => setMode(null)}>Cancel</Button>
-        <small className="plan-confirm-note">For safety we will ask you for a six-digit code, which we email to you.</small>{stepUpPanel}</div>}
-      {mode === "change" && <div className="plan-confirm"><label htmlFor="plan-change-text">WHAT WOULD YOU LIKE CHANGED?</label>
-        <textarea id="plan-change-text" value={text} maxLength={2000} onChange={(e) => setText(e.target.value)} placeholder="For example: make it cheaper, or drop the blog posts." />
-        <Button className="approve-btn" disabled={busy || !text.trim()} onClick={() => decide("REQUEST_REVISION", (n) => (n ? `Thank you. Version ${n} is ready for you.` : "Thank you. We will send a new version."))}>Send</Button> <Button variant="ghost" onClick={() => { setMode(null); setText(""); }}>Cancel</Button></div>}
-      {mode === "decline" && <div className="plan-confirm"><label htmlFor="plan-decline-text">WHY? (OPTIONAL)</label>
-        <textarea id="plan-decline-text" value={text} maxLength={2000} onChange={(e) => setText(e.target.value)} />
-        <Button className="reject-btn" variant="outline" disabled={busy} onClick={() => decide("REJECT", () => "Declined. Nothing will start.")}>Decline this plan</Button> <Button variant="ghost" onClick={() => { setMode(null); setText(""); }}>Cancel</Button></div>}
-    </div>}
+    {isCEO && actionsBlock}
 
     {history.length > 0 && <div className="plan-history"><div className="section-label"><span>DECISIONS</span><span>{history.length}</span></div>
       {history.map((h) => <div key={h.proposal_id} className="resolved-row"><span>Version {h.version}: {DECISION_WORDS[h.decision]}<small>{who(h)} · {fmtAgo(h.decided_at)}{h.note ? ` · “${h.note}”` : ""}</small></span></div>)}</div>}

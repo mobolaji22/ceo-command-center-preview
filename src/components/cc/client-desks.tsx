@@ -10,7 +10,7 @@ import { useDomains } from "@/lib/domains";
 import { FindBar, TextFind } from "./find-bar";
 import { useProjectFind, type FindOption } from "@/lib/find";
 import { Library } from "./library";
-import { Composer, IntentList } from "./intents";
+import { ClientIntentList, Composer } from "./intents";
 import { ProjectRoom, QuestionsList } from "./runs";
 import { BriefArchive, NotificationSettings } from "./briefs";
 import { StandingPermission } from "./standing";
@@ -82,7 +82,7 @@ export function RequestsDesk({ data, isOwner, organizationId, refresh, openQuest
       {tab === "requests" && <>
         {isOwner && organizationId && <><div className="section-label"><span>NEW REQUEST</span></div><Composer organizations={[]} fixedOrganizationId={organizationId} onSubmitted={refresh} /></>}
         <div className="section-label pd-label"><span>YOUR REQUESTS</span><span>{data.intents.length}</span></div>
-        <IntentList intents={data.intents} canAnswer={(i) => isOwner && i.source === "CLIENT_INTENT"} refresh={refresh} empty="No requests yet." />
+        <ClientIntentList intents={data.intents} canAnswer={(i) => isOwner && i.source === "CLIENT_INTENT"} refresh={refresh} empty="No requests yet." />
       </>}
       {tab === "questions" && <QuestionsList audience="client" onChanged={refresh} />}
     </DeskFrame>

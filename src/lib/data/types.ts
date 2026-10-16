@@ -1,5 +1,5 @@
 import type { DesignDocument } from "@/lib/design/sdd";
-import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
+import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -117,6 +117,8 @@ export interface DataSource {
     submit(input: IntentInput): Promise<Result<{ status: string; projectId: string | null }>>;
     answer(intentId: string, clarificationId: string, answer: { optionId?: string; text?: string; useDefault?: boolean }): Promise<Result>;
     respond(requirementId: string, answer: MaterialAnswer, organizationId: string): Promise<Result>;
+    /** What the client reads about one request, ordered and trimmed by v4 (P6.20). */
+    clientView(intentId: string): Promise<Result<ClientIntentView>>;
   };
 
   /**
@@ -203,6 +205,13 @@ export interface DataSource {
      * why it is not there; the API still refuses a decision without the permission.
      */
     mayDecideForClient(plan: PlanVersion): Promise<boolean>;
+    /** What the client reads about a plan, ordered and trimmed by v4 (P6.20): no internal work. */
+    clientView(proposalId: string): Promise<Result<ClientPlanView>>;
+    /**
+     * The client's owner lets the agency's CEO approve routine decisions on one project (ADR-0015): a standing permission, with
+     * a fresh proof. Anything above risk 3, spending beyond what was approved, and anything irreversible still come to them.
+     */
+    allowAgencyToDecide(input: { organizationId: string; projectId: string }): Promise<Result>;
   };
 
   /** The asset library: files held for a client, in their organization's library or one project. */
