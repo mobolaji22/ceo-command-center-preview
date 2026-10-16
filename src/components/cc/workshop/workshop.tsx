@@ -1,8 +1,9 @@
 "use client";
 
-import { Download, Grid3x3, Magnet, MessageSquarePlus, MousePointer2, Redo2, Undo2, Upload, ZoomIn, ZoomOut } from "lucide-react";
+import { Download, Grid3x3, Magnet, MessageSquarePlus, MoreHorizontal, MousePointer2, Redo2, Undo2, Upload, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent as RKeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
 import { fail, ok } from "@/lib/data/types";
@@ -67,6 +68,13 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
   const [activePin, setActivePin] = useState<string | null>(null);
   const [fit, setFit] = useState(0.5);
   const [cmpW, setCmpW] = useState(260);
+  // On a phone (P6.21 P6) the Workshop shows one pane at a time; selecting on the canvas opens Edit as a sheet over it.
+  const phone = useIsMobile();
+  const [pane, setPane] = useState<"directions" | "canvas">("canvas");
+  const [more, setMore] = useState(false);
+  const [bannerGone, setBannerGone] = useState(false);
+  // The Edit sheet opens only from its own button: a touch on the canvas selects, it never opens anything by itself.
+  const [sheet, setSheet] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const toastTimer = useRef(0);
@@ -85,12 +93,33 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
     const el = stageRef.current;
     if (!el || !frame) return;
     // Comparing: three previews share the width the canvas has. Editing: the one frame fits the room.
-    const calc = () => { setFit(Math.max(0.15, Math.min(1, (el.clientWidth - 56) / frame.w, (el.clientHeight - 56) / frame.h))); setCmpW(Math.max(150, Math.floor((el.clientWidth - 36 - 32) / 3 - 30))); };
+    const calc = () => { setFit(Math.max(0.15, phone ? Math.min(1, (el.clientWidth - 24) / frame.w) : Math.min(1, (el.clientWidth - 56) / frame.w, (el.clientHeight - 56) / frame.h))); setCmpW(Math.max(150, Math.floor((el.clientWidth - 36 - 32) / 3 - 30))); };
     calc();
     const ro = new ResizeObserver(calc); ro.observe(el);
     return () => ro.disconnect();
-  }, [frame, compare]);
+  }, [frame, compare, phone]);
   const scale = zoom === "fit" ? fit : zoom;
+  // Pinch to zoom on a phone: two fingers set the zoom; one finger still scrolls the canvas (P6.21 P6).
+  const ready = Boolean(doc && frame);
+  const scaleRef = useRef(scale);
+  useEffect(() => { scaleRef.current = scale; }, [scale]);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!phone || compare || !el) return;
+    let start: { d: number; scale: number } | null = null;
+    const dist = (t: TouchList) => Math.hypot(t[0]!.clientX - t[1]!.clientX, t[0]!.clientY - t[1]!.clientY);
+    const down = (e: TouchEvent) => { if (e.touches.length === 2) start = { d: dist(e.touches), scale: scaleRef.current }; };
+    const move = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || !start) return;
+      e.preventDefault();
+      setZoom(Math.max(0.2, Math.min(2, Math.round(start.scale * (dist(e.touches) / start.d) * 100) / 100)));
+    };
+    const up = (e: TouchEvent) => { if (e.touches.length < 2) start = null; };
+    el.addEventListener("touchstart", down, { passive: true });
+    el.addEventListener("touchmove", move, { passive: false });
+    el.addEventListener("touchend", up);
+    return () => { el.removeEventListener("touchstart", down); el.removeEventListener("touchmove", move); el.removeEventListener("touchend", up); };
+  }, [phone, compare, ready]);
   const stepZoom = (dir: 1 | -1) => setZoom(Math.max(0.2, Math.min(2, Math.round((scale + dir * 0.1) * 10) / 10)));
 
   const propose = async (kind: ProposalKind, ids?: string[]) => {
@@ -131,25 +160,34 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
   const terr = territoryOf(doc, terrId)!;
   const chosen = doc.selectedTerritoryId === terrId;
   const saveText = w.saveState === "saving" ? "Saving…" : w.saveState === "unsaved" ? "Unsaved changes" : w.saveState === "failed" ? "Could not save" : w.saveState === "conflict" ? "Out of date" : `Saved at r${doc.revision}`;
+  const saveStatus = <span className={`ws-save is-${w.saveState}`} role="status">{saveText}{w.saveState === "failed" && <button type="button" onClick={() => void w.retrySave()}>Retry</button>}{w.saveState === "conflict" && <button type="button" onClick={() => void w.reload()}>Reload</button>}</span>;
   return (
     <div className="workshop" data-desk="workshop" onKeyDown={onKey}>
       <div className="window-bar"><div className="traffic-dots"><i /><i /><i /></div><span>&gt; DevPlaybook Design Workshop // {projectName} // r{doc.revision}</span><span className="window-more">{doc.status === "DRAFT" ? "Draft" : "In review"}</span></div>
 
-      <div className="ws-toolbar" role="toolbar" aria-label="Workshop tools">
-        {picker}
-        <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!w.canUndo} onClick={w.undo}><Undo2 size={15} /></button><button type="button" className="ws-ibtn" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!w.canRedo} onClick={w.redo}><Redo2 size={15} /></button></div>
-        <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Select tool" title="Select" aria-pressed={tool === "select"} onClick={() => setTool("select")}><MousePointer2 size={15} /></button><button type="button" className="ws-ibtn" aria-label="Note tool" title="Add a note on the canvas" aria-pressed={tool === "comment"} onClick={() => { setTool("comment"); setRightTab("notes"); }}><MessageSquarePlus size={15} /></button></div>
-        <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Zoom out" onClick={() => stepZoom(-1)}><ZoomOut size={15} /></button><button type="button" className="ws-zoom" onClick={() => setZoom("fit")} aria-label="Fit to screen" title="Fit to screen">{Math.round(scale * 100)}%</button><button type="button" className="ws-ibtn" aria-label="Zoom in" onClick={() => stepZoom(1)}><ZoomIn size={15} /></button></div>
-        <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Snap to guides" title="Snap to guides and the grid" aria-pressed={snap} onClick={() => setSnap(!snap)}><Magnet size={15} /></button><button type="button" className="ws-ibtn" aria-label="Show grid" title="Show the grid" aria-pressed={grid} onClick={() => setGrid(!grid)}><Grid3x3 size={15} /></button></div>
-        <div className="ws-group"><Button variant="ghost" className="ws-btn" onClick={() => download(`${slug(projectName)}-design-r${doc.revision}.json`, "application/json", documentJson(doc))}><Download size={14} /> Data</Button><Button variant="ghost" className="ws-btn" onClick={() => download(`${slug(projectName)}-${slug(frame.name)}-r${doc.revision}.svg`, "image/svg+xml", frameToSvg(doc, frame.id))}><Download size={14} /> Frame (SVG)</Button><Button variant="ghost" className="ws-btn" onClick={() => fileRef.current?.click()}><Upload size={14} /> Import</Button><input ref={fileRef} type="file" accept="application/json,.json" hidden aria-label="Import a design document" onChange={onImport} /></div>
-        <span className={`ws-save is-${w.saveState}`} role="status">{saveText}{w.saveState === "failed" && <button type="button" onClick={() => void w.retrySave()}>Retry</button>}{w.saveState === "conflict" && <button type="button" onClick={() => void w.reload()}>Reload</button>}</span>
+      <div className="ws-toolbar" role="toolbar" aria-label="Workshop tools" data-more={more || undefined}>
+        {/* On a phone (P6.21) the project and the save state stay at the top and the tools move to the bottom, by the thumb; on a
+            wide screen both wrappers are transparent to layout, so the toolbar is one row as before. */}
+        <div className="ws-tb-top">
+          {picker}
+          {phone && saveStatus}
+        </div>
+        <div className="ws-tb-tools">
+          <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!w.canUndo} onClick={w.undo}><Undo2 size={15} /></button><button type="button" className="ws-ibtn" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!w.canRedo} onClick={w.redo}><Redo2 size={15} /></button></div>
+          <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Select tool" title="Select" aria-pressed={tool === "select"} onClick={() => setTool("select")}><MousePointer2 size={15} /></button><button type="button" className="ws-ibtn" aria-label="Note tool" title="Add a note on the canvas" aria-pressed={tool === "comment"} onClick={() => { setTool("comment"); setRightTab("notes"); }}><MessageSquarePlus size={15} /></button></div>
+          <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Zoom out" onClick={() => stepZoom(-1)}><ZoomOut size={15} /></button><button type="button" className="ws-zoom" onClick={() => setZoom("fit")} aria-label="Fit to screen" title="Fit to screen">{Math.round(scale * 100)}%</button><button type="button" className="ws-ibtn" aria-label="Zoom in" onClick={() => stepZoom(1)}><ZoomIn size={15} /></button></div>
+          <div className="ws-group ws-extra"><button type="button" className="ws-ibtn" aria-label="Snap to guides" title="Snap to guides and the grid" aria-pressed={snap} onClick={() => setSnap(!snap)}><Magnet size={15} /></button><button type="button" className="ws-ibtn" aria-label="Show grid" title="Show the grid" aria-pressed={grid} onClick={() => setGrid(!grid)}><Grid3x3 size={15} /></button></div>
+          <div className="ws-group ws-extra"><Button variant="ghost" className="ws-btn" onClick={() => download(`${slug(projectName)}-design-r${doc.revision}.json`, "application/json", documentJson(doc))}><Download size={14} /> Data</Button><Button variant="ghost" className="ws-btn" onClick={() => download(`${slug(projectName)}-${slug(frame.name)}-r${doc.revision}.svg`, "image/svg+xml", frameToSvg(doc, frame.id))}><Download size={14} /> Frame (SVG)</Button><Button variant="ghost" className="ws-btn" onClick={() => fileRef.current?.click()}><Upload size={14} /> Import</Button><input ref={fileRef} type="file" accept="application/json,.json" hidden aria-label="Import a design document" onChange={onImport} /></div>
+          <button type="button" className="ws-ibtn ws-more" aria-label="More tools" aria-expanded={more} onClick={() => setMore((m) => !m)}><MoreHorizontal size={15} /></button>
+          {!phone && saveStatus}
+        </div>
       </div>
-      {w.created && !doc.selectedTerritoryId && <p className="ws-banner">Started from the territory exploration: three directions to choose between. Pick one to adjust, or compare them first.</p>}
+      {w.created && !doc.selectedTerritoryId && !bannerGone && <p className="ws-banner">Started from the territory exploration: three directions to choose between. Pick one to adjust, or compare them first.<button type="button" className="ws-banner-close" aria-label="Dismiss" onClick={() => setBannerGone(true)}><X size={14} /></button></p>}
       {w.where === "device" && <p className="ws-banner quiet">Kept on this device only. The agency&apos;s design service is not connected yet, so export the design to share it.</p>}
       {w.saveNote && <p className="ws-banner warn">{w.saveNote}</p>}
 
-      <div className="ws-main">
-        <LeftPanel doc={doc} tab={leftTab} setTab={setLeftTab} territoryId={terrId} setTerritory={(id) => { setActiveTerr(id); setActiveFrame(null); setSelection([]); }} frameId={frame.id} setFrame={setActiveFrame} selection={valid} setSelection={setSelection} run={run} compare={compare} setCompare={setCompare} choose={(t) => setDialog({ kind: "choose", territory: t })} />
+      <div className="ws-main" data-pane={phone ? pane : undefined} data-sheet={phone && sheet ? "" : undefined}>
+        <LeftPanel doc={doc} tab={leftTab} setTab={setLeftTab} territoryId={terrId} setTerritory={(id) => { setActiveTerr(id); setActiveFrame(null); setSelection([]); if (phone) setPane("canvas"); }} frameId={frame.id} setFrame={setActiveFrame} selection={valid} setSelection={setSelection} run={run} compare={compare} setCompare={setCompare} choose={(t) => setDialog({ kind: "choose", territory: t })} />
 
         <section className="ws-center" aria-label="Canvas">
           <div className="ws-context">
@@ -180,9 +218,14 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
           )}
         </section>
 
+        {phone && sheet && <button type="button" className="ws-sheet-close" onClick={() => setSheet(false)}>Done</button>}
         <Inspector doc={doc} territoryId={terrId} frameId={frame.id} selection={valid} setSelection={setSelection} run={run} tab={rightTab} setTab={setRightTab} propose={(k, ids) => void propose(k, ids)} tool={tool} setTool={setTool} activePin={activePin} setActivePin={setActivePin} checkpoint={(n) => { w.checkpoint(n); say("Checkpoint saved."); }} restore={(cp) => setDialog({ kind: "restore", checkpoint: cp })} actor={actor} />
       </div>
 
+      {phone && <div className="ws-panes" role="tablist" aria-label="Workshop panes">
+        {(["directions", "canvas"] as const).map((p) => <button key={p} type="button" role="tab" aria-selected={pane === p} onClick={() => { setPane(p); setSheet(false); }}>{p === "directions" ? "Directions" : "Canvas"}</button>)}
+        {pane === "canvas" && <button type="button" className="ws-edit-open" aria-expanded={sheet} onClick={() => setSheet(true)}>{valid.length ? `Edit (${valid.length})` : "Edit"}</button>}
+      </div>}
       {toast && <p className="ws-toast" role="status">{toast}</p>}
 
       {dialog && (

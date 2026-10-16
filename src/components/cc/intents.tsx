@@ -21,7 +21,11 @@ type Org = { id: string; name: string };
  * Where a request begins: say what you want, attach what helps. Nothing here creates a project; the request is understood,
  * questions come back if needed, and the project opens when it is understood.
  */
-export function Composer({ organizations, fixedOrganizationId, onSubmitted }: { organizations: Org[]; fixedOrganizationId?: string | undefined; onSubmitted: () => void }) {
+/**
+ * `onClose` (P6.21): the composer opens from a button, so it can be put away unused. With something written it asks once before
+ * discarding, so a stray tap never loses a draft.
+ */
+export function Composer({ organizations, fixedOrganizationId, onSubmitted, onClose }: { organizations: Org[]; fixedOrganizationId?: string | undefined; onSubmitted: () => void; onClose?: (() => void) | undefined }) {
   const ds = useDataSource();
   const [text, setText] = useState("");
   const [orgId, setOrgId] = useState(fixedOrganizationId ?? "");
@@ -29,7 +33,9 @@ export function Composer({ organizations, fixedOrganizationId, onSubmitted }: { 
   const [link, setLink] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
   const organizationId = fixedOrganizationId ?? orgId;
+  const close = () => { if (!onClose) return; if ((text.trim() || items.length || link.trim()) && !discarding) { setDiscarding(true); return; } onClose(); };
 
   const submit = async () => {
     if (!organizationId) { setMsg("Choose which client this is for."); return; }
@@ -43,6 +49,9 @@ export function Composer({ organizations, fixedOrganizationId, onSubmitted }: { 
   };
 
   return <div className="directive-form" aria-label="New request">
+    {onClose && <div className="composer-close">{discarding
+      ? <><span>Discard what you wrote?</span><Button variant="ghost" onClick={() => setDiscarding(false)}>Keep writing</Button><Button variant="ghost" onClick={onClose}>Discard</Button></>
+      : <Button variant="ghost" size="icon" className="icon-button" aria-label="Close without sending" title="Close" onClick={close}><X size={18} /></Button>}</div>}
     <label htmlFor="request-text">WHAT WOULD YOU LIKE DONE?</label>
     <textarea id="request-text" value={text} maxLength={8000} onChange={(e) => setText(e.target.value)} placeholder="Describe the outcome you want, who it is for, and by when. Attach anything that helps." />
     {!fixedOrganizationId && <div className="directive-targets"><label>CLIENT<select value={orgId} onChange={(e) => setOrgId(e.target.value)}><option value="">Choose…</option>{organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label></div>}

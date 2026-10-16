@@ -81,6 +81,7 @@
 .ws-terr { margin-bottom: 14px; border: 1px solid var(--border); border-radius: 3px; background: var(--card); overflow: hidden; }
 .ws-terr.is-active { border-color: var(--primary); }
 .ws-terr.is-aside { opacity: 0.72; }
+.ws-terr-img { display: block; width: 100%; height: auto; max-height: 220px; object-fit: contain; object-position: top center; }
 .ws-terr-thumb { overflow: hidden; border-bottom: 1px solid var(--border); background: #888; display: grid; place-items: center; }
 .ws-terr-body { padding: 10px 12px 12px; }
 .ws-terr-body p { margin: 6px 0 10px; font-size: 12px; line-height: 1.45; color: var(--muted-foreground); }

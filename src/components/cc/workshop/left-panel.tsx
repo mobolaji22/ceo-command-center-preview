@@ -1,10 +1,11 @@
 "use client";
 
 import { Eye, EyeOff, Image as ImageIcon, Lock, Minus, MousePointer2, Square, Type } from "lucide-react";
+import { memo, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { frameToSvg } from "@/lib/design/export";
 import type { Op } from "@/lib/design/ops";
 import type { DesignDocument, NodeKind, Territory } from "@/lib/design/sdd";
-import { Artboard } from "./canvas";
 
 export type LeftTab = "directions" | "layers";
 const KIND_ICON: Record<NodeKind, typeof Square> = { rect: Square, text: Type, button: MousePointer2, image: ImageIcon, line: Minus };
@@ -31,7 +32,7 @@ export function LeftPanel({ doc, tab, setTab, territoryId, setTerritory, frameId
               const active = t.id === territoryId;
               return (
                 <article key={t.id} className={`ws-terr${active ? " is-active" : ""}${t.status === "SELECTED" ? " is-chosen" : ""}${t.status === "SET_ASIDE" ? " is-aside" : ""}`}>
-                  {key && <div className="ws-terr-thumb"><Artboard doc={doc} frameId={key.id} scale={0.17} readOnly /></div>}
+                  {key && <div className="ws-terr-thumb"><Thumb doc={doc} frameId={key.id} /></div>}
                   <div className="ws-terr-body">
                     <div className="ws-terr-head"><b>{t.name}</b><span className={`ws-chip${t.status === "SELECTED" ? " good" : ""}`}>{t.status === "SELECTED" ? "Chosen" : POSTURE[t.posture]}</span></div>
                     <p>{t.thesis}</p>
@@ -72,3 +73,15 @@ export function LeftPanel({ doc, tab, setTab, territoryId, setTerritory, frameId
     </div>
   );
 }
+
+/**
+ * A direction's preview as one picture, not a live copy of the editor (P6.21): three live artboards, each every element of its frame,
+ * made the Directions tab slow to draw and scroll. Drawn again only when the document changes. An image runs nothing, whatever the
+ * document holds.
+ */
+const Thumb = memo(function Thumb({ doc, frameId }: { doc: DesignDocument; frameId: string }) {
+  const src = useMemo(() => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(frameToSvg(doc, frameId))}`, [doc, frameId]);
+  const frame = doc.frames.find((f) => f.id === frameId);
+  // eslint-disable-next-line @next/next/no-img-element -- a picture generated in the browser from the document; next/image has nothing to optimise
+  return <img className="ws-terr-img" src={src} alt="" width={frame?.w} height={frame?.h} decoding="async" loading="lazy" />;
+}, (a, b) => a.frameId === b.frameId && a.doc.revision === b.doc.revision);

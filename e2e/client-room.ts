@@ -28,3 +28,15 @@ export async function openClientProject(page: Page, name: RegExp) {
   const chip = page.locator(".desk-chip", { hasText: name });
   if (await chip.count()) await chip.first().click();
 }
+
+/**
+ * On the board a client's requests come first; writing a new one is a button that opens the form (P6.21 P5). With nothing asked
+ * yet the form is already open. Returns the form.
+ */
+export async function newClientRequest(page: Page) {
+  const open = page.getByRole("button", { name: "New request", exact: true });
+  if (await open.isVisible()) await open.click();
+  const composer = page.getByLabel("New request");
+  await expect(composer).toBeVisible();
+  return composer;
+}

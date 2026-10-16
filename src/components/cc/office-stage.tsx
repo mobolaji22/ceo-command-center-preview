@@ -3,6 +3,7 @@
 import { ArrowRight, X, type LucideIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { LitImage } from "./lit-image";
 import type { LitArt } from "./room-art";
 
@@ -18,6 +19,19 @@ export type Spot<K extends string = string> = {
   /** Spoken version of the count for assistive tech (the badge itself is decorative). */
   countNote?: string;
 };
+
+/**
+ * On a phone a room offers two ways in (P6.21 D5): the bottom bar of large buttons (the default), or the room's hotspots. Which one
+ * is a viewing preference, kept in this browser for this person; it is not business state.
+ */
+type Ways = "bar" | "hotspots";
+const WAYS_KEY = "dpl.room-ways";
+function readWays(): Ways {
+  try { return window.localStorage.getItem(WAYS_KEY) === "hotspots" ? "hotspots" : "bar"; } catch { return "bar"; }
+}
+function keepWays(w: Ways) {
+  try { window.localStorage.setItem(WAYS_KEY, w); } catch { /* private window: the choice lasts this visit */ }
+}
 
 /**
  * A room you stand in: one photograph with objects you can press. The CEO office and the client room are both this component,
@@ -67,7 +81,12 @@ export function OfficeStage<K extends string>({
   const timer = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const shown = hovered ?? pinned;
+  const phone = useIsMobile();
+  // Read once; it only shows once `phone` is known, which is after hydration, so the first render matches the server's.
+  const [ways, setWays] = useState<Ways>(() => (typeof window === "undefined" ? "bar" : readWays()));
+  const choose = (w: Ways) => { setWays(w); keepWays(w); setPinned(null); setHovered(null); };
+  const barMode = phone && ways === "bar";
+  const shown = barMode ? null : hovered ?? pinned;
   const spot = spots.find((s) => s.id === shown);
 
   const hoverIn = (id: K, e: { pointerType: string }) => {
@@ -134,7 +153,7 @@ export function OfficeStage<K extends string>({
   };
 
   return (
-    <div ref={stageRef} className={`office-stage${className ? ` ${className}` : ""}`}>
+    <div ref={stageRef} className={`office-stage${className ? ` ${className}` : ""}`} data-ways={phone ? ways : undefined}>
       <LitImage art={art} alt={alt} sizes="100vw" quality={75} className="office-image" />
       <div className="office-vignette" />
       <div className="scene-intro">
@@ -184,10 +203,20 @@ export function OfficeStage<K extends string>({
           <Button variant="ghost" className="text-action" disabled={actionDisabled?.(spot.id) ?? false} onClick={() => { const at = centreOf(spot.id); close(); setLastActed(spot.id); onAct(spot.id, at); }}>{spot.action} <ArrowRight size={15} /></Button>
         </div>
       )}
-      <div className="scene-bottom">
+      {phone && <div className="spot-switch" role="group" aria-label="How to move around this room">
+        <button type="button" aria-pressed={ways === "hotspots"} onClick={() => choose("hotspots")}>Hotspots</button>
+        <button type="button" aria-pressed={ways === "bar"} onClick={() => choose("bar")}>Bar</button>
+      </div>}
+      {barMode ? <nav className="spot-bar" aria-label="In this room">
+        {spots.map((s) => <button key={s.id} type="button" className="spot-bar-item" data-return-focus={lastActed === s.id || undefined} disabled={actionDisabled?.(s.id) ?? false}
+          aria-label={s.label} aria-describedby={s.count ? `spot-note-${s.id}` : undefined} onClick={() => { const at = centreOf(s.id); setLastActed(s.id); onAct(s.id, at); }}>
+          <s.icon size={18} aria-hidden="true" /><span>{s.label}</span>
+          {s.count ? <><span className="spot-bar-count" aria-hidden="true">{s.count > 9 ? "9+" : s.count}</span><span id={`spot-note-${s.id}`} className="sr-only">{s.countNote}</span></> : null}
+        </button>)}
+      </nav> : <div className="scene-bottom">
         <div className="hotspot-status"><span className="pulse-dot" /> HOTSPOTS ACTIVE <span className="status-separator">/</span><span className="status-list">{statusList}</span></div>
         <div className="scene-coordinate">{coordinate}</div>
-      </div>
+      </div>}
     </div>
   );
 }

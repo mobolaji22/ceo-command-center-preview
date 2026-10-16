@@ -1,8 +1,9 @@
+import { newDirective } from "./directive";
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
-import { openClientDesk } from "./client-room";
+import { newClientRequest, openClientDesk } from "./client-room";
 import { answerEveryQuestion } from "./answers";
 
 /**
@@ -32,7 +33,7 @@ test("a client sends a request with a file and a link, answers the questions, se
   await expect(page.getByRole("heading", { name: "The client room." })).toBeVisible();
   await openClientDesk(page, "Board", /Your requests/);
 
-  const composer = page.getByLabel("New request");
+  const composer = await newClientRequest(page);
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("We want a better website for our customers");
   await composer.locator('label.attach input[type="file"]').setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("Our customers like simple pages.") });
   await composer.getByLabel("OR PASTE A LINK").fill("https://example.com/current-site");
@@ -99,7 +100,7 @@ test("the CEO sends a directive for a client, answers its questions, and sees wh
 
   await page.getByRole("button", { name: "Preview Directive" }).click();
   await page.getByRole("button", { name: "Compose directive" }).click();
-  const composer = page.getByLabel("New request");
+  const composer = await newDirective(page);
   await composer.getByLabel("CLIENT").selectOption({ label: "Orbit" });
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Refresh the brand");
   await composer.getByRole("button", { name: "Send request" }).click();

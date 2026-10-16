@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
 import type { ClientData } from "@/lib/model";
@@ -77,10 +78,15 @@ export function DecisionsDesk({ data, isOwner, busy, msg, onDecide }: Common & {
 /** The pinboard: what the client has asked for, and what the work is asking back. */
 export function RequestsDesk({ data, isOwner, organizationId, refresh, openQuestions }: Common & { organizationId: string | undefined; refresh: () => void; openQuestions: number }) {
   const [tab, setTab] = useState<"requests" | "questions">("requests");
+  // What they must act on comes first (P6.21 P5): their requests and the questions in them. Writing a new one is a button that
+  // opens the form, not a form that fills the first screen; with nothing asked yet, the form is open.
+  const [writing, setWriting] = useState(data.intents.length === 0);
   return (
     <DeskFrame kind="board" eyebrow="ASKS, BOTH WAYS" title="Requests" line={`${data.intents.length} request${data.intents.length === 1 ? "" : "s"} · ${openQuestions} question${openQuestions === 1 ? "" : "s"} for you.`} tab={tab} onTab={setTab} tabs={[{ id: "requests", label: "Your requests", count: data.intents.length }, { id: "questions", label: "Questions from the work", count: openQuestions }]}>
       {tab === "requests" && <>
-        {isOwner && organizationId && <><div className="section-label"><span>NEW REQUEST</span></div><Composer organizations={[]} fixedOrganizationId={organizationId} onSubmitted={refresh} /></>}
+        {isOwner && organizationId && (writing
+          ? <><div className="section-label"><span>NEW REQUEST</span></div><Composer organizations={[]} fixedOrganizationId={organizationId} onSubmitted={refresh} onClose={data.intents.length ? () => setWriting(false) : undefined} /></>
+          : <Button className="new-request" onClick={() => setWriting(true)}><Plus size={16} /> New request</Button>)}
         <div className="section-label pd-label"><span>YOUR REQUESTS</span><span>{data.intents.length}</span></div>
         <ClientIntentList intents={data.intents} canAnswer={(i) => isOwner && i.source === "CLIENT_INTENT"} refresh={refresh} empty="No requests yet." />
       </>}

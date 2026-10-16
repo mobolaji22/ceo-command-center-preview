@@ -1,0 +1,156 @@
+/*
+ * P6.21: the phone. Loaded last, so these win. Desktop and tablet keep their layout; below 650px a desk is one bar and its
+ * content, with nothing framed inside a frame, and nothing drawn over text.
+ */
+
+/* ---- the account menu (every width) ------------------------------------------------------------------- */
+.topbar-icons { display: flex; align-items: center; gap: 14px; }
+.account { position: relative; }
+.account .avatar { cursor: pointer; background: transparent; font: inherit; font-size: 9px; }
+.account .avatar:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.account-menu { position: absolute; right: 0; top: calc(100% + 10px); z-index: 60; min-width: 220px; padding: 6px; display: flex; flex-direction: column; background: oklch(0.14 0.006 270); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 18px 44px oklch(0 0 0 / 55%); }
+.account-menu button { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--foreground); font: 500 15px "DM Sans", sans-serif; text-align: left; cursor: pointer; }
+.account-menu button svg { color: var(--primary); }
+.account-menu button:hover, .account-menu button:focus-visible { background: oklch(1 0 0 / 6%); outline: none; }
+html[data-lighting="day"] .account-menu { background: oklch(0.99 0.006 85); box-shadow: 0 18px 44px oklch(0.4 0.03 70 / 25%); }
+
+/* ---- the demo tag: never over content ----------------------------------------------------------------- */
+.demo-banner { position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 50; pointer-events: none; padding: 6px 10px; font-size: 9px; letter-spacing: .14em; font-weight: 700; color: var(--primary); background: oklch(0.18 0.006 270 / 92%); border: 1px solid oklch(0.76 0.146 76 / 30%); border-radius: 2px; }
+
+/* ---- a room on a phone: the bottom bar, or the hotspots (the person chooses) ---------------------------- */
+.office-stage[data-ways="bar"] .hotspot, .office-stage[data-ways="bar"] .hotspot-preview { visibility: hidden; pointer-events: none; }
+.spot-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(0deg, oklch(0.08 0.006 270 / 97%), oklch(0.08 0.006 270 / 84%)); border-top: 1px solid var(--border); }
+.spot-bar-item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 58px; padding: 8px 4px; border: 1px solid oklch(0.76 0.146 76 / 24%); border-radius: 6px; background: oklch(0.15 0.006 270 / 86%); color: var(--foreground); font: 600 12px "DM Sans", sans-serif; cursor: pointer; }
+.spot-bar-item svg { color: var(--primary); }
+.spot-bar-item > span:not(.spot-bar-count) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 11px; letter-spacing: -0.01em; }
+.spot-bar-item { padding-inline: 2px; }
+.spot-bar-item:disabled { opacity: .5; }
+.spot-bar-count { position: absolute; top: 4px; right: 6px; min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; border-radius: 9px; background: var(--primary); color: oklch(0.15 0 0); font-size: 11px; }
+.spot-switch { position: absolute; right: 12px; top: 14px; z-index: 7; display: inline-flex; overflow: hidden; border: 1px solid var(--border); border-radius: 999px; background: oklch(0.1 0.006 270 / 90%); }
+.spot-switch button { min-height: 34px; padding: 6px 14px; border: 0; background: transparent; color: var(--muted-foreground); font: 600 12px "DM Sans", sans-serif; cursor: pointer; }
+.spot-switch button[aria-pressed="true"] { background: var(--primary); color: oklch(0.15 0 0); }
+/* Day: the room is a dark island (day.css restores night colours inside it), so the bar names its own colours: dark on light. */
+html[data-lighting="day"] .spot-bar { background: oklch(0.97 0.01 85 / 97%); border-top-color: oklch(0 0 0 / 14%); }
+html[data-lighting="day"] .spot-bar-item { background: oklch(1 0 0); border-color: oklch(0.5 0.125 66 / 45%); color: oklch(0.21 0.016 60); }
+html[data-lighting="day"] .spot-bar-item svg { color: oklch(0.45 0.12 62); }
+html[data-lighting="day"] .spot-bar-count { background: oklch(0.45 0.12 62); color: oklch(0.99 0.005 85); }
+html[data-lighting="day"] .spot-switch { background: oklch(1 0 0 / 95%); border-color: oklch(0 0 0 / 16%); }
+html[data-lighting="day"] .spot-switch button { color: oklch(0.38 0.02 70); }
+html[data-lighting="day"] .spot-switch button[aria-pressed="true"] { background: oklch(0.45 0.12 62); color: oklch(0.99 0.005 85); }
+
+/* the desk bar's title is for phones only */
+.desk-bar-title { display: none; }
+
+@media (max-width: 650px) {
+  /* P1: one bar. The header keeps the brand and the avatar (its menu holds lighting, Settings and Sign out). An open desk covers
+     the header, and its own bar is the only bar: the way back and the desk's name. */
+  .topbar { padding: 0 16px; padding-top: env(safe-area-inset-top); }
+  .topbar-icons { display: none; }
+  .desk-overlay { inset: 0; z-index: 40; padding: 0; }
+  .desk-panel { width: 100%; }
+  .desk-bar.workspace-heading { min-height: 52px; margin: 0; padding: env(safe-area-inset-top) 8px 0 4px; display: flex; align-items: center; gap: 4px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
+  .desk-bar .workspace-path, .desk-bar .workspace-right, .desk-bar .back-words { display: none; }
+  .desk-bar .back-link { min-width: 44px; min-height: 44px; justify-content: center; padding: 0 10px; }
+  .desk-bar-title { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 16px "DM Sans", sans-serif; color: var(--foreground); }
+  .desk-bar-title::first-letter { text-transform: uppercase; }
+  .desk-scroll { padding: 0 0 24px; }
+  .settings-title { display: none; } /* the bar already names the desk */
+
+  /* P2: no frames around content. The material of each desk is a colour, not a border inside a border. */
+  .desk-surface { padding: 16px !important; border: 0 !important; border-radius: 0 !important; outline: 0 !important; box-shadow: none !important; transform: none !important; width: 100% !important; }
+  .desk-surface .desk-content, .surface-board .desk-sheet, .surface-table .desk-sheet, .surface-shelf .desk-content { margin-inline: 0; padding-inline: 12px; border-inline: 0; border-radius: 0; }
+  .surface-cork .desk-heading, .surface-board .desk-heading { display: flex; padding: 12px 14px; margin-bottom: 14px; }
+  .window-bar { display: none !important; }
+  .computer-frame, .contract-wrap, .explorer, .settings { margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; min-height: 0; }
+  .desk-panel[data-surface="contracts"] .desk-scroll, .desk-panel[data-surface="directive"] .desk-scroll, .desk-panel[data-surface="brief"] .desk-scroll { border: 0; border-radius: 0; }
+
+
+  /* A short desk still fills the screen: the room behind does not show below its content. */
+  .desk-panel { background: oklch(0.1 0.006 270); }
+  html[data-lighting="day"] .desk-panel { background: oklch(0.985 0.008 85); }
+  .desk-surface { min-height: 100%; }
+  .surface-board .desk-sheet { padding: 18px 14px; }
+  .surface-cork, .surface-board { padding: 12px !important; }
+
+  /* The CEO's project rows: the name gets the width; the case file and the way in sit beside it. */
+  .dossier-row.with-case { grid-template-columns: 24px minmax(0, 1fr) auto auto; gap: 6px; }
+  .dossier-row.with-case b { font-size: 15px; }
+
+
+  /* Pages without a desk surface (the brief, the directive, the contracts, the phone) keep the 16px gutter. */
+  .desk-panel:is([data-surface="brief"], [data-surface="directive"], [data-surface="contracts"], [data-surface="phone"]) .desk-scroll { padding-inline: 16px; }
+  .brief-wrap { margin: 20px auto 32px; }
+
+
+  /* The CEO's desks on a phone (P6.21 follow-up): display headings sized for a phone, not a monitor. */
+  :is(.computer-heading h2, .contract-main h2, .brief-wrap h2, .directive-head h2, .tab-pane h2, .phone-screen h3) { font-size: 34px !important; line-height: 1.08 !important; margin: 6px 0 10px !important; }
+  .computer-body { padding: 16px 16px 32px; }
+  /* Search filters as you type; the button only closed the keyboard. The two lists sit side by side. */
+  .find-go { display: none !important; }
+  .find-bar .find-select { flex: 1 1 calc(50% - 6px) !important; min-width: 0; }
+  /* The Phone desk is already on a phone: no phone drawn inside it, no "in your pocket" introduction. */
+  .phone-layout { display: block; min-height: 0; padding: 0; }
+  .phone-intro, .phone-hardware, .phone-top { display: none !important; }
+  .phone-shell { width: 100%; height: auto; border: 0; border-radius: 0; padding: 0; background: transparent; box-shadow: none; }
+  .phone-screen { height: auto; border-radius: 0; overflow: visible; background: transparent; }
+  /* The Directive opens on the form, not on a statement of principle. */
+  .directive-wrap .philosophy { display: none; }
+  .directive-head { margin-bottom: 8px; }
+  .directive-head > button { display: none; } /* the bar's ← already closes the desk; one ✕ (the form's) is enough */
+
+  /* P3: nothing over text. Decorations (the shelf of books, the board's clip, the plaque) are dropped. */
+  .desk-surface::before, .desk-surface::after, .surface-board .desk-sheet::before, .surface-board .desk-sheet::after, .surface-deco { display: none !important; }
+  .demo-banner { top: calc(19px + env(safe-area-inset-top)); bottom: auto; left: auto; right: 64px; transform: none; padding: 2px 6px; font-size: 8px; letter-spacing: .1em; }
+
+  /* P4: the rail of rooms scrolls inside its own width, never past the screen. */
+  .stage-nav { max-width: calc(100% - 32px); }
+  .stage-nav .room-rail { max-width: 100%; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .stage-nav .room-rail::-webkit-scrollbar { display: none; }
+  .stage-nav .rail-door { flex: 0 0 36px; width: 36px; scroll-snap-align: center; }
+}
+
+/* ---- the Workshop on a phone (P6.21 P6): one pane at a time, and Edit as a sheet over the canvas ---------- */
+.ws-panes, .ws-more, .ws-sheet-close { display: none; }
+.ws-banner { position: relative; }
+.ws-banner-close { position: absolute; top: 50%; right: 10px; translate: 0 -50%; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; color: inherit; opacity: .7; cursor: pointer; }
+.ws-banner-close:hover { opacity: 1; background: oklch(1 0 0 / 8%); }
+@media (max-width: 767px) {
+  .ws-banner { padding-right: 48px; }
+  .workshop { border: 0; border-radius: 0; }
+  /* The panes sit at the bottom, under the thumb; the Edit sheet slides over them, so the canvas keeps the most room. */
+  .ws-panes { display: flex; align-items: center; gap: 4px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: oklch(0.11 0.006 270); }
+  .ws-panes button { flex: 1; min-height: 44px; border: 0; background: transparent; color: var(--muted-foreground); font: 600 14px "DM Sans", sans-serif; cursor: pointer; }
+  .ws-panes button[aria-selected="true"] { color: var(--foreground); box-shadow: inset 0 2px 0 var(--primary); }
+  .ws-panes .ws-edit-open { flex: 0 0 auto; min-width: 96px; padding: 0 16px; border: 1px solid var(--primary); border-radius: 999px; background: color-mix(in oklab, var(--primary) 18%, transparent); color: var(--foreground); }
+  .ws-more { display: inline-grid; place-items: center; }
+  .ws-toolbar:not([data-more]) .ws-extra { display: none; }
+  .ws-toolbar { flex-wrap: wrap; gap: 6px; padding: 8px 12px; }
+  .ws-main[data-pane] { display: flex !important; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; grid-template-columns: none; }
+  .ws-main[data-pane] > * { flex: 1; min-height: 0; max-height: none !important; overflow: auto; border: 0; }
+  .ws-main[data-pane="directions"] > :not(.ws-left), .ws-main[data-pane="canvas"] > :not(.ws-center) { display: none !important; }
+  .ws-main[data-pane="canvas"][data-sheet] > .ws-inspector { display: flex !important; flex-direction: column; position: fixed; left: 0; right: 0; bottom: 0; height: 45vh; z-index: 46; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; background: oklch(0.12 0.006 270); box-shadow: 0 -18px 40px oklch(0 0 0 / 50%); }
+  .ws-main[data-pane="canvas"][data-sheet] > .ws-sheet-close { display: block !important; flex: none; position: fixed; right: 12px; bottom: calc(45vh + 8px); z-index: 47; min-height: 40px; padding: 0 16px; border: 1px solid var(--primary); border-radius: 999px; background: oklch(0.12 0.006 270); color: var(--foreground); font: 600 14px "DM Sans", sans-serif; }
+  .ws-stage { padding: 12px; touch-action: pan-x pan-y; }
+  html[data-lighting="day"] .ws-panes, html[data-lighting="day"] .ws-main[data-pane="canvas"][data-sheet] > .ws-inspector, html[data-lighting="day"] .ws-sheet-close { background: oklch(0.99 0.006 85); }
+  html[data-lighting="day"] .ws-panes button { color: oklch(0.38 0.02 70); }
+  html[data-lighting="day"] .ws-panes button[aria-selected="true"], html[data-lighting="day"] .ws-panes .ws-edit-open { color: oklch(0.21 0.016 60); }
+}
+
+/* The desk bar carries the account menu on a phone only; on a wide screen the header is there. */
+.desk-bar-account { display: none; }
+@media (max-width: 650px) { .desk-bar-account { display: block; margin-left: auto; } .desk-bar-account .avatar { width: 34px; height: 34px; } }
+
+/* The Workshop's toolbar on a phone: the project and save state on top; the tools at the bottom, above the panes. */
+.ws-tb-top, .ws-tb-tools { display: contents; }
+@media (max-width: 767px) {
+  .workshop > .ws-toolbar { display: contents; }
+  .ws-tb-top { display: flex; order: 0; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .ws-tb-top > :first-child { flex: 1; min-width: 0; }
+  .ws-tb-top .ws-save { flex: 0 0 auto; font-size: 12px; }
+  .workshop > .ws-banner { order: 1; }
+  .workshop > .ws-main { order: 2; }
+  .ws-tb-tools { display: flex; order: 3; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px; padding: 6px 8px; border-top: 1px solid var(--border); background: oklch(0.11 0.006 270); }
+  .workshop > .ws-panes { order: 4; border-top: 0; }
+  .workshop > .ws-toast { order: 5; }
+  html[data-lighting="day"] .ws-tb-tools { background: oklch(0.99 0.006 85); }
+}

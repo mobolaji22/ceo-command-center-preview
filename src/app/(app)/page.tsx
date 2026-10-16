@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Coffee, DoorOpen, FileCheck2, LogOut, Monitor, PenLine, Phone, Settings2, Sparkles } from "lucide-react";
+import { ArrowLeft, Coffee, DoorOpen, FileCheck2, Monitor, PenLine, Phone, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
@@ -16,9 +16,9 @@ import { RoomDesk, RoomStage, type RoomSpot } from "@/components/cc/room-stage";
 import { SceneFrame, ThresholdVeil, directionBetween, isOverlayMove, originFor, type SceneOrigin } from "@/components/cc/scene";
 import { DeskOverlay } from "@/components/cc/desk-overlay";
 import { SettingsView } from "@/components/cc/settings";
+import { AccountMenu, TopBar } from "@/components/cc/top-bar";
 import type { SceneDir } from "@/lib/motion";
 import { CursorLight } from "@/components/cc/cursor-light";
-import { LightingToggle } from "@/components/cc/lighting-toggle";
 import { OfficeStage } from "@/components/cc/office-stage";
 import { OFFICE_ART } from "@/components/cc/room-art";
 import { ManageView } from "@/components/cc/manage";
@@ -78,18 +78,11 @@ export default function Index() {
   const attention = data ? attentionCounts(data, asked.data ?? []) : null;
   const count = (spot: Hotspot) => (attention && (spot === "contracts" || spot === "phone" || spot === "computer" || spot === "directive") ? attention[spot] : 0);
   const initials = (auth.user?.email ?? "OM").slice(0, 2).toUpperCase();
+  const account = <AccountMenu initials={initials} onSettings={() => openView("settings")} onSignOut={signOut} />;
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" }).toUpperCase().replace(",", " ·");
 
   return <main className={`command-center ${focus ? "focus-mode" : ""}`}>
-    <header className="topbar">
-      <div className="brand"><span className="brand-mark"><span /></span><span>DEVPLAYBOOK <em>/</em> CEO</span></div>
-      <div className="topbar-center"><span className="live-dot" /> SYSTEM ONLINE <span className="topbar-divider" /> {pending} AWAITING SIGNATURE</div>
-      <div className="topbar-right"><span className="topbar-date">{today}</span>
-        <LightingToggle />
-        <Button variant="ghost" size="icon" className="icon-button" aria-label="Settings" title="Settings" onClick={() => openView("settings")}><Settings2 size={16} /></Button>
-        <Button variant="ghost" size="icon" className="icon-button" aria-label="Sign out" title="Sign out" onClick={signOut}><LogOut size={16} /></Button>
-        <span className="avatar">{initials}</span></div>
-    </header>
+    <TopBar who="CEO" center={<><span className="live-dot" /> SYSTEM ONLINE <span className="topbar-divider" /> {pending} AWAITING SIGNATURE</>} date={today} initials={initials} onSettings={() => openView("settings")} onSignOut={signOut} />
 
     <CursorLight />
 
@@ -127,7 +120,7 @@ export default function Index() {
       </SceneFrame>
     </div>}
 
-    {isDesk(view) && data && <DeskOverlay label={view === "manage" ? "Records explorer" : view === "settings" ? "Settings" : `${view} desk`} backLabel="BACK TO OFFICE" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {view === "manage" ? "RECORDS" : view.toUpperCase()}</>} surface={view} origin={origin} onBack={() => openView("office")}>
+    {isDesk(view) && data && <DeskOverlay account={account} label={view === "manage" ? "Records explorer" : view === "settings" ? "Settings" : `${view} desk`} backLabel="BACK TO OFFICE" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {view === "manage" ? "RECORDS" : view.toUpperCase()}</>} surface={view} origin={origin} onBack={() => openView("office")}>
       <div key={view} className="scene scene-side">
         {view === "computer" && <ComputerView data={data} refresh={refresh} openContracts={(id) => openView("contracts", id)} openBrief={() => openView("brief")} openManage={(id) => openView("manage", id)} />}
         {view === "phone" && <PhoneView data={data} refresh={refresh} openBrief={() => openView("brief")} openContracts={(id) => openView("contracts", id)} />}
@@ -139,7 +132,7 @@ export default function Index() {
       </div>
     </DeskOverlay>}
 
-    {view === "roomdesk" && data && <DeskOverlay label={`${domains.nameOf(dept)} ${roomSpot}`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {domains.nameOf(dept).toUpperCase()} &nbsp; / &nbsp; {roomSpot.toUpperCase()}</>} surface={`room-${roomSpot}`} wide={roomSpot === "workshop"} origin={origin} onBack={() => openView("room", undefined, roomAt)}>
+    {view === "roomdesk" && data && <DeskOverlay account={account} label={`${domains.nameOf(dept)} ${roomSpot}`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {domains.nameOf(dept).toUpperCase()} &nbsp; / &nbsp; {roomSpot.toUpperCase()}</>} surface={`room-${roomSpot}`} wide={roomSpot === "workshop"} origin={origin} onBack={() => openView("room", undefined, roomAt)}>
       <div className="scene scene-side"><RoomDesk data={data} dept={dept} spot={roomSpot} openManage={(id) => openView("manage", id)} /></div>
     </DeskOverlay>}
   </main>;

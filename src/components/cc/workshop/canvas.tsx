@@ -66,7 +66,6 @@ export function Artboard({ doc, frameId, scale, selection, onSelect, onOp, tool,
     const xs = [0, frame.w / 2, frame.w, ...others.flatMap((x) => [x.x, x.x + x.w / 2, x.x + x.w])];
     const ys = [0, frame.h / 2, frame.h, ...others.flatMap((x) => [x.y, x.y + x.h / 2, x.y + x.h])];
     const sx = e.clientX, sy = e.clientY;
-    setD({ kind: "move", ids, sx, sy, dx: 0, dy: 0, guides: { x: null, y: null } });
     const near = (vals: number[], cands: number[], tol: number) => { let best: { d: number; at: number } | null = null; for (const v of vals) for (const c of cands) { const d = c - v; if (Math.abs(d) <= tol && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, at: c }; } return best; };
     const mv = (ev: PointerEvent) => {
       let dx = (ev.clientX - sx) / scale, dy = (ev.clientY - sy) / scale;
@@ -85,7 +84,13 @@ export function Artboard({ doc, frameId, scale, selection, onSelect, onOp, tool,
       setD(null);
       if (d?.kind === "move" && (Math.abs(d.dx) >= 1 || Math.abs(d.dy) >= 1)) { const m = onOp?.({ type: "MOVE", ids: d.ids, dx: d.dx, dy: d.dy }); if (m) onRefuse?.(m); }
     };
-    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up);
+    const begin = () => { setD({ kind: "move", ids, sx, sy, dx: 0, dy: 0, guides: { x: null, y: null } }); window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up); };
+    if (e.pointerType !== "touch") { begin(); return; }
+    // A finger moves a node only after a short press (P6.21 P6), so scrolling the canvas never drags what it starts on.
+    const hold = window.setTimeout(() => { stop(); begin(); }, 300);
+    const early = (ev: PointerEvent) => { if (Math.hypot(ev.clientX - sx, ev.clientY - sy) > 8) stop(); };
+    const stop = () => { window.clearTimeout(hold); window.removeEventListener("pointermove", early); window.removeEventListener("pointerup", stop); window.removeEventListener("pointercancel", stop); };
+    window.addEventListener("pointermove", early); window.addEventListener("pointerup", stop); window.addEventListener("pointercancel", stop);
   };
 
   const startResize = (e: RPointerEvent, n: SNode, handle: string) => {
