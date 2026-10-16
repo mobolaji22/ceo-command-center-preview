@@ -3,6 +3,7 @@ import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk } from "./client-room";
+import { expectRoomHeldStill } from "./still";
 
 /**
  * The tour: every screen the CEO and a client have, opened once the whole journey has run, each shown to be connected to real records
@@ -36,6 +37,7 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   await page.getByRole("button", { name: "Open operating system" }).click();
   await expect(page.getByText(/\d+ projects · \d+ tasks · \d+ decisions on record/)).toBeVisible();
   await expect(page.locator(".dossier-row").first()).toBeVisible();
+  await expectRoomHeldStill(page);
   await page.getByRole("button", { name: /Open case file for/ }).first().click();
   await expect(page.getByRole("region", { name: "Case file" }).first()).toBeVisible();
   await shot(page, "The Computer: every case, with the work in order and the budget used in its case file");
@@ -115,6 +117,7 @@ test("a client's room and everything in it", async ({ page }) => {
   await openClientDesk(page, "Board", "Your requests");
   await shot(page, "A client's board: their requests, with the questions from the work on the next tab");
   await openClientDesk(page, "Table");
+  await expectRoomHeldStill(page);
   await page.getByRole("tab", { name: /^Projects/ }).click();
   const room = page.locator(".project-room").first();
   await room.getByRole("button", { name: /^Show progress of/i }).click();

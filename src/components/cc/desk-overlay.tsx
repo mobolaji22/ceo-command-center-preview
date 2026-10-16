@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { THRESHOLD_MS, useReducedMotion } from "@/lib/motion";
 import type { SceneOrigin } from "./scene";
 
+/** How long a desk takes to open (desks.css `desk-open`), after which the room behind it is held still. */
+const OPEN_MS = 340;
+
 /**
  * A desk opens over the room it belongs to, not instead of it. The room stays mounted behind a dim scrim and the desk is a
  * panel with margins, so the room still shows in the corners. It is a real dialog: focus moves in and returns to the object that
@@ -29,8 +32,16 @@ export function DeskOverlay({ label, backLabel, path, surface, origin, wide, onB
     };
   }, []);
 
+  // Once the desk has finished opening, the room behind it is held still (desks.css): covered, it should cost nothing to draw.
+  useEffect(() => {
+    const root = document.documentElement;
+    const t = window.setTimeout(() => root.setAttribute("data-desk-open", ""), reduced ? 0 : OPEN_MS);
+    return () => { window.clearTimeout(t); root.removeAttribute("data-desk-open"); };
+  }, [reduced]);
+
   const back = () => {
     if (leaving) return;
+    document.documentElement.removeAttribute("data-desk-open"); // the room moves again as the desk starts to close
     if (reduced) return onBack();
     setLeaving(true);
     window.setTimeout(onBack, 220);
