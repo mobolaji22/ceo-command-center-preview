@@ -15,7 +15,7 @@ import { OfficeStage } from "@/components/cc/office-stage";
 import { CLIENT_ART } from "@/components/cc/room-art";
 import { SceneFrame, ThresholdVeil, directionBetween, isOverlayMove, type SceneOrigin } from "@/components/cc/scene";
 import { DeskOverlay } from "@/components/cc/desk-overlay";
-import { TopBar } from "@/components/cc/top-bar";
+import { AccountMenu, TopBar } from "@/components/cc/top-bar";
 import { ClientSettingsView } from "@/components/cc/settings";
 
 type Spot = "projects" | "decisions" | "requests" | "library" | "briefs" | "atmosphere";
@@ -79,9 +79,11 @@ export default function ClientCenter() {
   const counts: Record<Spot, number> = { projects: 0, decisions: pending + outstanding, requests: openQuestions, library: 0, briefs: 0, atmosphere: 0 };
   const note = (id: Spot) => (id === "decisions" ? `${pending} to sign, ${outstanding} to supply` : id === "requests" ? `${needYou(openQuestions)}` : "");
   const sceneKey = view;
+  const initials = (auth.user?.email ?? "CL").slice(0, 2).toUpperCase();
+  const account = <AccountMenu initials={initials} onSettings={() => openView("settings")} onSignOut={signOut} />;
 
   return <main className={`command-center ${focus ? "focus-mode" : ""}`}>
-    <TopBar who="CLIENT" center={<><span className="live-dot" /> {pending} AWAITING YOUR SIGNATURE</>} initials={(auth.user?.email ?? "CL").slice(0, 2).toUpperCase()} onSettings={() => openView("settings")} onSignOut={signOut} />
+    <TopBar who="CLIENT" center={<><span className="live-dot" /> {pending} AWAITING YOUR SIGNATURE</>} initials={initials} onSettings={() => openView("settings")} onSignOut={signOut} />
 
     <CursorLight />
     <ThresholdVeil sceneKey={sceneKey} dir={dir} origin={origin} />
@@ -103,7 +105,7 @@ export default function ClientCenter() {
       />
     </SceneFrame>
 
-    {view !== "office" && data && <DeskOverlay label={view === "settings" ? "Settings" : `${spotData[view].label} desk`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; CLIENT &nbsp; / &nbsp; {view === "settings" ? "SETTINGS" : spotData[view].label.toUpperCase()}</>} surface={`client-${view}`} origin={origin} onBack={() => openView("office")}>
+    {view !== "office" && data && <DeskOverlay account={account} label={view === "settings" ? "Settings" : `${spotData[view].label} desk`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; CLIENT &nbsp; / &nbsp; {view === "settings" ? "SETTINGS" : spotData[view].label.toUpperCase()}</>} surface={`client-${view}`} origin={origin} onBack={() => openView("office")}>
       <div key={view} className="scene scene-side">
         {view === "projects" && <ProjectsDesk data={data} isOwner={isOwner} />}
         {view === "decisions" && <DecisionsDesk data={data} isOwner={isOwner} busy={busy} msg={msg} onDecide={decide} />}

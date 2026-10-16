@@ -70,11 +70,10 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
   const [cmpW, setCmpW] = useState(260);
   // On a phone (P6.21 P6) the Workshop shows one pane at a time; selecting on the canvas opens Edit as a sheet over it.
   const phone = useIsMobile();
-  const [pane, setPane] = useState<"directions" | "canvas" | "edit">("canvas");
+  const [pane, setPane] = useState<"directions" | "canvas">("canvas");
   const [more, setMore] = useState(false);
   const [bannerGone, setBannerGone] = useState(false);
-  // The Edit sheet opens on the canvas's click, after the finger lifts: opened on touch-down, the click that follows would land on
-  // a field in the sheet and bring the keyboard up over everything.
+  // The Edit sheet opens only from its own button: a touch on the canvas selects, it never opens anything by itself.
   const [sheet, setSheet] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -101,6 +100,7 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
   }, [frame, compare, phone]);
   const scale = zoom === "fit" ? fit : zoom;
   // Pinch to zoom on a phone: two fingers set the zoom; one finger still scrolls the canvas (P6.21 P6).
+  const ready = Boolean(doc && frame);
   const scaleRef = useRef(scale);
   useEffect(() => { scaleRef.current = scale; }, [scale]);
   useEffect(() => {
@@ -119,7 +119,7 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
     el.addEventListener("touchmove", move, { passive: false });
     el.addEventListener("touchend", up);
     return () => { el.removeEventListener("touchstart", down); el.removeEventListener("touchmove", move); el.removeEventListener("touchend", up); };
-  }, [phone, compare]);
+  }, [phone, compare, ready]);
   const stepZoom = (dir: 1 | -1) => setZoom(Math.max(0.2, Math.min(2, Math.round((scale + dir * 0.1) * 10) / 10)));
 
   const propose = async (kind: ProposalKind, ids?: string[]) => {
@@ -178,10 +178,7 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
       {w.where === "device" && <p className="ws-banner quiet">Kept on this device only. The agency&apos;s design service is not connected yet, so export the design to share it.</p>}
       {w.saveNote && <p className="ws-banner warn">{w.saveNote}</p>}
 
-      {phone && <div className="ws-panes" role="tablist" aria-label="Workshop panes">
-        {(["directions", "canvas", "edit"] as const).map((p) => <button key={p} type="button" role="tab" aria-selected={pane === p} onClick={() => setPane(p)}>{p === "directions" ? "Directions" : p === "canvas" ? "Canvas" : "Edit"}</button>)}
-      </div>}
-      <div className="ws-main" data-pane={phone ? pane : undefined} data-sheet={phone && pane === "canvas" && sheet && valid.length > 0 ? "" : undefined}>
+      <div className="ws-main" data-pane={phone ? pane : undefined} data-sheet={phone && sheet ? "" : undefined}>
         <LeftPanel doc={doc} tab={leftTab} setTab={setLeftTab} territoryId={terrId} setTerritory={(id) => { setActiveTerr(id); setActiveFrame(null); setSelection([]); if (phone) setPane("canvas"); }} frameId={frame.id} setFrame={setActiveFrame} selection={valid} setSelection={setSelection} run={run} compare={compare} setCompare={setCompare} choose={(t) => setDialog({ kind: "choose", territory: t })} />
 
         <section className="ws-center" aria-label="Canvas">
@@ -206,17 +203,21 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
               })}
             </div>
           ) : (
-            <div className={`ws-stage${tool === "comment" ? " is-commenting" : ""}`} ref={stageRef} onClick={() => { if (phone) setSheet(true); }}>
+            <div className={`ws-stage${tool === "comment" ? " is-commenting" : ""}`} ref={stageRef}>
               <Artboard doc={doc} frameId={frame.id} scale={scale} selection={valid} onSelect={setSelection} onOp={(op, o) => w.commit(op, o)} tool={tool} snap={snap} grid={grid} onRefuse={say} activePin={activePin} onPinClick={(id) => { setActivePin(id); setRightTab("notes"); }}
                 onPin={(x, y, nodeId) => { const id = `note-${Date.now().toString(36)}`; run({ type: "ANNOTATE", note: { id, frameId: frame.id, nodeId, x, y, text: "", by: actor, at: new Date().toISOString(), resolved: false } }); setActivePin(id); setTool("select"); setRightTab("notes"); }} />
             </div>
           )}
         </section>
 
-        {phone && pane === "canvas" && sheet && valid.length > 0 && <button type="button" className="ws-sheet-close" onClick={() => { setSheet(false); setSelection([]); }}>Done</button>}
+        {phone && sheet && <button type="button" className="ws-sheet-close" onClick={() => setSheet(false)}>Done</button>}
         <Inspector doc={doc} territoryId={terrId} frameId={frame.id} selection={valid} setSelection={setSelection} run={run} tab={rightTab} setTab={setRightTab} propose={(k, ids) => void propose(k, ids)} tool={tool} setTool={setTool} activePin={activePin} setActivePin={setActivePin} checkpoint={(n) => { w.checkpoint(n); say("Checkpoint saved."); }} restore={(cp) => setDialog({ kind: "restore", checkpoint: cp })} actor={actor} />
       </div>
 
+      {phone && <div className="ws-panes" role="tablist" aria-label="Workshop panes">
+        {(["directions", "canvas"] as const).map((p) => <button key={p} type="button" role="tab" aria-selected={pane === p} onClick={() => { setPane(p); setSheet(false); }}>{p === "directions" ? "Directions" : "Canvas"}</button>)}
+        {pane === "canvas" && <button type="button" className="ws-edit-open" aria-expanded={sheet} onClick={() => setSheet(true)}>{valid.length ? `Edit (${valid.length})` : "Edit"}</button>}
+      </div>}
       {toast && <p className="ws-toast" role="status">{toast}</p>}
 
       {dialog && (

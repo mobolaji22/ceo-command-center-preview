@@ -22,15 +22,21 @@ html[data-lighting="day"] .account-menu { background: oklch(0.99 0.006 85); box-
 .spot-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(0deg, oklch(0.08 0.006 270 / 97%), oklch(0.08 0.006 270 / 84%)); border-top: 1px solid var(--border); }
 .spot-bar-item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 58px; padding: 8px 4px; border: 1px solid oklch(0.76 0.146 76 / 24%); border-radius: 6px; background: oklch(0.15 0.006 270 / 86%); color: var(--foreground); font: 600 12px "DM Sans", sans-serif; cursor: pointer; }
 .spot-bar-item svg { color: var(--primary); }
-.spot-bar-item > span:not(.spot-bar-count) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; }
+.spot-bar-item > span:not(.spot-bar-count) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 11px; letter-spacing: -0.01em; }
+.spot-bar-item { padding-inline: 2px; }
 .spot-bar-item:disabled { opacity: .5; }
 .spot-bar-count { position: absolute; top: 4px; right: 6px; min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; border-radius: 9px; background: var(--primary); color: oklch(0.15 0 0); font-size: 11px; }
 .spot-switch { position: absolute; right: 12px; top: 14px; z-index: 7; display: inline-flex; overflow: hidden; border: 1px solid var(--border); border-radius: 999px; background: oklch(0.1 0.006 270 / 90%); }
 .spot-switch button { min-height: 34px; padding: 6px 14px; border: 0; background: transparent; color: var(--muted-foreground); font: 600 12px "DM Sans", sans-serif; cursor: pointer; }
 .spot-switch button[aria-pressed="true"] { background: var(--primary); color: oklch(0.15 0 0); }
-html[data-lighting="day"] .spot-bar { background: linear-gradient(0deg, oklch(0.98 0.008 85 / 97%), oklch(0.98 0.008 85 / 86%)); }
-html[data-lighting="day"] .spot-bar-item { background: oklch(1 0 0 / 90%); }
-html[data-lighting="day"] .spot-switch { background: oklch(1 0 0 / 92%); }
+/* Day: the room is a dark island (day.css restores night colours inside it), so the bar names its own colours: dark on light. */
+html[data-lighting="day"] .spot-bar { background: oklch(0.97 0.01 85 / 97%); border-top-color: oklch(0 0 0 / 14%); }
+html[data-lighting="day"] .spot-bar-item { background: oklch(1 0 0); border-color: oklch(0.5 0.125 66 / 45%); color: oklch(0.21 0.016 60); }
+html[data-lighting="day"] .spot-bar-item svg { color: oklch(0.45 0.12 62); }
+html[data-lighting="day"] .spot-bar-count { background: oklch(0.45 0.12 62); color: oklch(0.99 0.005 85); }
+html[data-lighting="day"] .spot-switch { background: oklch(1 0 0 / 95%); border-color: oklch(0 0 0 / 16%); }
+html[data-lighting="day"] .spot-switch button { color: oklch(0.38 0.02 70); }
+html[data-lighting="day"] .spot-switch button[aria-pressed="true"] { background: oklch(0.45 0.12 62); color: oklch(0.99 0.005 85); }
 
 /* the desk bar's title is for phones only */
 .desk-bar-title { display: none; }
@@ -75,6 +81,22 @@ html[data-lighting="day"] .spot-switch { background: oklch(1 0 0 / 92%); }
   .desk-panel:is([data-surface="brief"], [data-surface="directive"], [data-surface="contracts"], [data-surface="phone"]) .desk-scroll { padding-inline: 16px; }
   .brief-wrap { margin: 20px auto 32px; }
 
+
+  /* The CEO's desks on a phone (P6.21 follow-up): display headings sized for a phone, not a monitor. */
+  :is(.computer-heading h2, .contract-main h2, .brief-wrap h2, .directive-head h2, .tab-pane h2, .phone-screen h3) { font-size: 34px !important; line-height: 1.08 !important; margin: 6px 0 10px !important; }
+  .computer-body { padding: 16px 16px 32px; }
+  /* Search filters as you type; the button only closed the keyboard. The two lists sit side by side. */
+  .find-go { display: none !important; }
+  .find-bar .find-select { flex: 1 1 calc(50% - 6px) !important; min-width: 0; }
+  /* The Phone desk is already on a phone: no phone drawn inside it, no "in your pocket" introduction. */
+  .phone-layout { display: block; min-height: 0; padding: 0; }
+  .phone-intro, .phone-hardware, .phone-top { display: none !important; }
+  .phone-shell { width: 100%; height: auto; border: 0; border-radius: 0; padding: 0; background: transparent; box-shadow: none; }
+  .phone-screen { height: auto; border-radius: 0; overflow: visible; background: transparent; }
+  /* The Directive opens on the form, not on a statement of principle. */
+  .directive-wrap .philosophy { display: none; }
+  .directive-head { margin-bottom: 8px; }
+
   /* P3: nothing over text. Decorations (the shelf of books, the board's clip, the plaque) are dropped. */
   .desk-surface::before, .desk-surface::after, .surface-board .desk-sheet::before, .surface-board .desk-sheet::after, .surface-deco { display: none !important; }
   .demo-banner { top: calc(19px + env(safe-area-inset-top)); bottom: auto; left: auto; right: 64px; transform: none; padding: 2px 6px; font-size: 8px; letter-spacing: .1em; }
@@ -94,17 +116,25 @@ html[data-lighting="day"] .spot-switch { background: oklch(1 0 0 / 92%); }
 @media (max-width: 767px) {
   .ws-banner { padding-right: 48px; }
   .workshop { border: 0; border-radius: 0; }
-  .ws-panes { display: flex; border-bottom: 1px solid var(--border); background: oklch(0.11 0.006 270); }
+  /* The panes sit at the bottom, under the thumb; the Edit sheet slides over them, so the canvas keeps the most room. */
+  .ws-panes { display: flex; align-items: center; gap: 4px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: oklch(0.11 0.006 270); }
   .ws-panes button { flex: 1; min-height: 44px; border: 0; background: transparent; color: var(--muted-foreground); font: 600 14px "DM Sans", sans-serif; cursor: pointer; }
-  .ws-panes button[aria-selected="true"] { color: var(--foreground); box-shadow: inset 0 -2px 0 var(--primary); }
+  .ws-panes button[aria-selected="true"] { color: var(--foreground); box-shadow: inset 0 2px 0 var(--primary); }
+  .ws-panes .ws-edit-open { flex: 0 0 auto; min-width: 96px; padding: 0 16px; border: 1px solid var(--primary); border-radius: 999px; background: color-mix(in oklab, var(--primary) 18%, transparent); color: var(--foreground); }
   .ws-more { display: inline-grid; place-items: center; }
   .ws-toolbar:not([data-more]) .ws-extra { display: none; }
   .ws-toolbar { flex-wrap: wrap; gap: 6px; padding: 8px 12px; }
   .ws-main[data-pane] { display: flex !important; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; grid-template-columns: none; }
   .ws-main[data-pane] > * { flex: 1; min-height: 0; max-height: none !important; overflow: auto; border: 0; }
-  .ws-main[data-pane="directions"] > :not(.ws-left), .ws-main[data-pane="canvas"] > :not(.ws-center), .ws-main[data-pane="edit"] > :not(.ws-inspector) { display: none !important; }
-  .ws-main[data-pane="canvas"][data-sheet] > .ws-inspector { display: flex !important; flex-direction: column; position: fixed; left: 0; right: 0; bottom: 0; height: 52vh; z-index: 46; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; background: oklch(0.12 0.006 270); box-shadow: 0 -18px 40px oklch(0 0 0 / 50%); }
-  .ws-main[data-pane="canvas"][data-sheet] > .ws-sheet-close { display: block !important; flex: none; position: fixed; right: 12px; bottom: calc(52vh + 8px); z-index: 47; min-height: 40px; padding: 0 16px; border: 1px solid var(--primary); border-radius: 999px; background: oklch(0.12 0.006 270); color: var(--foreground); font: 600 14px "DM Sans", sans-serif; }
+  .ws-main[data-pane="directions"] > :not(.ws-left), .ws-main[data-pane="canvas"] > :not(.ws-center) { display: none !important; }
+  .ws-main[data-pane="canvas"][data-sheet] > .ws-inspector { display: flex !important; flex-direction: column; position: fixed; left: 0; right: 0; bottom: 0; height: 45vh; z-index: 46; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; background: oklch(0.12 0.006 270); box-shadow: 0 -18px 40px oklch(0 0 0 / 50%); }
+  .ws-main[data-pane="canvas"][data-sheet] > .ws-sheet-close { display: block !important; flex: none; position: fixed; right: 12px; bottom: calc(45vh + 8px); z-index: 47; min-height: 40px; padding: 0 16px; border: 1px solid var(--primary); border-radius: 999px; background: oklch(0.12 0.006 270); color: var(--foreground); font: 600 14px "DM Sans", sans-serif; }
   .ws-stage { padding: 12px; touch-action: pan-x pan-y; }
   html[data-lighting="day"] .ws-panes, html[data-lighting="day"] .ws-main[data-pane="canvas"][data-sheet] > .ws-inspector, html[data-lighting="day"] .ws-sheet-close { background: oklch(0.99 0.006 85); }
+  html[data-lighting="day"] .ws-panes button { color: oklch(0.38 0.02 70); }
+  html[data-lighting="day"] .ws-panes button[aria-selected="true"], html[data-lighting="day"] .ws-panes .ws-edit-open { color: oklch(0.21 0.016 60); }
 }
+
+/* The desk bar carries the account menu on a phone only; on a wide screen the header is there. */
+.desk-bar-account { display: none; }
+@media (max-width: 650px) { .desk-bar-account { display: block; margin-left: auto; } .desk-bar-account .avatar { width: 34px; height: 34px; } }

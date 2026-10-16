@@ -31,7 +31,7 @@ export function TopBar({ who, center, date, initials, onSettings, onSignOut }: {
   );
 }
 
-function AccountMenu({ initials, onSettings, onSignOut }: { initials: string; onSettings: () => void; onSignOut: () => void }) {
+export function AccountMenu({ initials, onSettings, onSignOut }: { initials: string; onSettings: () => void; onSignOut: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const day = useLighting() === "day";
