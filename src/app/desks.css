@@ -213,3 +213,52 @@ mark { padding: 0 1px; border-radius: 2px; background: color-mix(in oklab, var(-
 .explorer-more { padding: 6px 8px; font-size: 11px; color: var(--muted-foreground); }
 .explorer-sub-item span { min-width: 0; overflow-wrap: anywhere; }
 @media (max-width: 650px) { .find-go { flex: 0 0 auto; } .find-select { flex: 1 1 140px; } }
+
+/* P6.21: the CEO's Settings. A page to read and change, at the client views' reading size: 16px body, 14px secondary. */
+.settings { display: flex; flex-direction: column; min-height: 100%; background: oklch(0.12 0.006 270 / 96%); border: 1px solid var(--border); border-radius: 3px; font-size: 16px; line-height: 1.5; }
+.settings-title { margin: 0; padding: 20px 26px 14px; font: 400 30px/1.1 "Cormorant Garamond", serif; color: var(--foreground); border-bottom: 1px solid var(--border); }
+.settings-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); flex: 1; min-height: 0; }
+.settings-nav { display: flex; flex-direction: column; gap: 2px; padding: 16px 10px; border-right: 1px solid var(--border); position: sticky; top: 0; align-self: start; }
+.settings-nav button, .settings-tabs button { text-align: left; padding: 10px 14px; border: 0; border-radius: 3px; background: transparent; color: var(--muted-foreground); font: 500 15px "DM Sans", sans-serif; cursor: pointer; }
+.settings-nav button:hover, .settings-tabs button:hover { color: var(--foreground); background: oklch(1 0 0 / 4%); }
+.settings-nav button.active, .settings-tabs button.active { color: var(--foreground); background: oklch(0.76 0.146 76 / 12%); box-shadow: inset 2px 0 0 var(--primary); }
+.settings-pane { padding: 22px 28px 40px; max-width: 860px; }
+.settings-pane h3 { margin: 0 0 6px; font: 600 22px "DM Sans", sans-serif; color: var(--foreground); }
+.settings-pane h4 { margin: 0 0 10px; font: 600 15px "DM Sans", sans-serif; letter-spacing: .02em; color: var(--primary); }
+.settings-pane h5 { margin: 18px 0 6px; font: 600 14px "DM Sans", sans-serif; color: var(--muted-foreground); }
+.settings-lead { margin: 0 0 18px; color: var(--muted-foreground); font-size: 15px; max-width: 64ch; }
+.settings-none { margin: 4px 0 12px; color: var(--muted-foreground); font-size: 14px; }
+.settings-block { padding: 20px 0; border-top: 1px solid var(--border); }
+.settings-block small, .settings-rows small, .settings-facts small { display: block; color: var(--muted-foreground); font-size: 14px; }
+.settings-rows { list-style: none; margin: 0 0 14px; padding: 0; }
+.settings-rows li { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.settings-rows li > span { min-width: 0; }
+.settings-inline, .settings-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 8px 0 0; }
+.settings-form { flex-direction: column; align-items: flex-start; gap: 14px; margin-top: 20px; }
+.settings-inline label, .settings-form label { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; color: var(--foreground); }
+.settings-unit { display: inline-flex; align-items: center; gap: 6px; color: var(--muted-foreground); }
+.settings :is(input, select) { min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 3px; background: oklch(0.08 0.006 270); color: var(--foreground); font: 15px "DM Sans", sans-serif; }
+.settings input[type="number"] { width: 110px; }
+.settings select { max-width: 100%; }
+.settings-inline input:not([type="number"]) { flex: 1 1 220px; }
+.settings-facts { display: grid; gap: 14px; margin: 0 0 18px; }
+.settings-facts > div { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.settings-facts dt { color: var(--muted-foreground); font-size: 14px; }
+.settings-facts dd { margin: 0; }
+.settings-waits { margin: 0; padding-left: 18px; }
+.settings-tabs { display: flex; gap: 6px; margin: 0 0 16px; }
+.settings .mmsg { font-size: 14px; margin: 0 0 12px; }
+.settings .mform h4 { font-size: 12px; }
+html[data-lighting="day"] .settings { background: oklch(0.99 0.006 85 / 96%); }
+html[data-lighting="day"] .settings :is(input, select) { background: oklch(1 0 0); }
+@media (max-width: 760px) {
+  /* On a phone the sections are a row of tabs that scrolls on its own, and each answer sits under its label. */
+  .settings-body { grid-template-columns: 1fr; }
+  .settings-nav { flex-direction: row; overflow-x: auto; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--border); scrollbar-width: none; z-index: 1; background: oklch(0.12 0.006 270); }
+  .settings-nav button { flex: 0 0 auto; white-space: nowrap; }
+  .settings-nav button.active { box-shadow: inset 0 -2px 0 var(--primary); }
+  .settings-pane { padding: 18px 16px 32px; }
+  .settings-title { padding: 16px; font-size: 26px; }
+  .settings-facts > div { grid-template-columns: 1fr; gap: 4px; }
+}
+html[data-lighting="day"] .settings-nav { background: oklch(0.99 0.006 85 / 96%); }

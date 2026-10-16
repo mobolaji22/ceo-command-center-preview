@@ -1,5 +1,5 @@
 import type { DesignDocument } from "@/lib/design/sdd";
-import type { ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session } from "../model";
+import type { ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -76,6 +76,10 @@ const must = <T>(r: Result<T>): T => {
   return r.data;
 };
 const voidResult = (r: Result<unknown>): Result => (r.error ? { data: null, error: r.error } : ok(undefined as void));
+
+/** v4 names a fee policy's scope as `agency`, `org:<id>` or `project:<id>`. */
+const toFeeScope = (s: string): FeeScope => (s.startsWith("org:") ? { kind: "organization", id: s.slice(4) } : s.startsWith("project:") ? { kind: "project", id: s.slice(8) } : { kind: "agency" });
+const scopeParams = (s: Exclude<FeeScope, { kind: "agency" }>) => (s.kind === "organization" ? `organizationId=${encodeURIComponent(s.id)}` : `projectId=${encodeURIComponent(s.id)}`);
 
 type ApiAsset = {
   id: string; organizationId: string; scope: "ORGANIZATION" | "PROJECT"; projectId: string | null; kind: string; name: string;
@@ -358,6 +362,54 @@ export function createApiDataSource(): DataSource {
       },
     },
 
+    settings: {
+      async system() {
+        const r = await call<{ agencyMode: SystemView["agency_mode"]; readsWith: SystemView["reads_with"]; modelSwitchedOn: boolean; waiting: SystemView["waiting"]; revisionsWaiting: number }>("GET", "/v1/settings/system");
+        if (r.error || !r.data) return { data: null, error: r.error };
+        const v = r.data;
+        return ok({ agency_mode: v.agencyMode, reads_with: v.readsWith, model_switched_on: v.modelSwitchedOn, waiting: v.waiting, revisions_waiting: v.revisionsWaiting });
+      },
+      async fees() {
+        const r = await call<{ policies: Array<{ scope: string; agencyFeePct: number; updatedAt: string }>; rates: Array<{ capability: string; rigor: Rigor; unitUsd: number; updatedAt: string }> }>("GET", "/v1/fees");
+        if (r.error || !r.data) return { data: null, error: r.error };
+        const v: FeesView = {
+          policies: r.data.policies.map((p) => ({ scope: toFeeScope(p.scope), agency_fee_pct: p.agencyFeePct, updated_at: p.updatedAt })),
+          rates: r.data.rates.map((x) => ({ capability: x.capability, rigor: x.rigor, unit_usd: x.unitUsd, updated_at: x.updatedAt })),
+        };
+        return ok(v);
+      },
+      async setFeePolicy({ agencyFeePct, scope }) {
+        const where = scope.kind === "organization" ? { organizationId: scope.id } : scope.kind === "project" ? { projectId: scope.id } : {};
+        return voidResult(await call("PUT", "/v1/fees/policy", { agencyFeePct, ...where }));
+      },
+      async clearFeePolicy(scope) {
+        return voidResult(await call("DELETE", `/v1/fees/policy?${scopeParams(scope)}`));
+      },
+      async setRate(input) {
+        return voidResult(await call("PUT", "/v1/fees/rates", input));
+      },
+      async removeRate({ capability, rigor }) {
+        return voidResult(await call("DELETE", `/v1/fees/rates?capability=${encodeURIComponent(capability)}&rigor=${rigor}`));
+      },
+      async spend() {
+        const r = await call<{ monthlyCeilingUsd: number; perCallCeilingUsd: number; spentUsd: number; reservedUsd: number; remainingUsd: number; calls: number; refused: number; enforced: boolean }>("GET", "/v1/spend");
+        if (r.error || !r.data) return { data: null, error: r.error };
+        const v = r.data;
+        const out: SpendView = { monthly_ceiling_usd: v.monthlyCeilingUsd, per_call_ceiling_usd: v.perCallCeilingUsd, spent_usd: v.spentUsd, reserved_usd: v.reservedUsd, remaining_usd: v.remainingUsd, calls: v.calls, refused: v.refused, enforced: v.enforced };
+        return ok(out);
+      },
+      async setSpendPolicy(input) {
+        return voidResult(await call("PUT", "/v1/spend/policy", input));
+      },
+      async sessions() {
+        const r = await call<Array<{ id: string; createdAt: string; lastSeenAt: string; userAgent: string | null; current: boolean }>>("GET", "/v1/auth/sessions");
+        if (r.error || !r.data) return { data: null, error: r.error };
+        return ok(r.data.map((x): SessionView => ({ id: x.id, created_at: x.createdAt, last_seen_at: x.lastSeenAt, user_agent: x.userAgent, current: x.current })));
+      },
+      async endSession(id) {
+        return voidResult(await call("DELETE", `/v1/auth/sessions/${encodeURIComponent(id)}`));
+      },
+    },
     notifications: {
       async list() {
         const r = await call<Array<{ id: string; briefId: string; title: string; type: BriefType; projectId: string | null; level: number; status: NotificationItem["status"]; reason: string | null; createdAt: string }>>("GET", "/v1/notifications?limit=50");

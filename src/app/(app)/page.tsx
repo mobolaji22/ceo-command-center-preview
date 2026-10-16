@@ -15,6 +15,7 @@ import { useDomains } from "@/lib/domains";
 import { RoomDesk, RoomStage, type RoomSpot } from "@/components/cc/room-stage";
 import { SceneFrame, ThresholdVeil, directionBetween, isOverlayMove, originFor, type SceneOrigin } from "@/components/cc/scene";
 import { DeskOverlay } from "@/components/cc/desk-overlay";
+import { SettingsView } from "@/components/cc/settings";
 import type { SceneDir } from "@/lib/motion";
 import { CursorLight } from "@/components/cc/cursor-light";
 import { LightingToggle } from "@/components/cc/lighting-toggle";
@@ -24,11 +25,11 @@ import { ManageView } from "@/components/cc/manage";
 import { ContractsDesk } from "@/components/cc/runs";
 
 
-const CEO_DESKS = ["computer", "phone", "contracts", "directive", "brief", "manage"] as const;
+const CEO_DESKS = ["computer", "phone", "contracts", "directive", "brief", "manage", "settings"] as const;
 const isDesk = (v: string): boolean => (CEO_DESKS as readonly string[]).includes(v);
 
 type Hotspot = "focus" | "computer" | "phone" | "contracts" | "directive" | "brief" | "door";
-type View = "office" | "computer" | "phone" | "contracts" | "directive" | "brief" | "hallway" | "room" | "roomdesk" | "manage";
+type View = "office" | "computer" | "phone" | "contracts" | "directive" | "brief" | "hallway" | "room" | "roomdesk" | "manage" | "settings";
 
 const hotspotData: Record<Hotspot, { title: string; label: string; description: string; action: string; icon: typeof Coffee }> = {
   focus: { title: "EXECUTIVE FOCUS", label: "Atmosphere", description: "Set the tone for a quieter, more deliberate session.", action: "Toggle focus lighting", icon: Coffee },
@@ -85,7 +86,7 @@ export default function Index() {
       <div className="topbar-center"><span className="live-dot" /> SYSTEM ONLINE <span className="topbar-divider" /> {pending} AWAITING SIGNATURE</div>
       <div className="topbar-right"><span className="topbar-date">{today}</span>
         <LightingToggle />
-        <Button variant="ghost" size="icon" className="icon-button" aria-label="Manage records and clients" title="Manage" onClick={() => openView("manage")}><Settings2 size={16} /></Button>
+        <Button variant="ghost" size="icon" className="icon-button" aria-label="Settings" title="Settings" onClick={() => openView("settings")}><Settings2 size={16} /></Button>
         <Button variant="ghost" size="icon" className="icon-button" aria-label="Sign out" title="Sign out" onClick={signOut}><LogOut size={16} /></Button>
         <span className="avatar">{initials}</span></div>
     </header>
@@ -126,13 +127,14 @@ export default function Index() {
       </SceneFrame>
     </div>}
 
-    {isDesk(view) && data && <DeskOverlay label={view === "manage" ? "Records explorer" : `${view} desk`} backLabel="BACK TO OFFICE" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {view === "manage" ? "RECORDS" : view.toUpperCase()}</>} surface={view} origin={origin} onBack={() => openView("office")}>
+    {isDesk(view) && data && <DeskOverlay label={view === "manage" ? "Records explorer" : view === "settings" ? "Settings" : `${view} desk`} backLabel="BACK TO OFFICE" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {view === "manage" ? "RECORDS" : view.toUpperCase()}</>} surface={view} origin={origin} onBack={() => openView("office")}>
       <div key={view} className="scene scene-side">
         {view === "computer" && <ComputerView data={data} refresh={refresh} openContracts={(id) => openView("contracts", id)} openBrief={() => openView("brief")} openManage={(id) => openView("manage", id)} />}
         {view === "phone" && <PhoneView data={data} refresh={refresh} openBrief={() => openView("brief")} openContracts={(id) => openView("contracts", id)} />}
         {view === "contracts" && <><ContractsView data={data} refresh={refresh} focusProjectId={focusProject} /><ContractsDesk data={data} onChanged={refresh} /></>}
         {view === "directive" && <DirectiveView data={data} refresh={refresh} close={() => openView("office")} />}
         {view === "manage" && <ManageView data={data} refresh={refresh} initialProjectId={focusProject} />}
+        {view === "settings" && <SettingsView data={data} refresh={refresh} />}
         {view === "brief" && <BriefView data={data} refresh={refresh} openContracts={(id) => openView("contracts", id)} openComputer={() => openView("computer")} />}
       </div>
     </DeskOverlay>}

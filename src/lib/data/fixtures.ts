@@ -22,7 +22,12 @@ import type {
   Session,
   V4Event,
   DomainView,
+  FeeScope,
+  FeesView,
+  SessionView,
+  SpendView,
 } from "../model";
+import { RIGORS } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -47,25 +52,42 @@ type Membership = { organizationId: string; role: "CLIENT_OWNER" | "CLIENT_MEMBE
 type User = { id: string; email: string; displayName: string; role: "owner" | "client"; memberships: Membership[] };
 
 /**
- * The demo's rate card and agency share (ADR-0028): the fixtures price plans the way v4 does, from stated figures, so the demo
- * shows a price. They are demo numbers, not the agency's.
+ * The demo's rate card and agency share (ADR-0028): the fixtures price plans the way v4 does, from the figures the CEO sets in
+ * Settings, so the demo shows a price. They start as demo numbers, not the agency's.
  */
-const DEMO_RATES: Record<string, number> = { light: 300, standard: 800, strict: 1500, critical: 2500 };
-const DEMO_AGENCY_FEE_PCT = 15;
+const DEMO_SINCE = "2026-10-01T09:00:00.000Z";
+const DEMO_FEES: FeesView = {
+  policies: [{ scope: { kind: "agency" }, agency_fee_pct: 15, updated_at: DEMO_SINCE }],
+  rates: RIGORS.map((rigor) => ({ capability: "*", rigor, unit_usd: { light: 300, standard: 800, strict: 1500, critical: 2500 }[rigor], updated_at: DEMO_SINCE })),
+};
 const DEMO_REVISION_ALLOWANCE = 0.2;
-const fee = (n: number) => Math.round(n * DEMO_AGENCY_FEE_PCT) / 100;
-function demoPrice(plan: PlanContent) {
-  const low = plan.tasks.reduce((sum, t) => sum + (DEMO_RATES[t.rigor] ?? 0), 0);
+type DemoPrice = { pct: number; project: { low: number; high: number }; agency: { low: number; high: number }; total: { low: number; high: number } };
+const sameScope = (a: FeeScope, b: FeeScope) => a.kind === b.kind && (a.kind === "agency" || a.id === (b as { id: string }).id);
+/** The most specific fee applies: the project's own, then the client's, then the agency's. */
+function feePctFor(fees: FeesView, organizationId: string | null, projectId: string): number | null {
+  const scopes: FeeScope[] = [{ kind: "project", id: projectId }, ...(organizationId ? [{ kind: "organization", id: organizationId } as FeeScope] : []), { kind: "agency" }];
+  for (const sc of scopes) { const hit = fees.policies.find((x) => sameScope(x.scope, sc)); if (hit) return hit.agency_fee_pct; }
+  return null;
+}
+/** Each task at its capability's rate, or its effort level's default (`*`); a task with no rate means no price, never a guess. */
+function demoPrice(plan: PlanContent, fees: FeesView, pct: number | null): DemoPrice | null {
+  if (pct === null) return null;
+  let low = 0;
+  for (const t of plan.tasks) {
+    const rate = fees.rates.find((r) => r.capability === t.capability && r.rigor === t.rigor) ?? fees.rates.find((r) => r.capability === "*" && r.rigor === t.rigor);
+    if (!rate) return null;
+    low += rate.unit_usd;
+  }
   const project = { low, high: Math.round(low * (1 + DEMO_REVISION_ALLOWANCE)) };
-  const agency = { low: fee(project.low), high: fee(project.high) };
-  return { project, agency, total: { low: project.low + agency.low, high: project.high + agency.high } };
+  const share = (n: number) => Math.round(n * pct) / 100;
+  const agency = { low: share(project.low), high: share(project.high) };
+  return { pct, project, agency, total: { low: project.low + agency.low, high: project.high + agency.high } };
 }
 const usdText = (r: { low: number; high: number }) => `$${r.low.toLocaleString("en-US")} to $${r.high.toLocaleString("en-US")}`;
 /** What a client is told changed between versions, the way v4 words it: the price, what they get, the dates and the scope. */
-function demoChanges(from: PlanContent, to: PlanContent): string[] {
+function demoChanges(from: PlanContent, to: PlanContent, a: DemoPrice | null, b: DemoPrice | null): string[] {
   const lines: string[] = [];
-  const [a, b] = [demoPrice(from).total, demoPrice(to).total];
-  if (a.low !== b.low || a.high !== b.high) lines.push(`Price: ${usdText(b)} (was ${usdText(a)})`);
+  if (b && (!a || a.total.low !== b.total.low || a.total.high !== b.total.high)) lines.push(`Price: ${usdText(b.total)}${a ? ` (was ${usdText(a.total)})` : ""}`);
   const diff = (x: string[], y: string[], added: string, removed: string) => {
     for (const n of y) if (!x.includes(n)) lines.push(`${added}: ${n}`);
     for (const n of x) if (!y.includes(n)) lines.push(`${removed}: ${n}`);
@@ -82,7 +104,7 @@ const STATUS_LINE = (i: { status: string; questions: unknown[] }, planReady: boo
   : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
   : { kind: "PLANNING", line: "We're preparing your plan." };
 
-type Store = { standingProjects?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView> };
+type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView> };
 
 /** A demo plan: enough to show every part of the page. */
 const demoPlan = (): PlanContent => ({
@@ -596,6 +618,65 @@ export function createFixturesDataSource(): DataSource {
       },
     },
 
+    settings: {
+      async system() {
+        // The demo is the agency in Demo mode: requests are read with keywords and planned from templates, and nothing waits.
+        return ok({ agency_mode: "DEMO" as const, reads_with: "KEYWORDS" as const, model_switched_on: false, waiting: [], revisions_waiting: 0 });
+      },
+      async fees() {
+        return ok(structuredClone(load().fees ?? DEMO_FEES));
+      },
+      async setFeePolicy({ agencyFeePct, scope }) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        if (!(agencyFeePct >= 0 && agencyFeePct <= 100)) return fail("The agency fee must be between 0% and 100%.", "INVALID_BODY");
+        return mutate((s) => {
+          const fees = s.fees ?? structuredClone(DEMO_FEES);
+          fees.policies = [...fees.policies.filter((x) => !sameScope(x.scope, scope)), { scope, agency_fee_pct: agencyFeePct, updated_at: new Date().toISOString() }];
+          s.fees = fees;
+        });
+      },
+      async clearFeePolicy(scope) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        return mutate((s) => { const fees = s.fees ?? structuredClone(DEMO_FEES); fees.policies = fees.policies.filter((x) => !sameScope(x.scope, scope)); s.fees = fees; });
+      },
+      async setRate({ capability, rigor, unitUsd }) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        if (!(unitUsd >= 0) || !capability.trim()) return fail("A rate needs a capability and an amount of $0 or more.", "INVALID_BODY");
+        return mutate((s) => {
+          const fees = s.fees ?? structuredClone(DEMO_FEES);
+          fees.rates = [...fees.rates.filter((r) => !(r.capability === capability.trim() && r.rigor === rigor)), { capability: capability.trim(), rigor, unit_usd: unitUsd, updated_at: new Date().toISOString() }];
+          s.fees = fees;
+        });
+      },
+      async removeRate({ capability, rigor }) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        return mutate((s) => { const fees = s.fees ?? structuredClone(DEMO_FEES); fees.rates = fees.rates.filter((r) => !(r.capability === capability && r.rigor === rigor)); s.fees = fees; });
+      },
+      async spend() {
+        const sp = load().spend ?? { monthly: 0, perCall: 0 };
+        const v: SpendView = { monthly_ceiling_usd: sp.monthly, per_call_ceiling_usd: sp.perCall, spent_usd: 0, reserved_usd: 0, remaining_usd: sp.monthly, calls: 0, refused: 0, enforced: sp.monthly > 0 };
+        return ok(v);
+      },
+      async setSpendPolicy({ monthlyCeilingUsd, perCallCeilingUsd }) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        if (!(monthlyCeilingUsd >= 0 && perCallCeilingUsd >= 0) || perCallCeilingUsd > monthlyCeilingUsd) return fail("The per-call ceiling cannot exceed the monthly one.", "INVALID_BODY");
+        return mutate((s) => { s.spend = { monthly: monthlyCeilingUsd, perCall: perCallCeilingUsd }; });
+      },
+      async sessions() {
+        // The demo has the session in use and one other device, so "sign out" has something to act on.
+        const now = Date.now();
+        const all: SessionView[] = [
+          { id: "demo-this", created_at: new Date(now - 3 * 864e5).toISOString(), last_seen_at: new Date(now).toISOString(), user_agent: typeof navigator === "undefined" ? null : navigator.userAgent, current: true },
+          { id: "demo-phone", created_at: new Date(now - 9 * 864e5).toISOString(), last_seen_at: new Date(now - 2 * 864e5).toISOString(), user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile Safari", current: false },
+        ];
+        const ended = load().endedSessions ?? [];
+        return ok(all.filter((x) => !ended.includes(x.id)));
+      },
+      async endSession(id) {
+        if (id === "demo-this") return fail("That is the session you are using. Sign out instead.", "SESSION_NOT_FOUND");
+        return mutate((s) => { s.endedSessions = [...new Set([...(s.endedSessions ?? []), id])]; });
+      },
+    },
     notifications: {
       async list() {
         const s = load();
@@ -800,16 +881,26 @@ export function createFixturesDataSource(): DataSource {
         const p = s.plans.find((x) => x.id === proposalId);
         if (!p) return fail("That plan couldn't be found.", "NOT_FOUND");
         const plan = p.plan;
-        const { project, agency, total } = demoPrice(plan);
         const prev = s.plans.find((x) => x.project_id === p.project_id && x.version === p.version - 1);
+        // A plan keeps the price it was first shown with; new figures in Settings price new plans and revisions (as in v4).
+        const priceOf = (v: PlanVersion) => {
+          if (s.prices?.[v.id] !== undefined) return s.prices[v.id] ?? null;
+          const orgId = s.data.projects.find((x) => x.id === v.project_id)?.organization_id ?? null;
+          const fees = s.fees ?? DEMO_FEES;
+          const priced = demoPrice(v.plan, fees, feePctFor(fees, orgId, v.project_id));
+          s.prices = { ...(s.prices ?? {}), [v.id]: priced };
+          save(s);
+          return priced;
+        };
+        const price = priceOf(p);
         const inForce = (s.standingProjects ?? []).includes(p.project_id);
         const task = (id?: string) => plan.tasks.find((t) => t.id === id);
         return ok({
           id: p.id, project_id: p.project_id, version: p.version, status: p.status,
           summary: {
             objective: plan.objective,
-            price: { project_fee: project, agency_fee_pct: DEMO_AGENCY_FEE_PCT, agency_fee: agency, pass_through: [], total },
-            price_note: "Demo figures. The range allows for one round of revisions.",
+            price: price ? { project_fee: price.project, agency_fee_pct: price.pct, agency_fee: price.agency, pass_through: [], total: price.total } : null,
+            price_note: price ? "Demo figures. The range allows for one round of revisions." : "Price to follow: the agency confirms it before work starts.",
             milestones: plan.milestones.map((m) => ({ name: m.name, target: null })),
           },
           phases: [{ phase: null, deliverables: plan.deliverables.map((d) => ({ name: d.name, due: null })) }],
@@ -821,7 +912,7 @@ export function createFixturesDataSource(): DataSource {
           }),
           delegation: { in_force: inForce, always_yours: ["Anything with a risk above 3 of 5: each needs its own permission", "Spending beyond the approved total", "Anything that cannot be undone, or moves money: you and the agency both decide"] },
           more: { included: plan.scope_in, not_included: plan.scope_out, measures: plan.success_metrics.map((m) => ({ target: m.target, how: m.measurement, window: m.window })), risks: plan.risks },
-          changes: prev ? { since: prev.version, lines: demoChanges(prev.plan, plan) } : null,
+          changes: prev ? { since: prev.version, lines: demoChanges(prev.plan, plan, priceOf(prev), price) } : null,
         });
       },
       async allowAgencyToDecide({ projectId }) {
