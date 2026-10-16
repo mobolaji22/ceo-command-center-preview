@@ -67,11 +67,11 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   // The work first; a new directive is a button, and the form can be put away (P6.21). A draft is never discarded unasked.
   await expect(page.getByRole("button", { name: "New directive", exact: true })).toBeVisible();
   const composer = await newDirective(page);
-  await composer.getByRole("button", { name: "Close the new request" }).click();
+  await composer.getByRole("button", { name: "Close without sending" }).click();
   await expect(page.getByLabel("New request")).toHaveCount(0);
   const again = await newDirective(page);
   await again.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("A draft");
-  await again.getByRole("button", { name: "Close the new request" }).click();
+  await again.getByRole("button", { name: "Close without sending" }).click();
   await expect(again.getByText("Discard what you wrote?")).toBeVisible();
   await again.getByRole("button", { name: "Discard" }).click();
   await expect(page.getByLabel("New request")).toHaveCount(0);

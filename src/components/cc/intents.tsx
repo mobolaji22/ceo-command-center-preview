@@ -51,7 +51,7 @@ export function Composer({ organizations, fixedOrganizationId, onSubmitted, onCl
   return <div className="directive-form" aria-label="New request">
     {onClose && <div className="composer-close">{discarding
       ? <><span>Discard what you wrote?</span><Button variant="ghost" onClick={() => setDiscarding(false)}>Keep writing</Button><Button variant="ghost" onClick={onClose}>Discard</Button></>
-      : <Button variant="ghost" size="icon" className="icon-button" aria-label="Close the new request" title="Close" onClick={close}><X size={18} /></Button>}</div>}
+      : <Button variant="ghost" size="icon" className="icon-button" aria-label="Close without sending" title="Close" onClick={close}><X size={18} /></Button>}</div>}
     <label htmlFor="request-text">WHAT WOULD YOU LIKE DONE?</label>
     <textarea id="request-text" value={text} maxLength={8000} onChange={(e) => setText(e.target.value)} placeholder="Describe the outcome you want, who it is for, and by when. Attach anything that helps." />
     {!fixedOrganizationId && <div className="directive-targets"><label>CLIENT<select value={orgId} onChange={(e) => setOrgId(e.target.value)}><option value="">Choose…</option>{organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label></div>}
