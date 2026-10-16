@@ -96,6 +96,7 @@ html[data-lighting="day"] .spot-switch button[aria-pressed="true"] { background:
   /* The Directive opens on the form, not on a statement of principle. */
   .directive-wrap .philosophy { display: none; }
   .directive-head { margin-bottom: 8px; }
+  .directive-head > button { display: none; } /* the bar's ← already closes the desk; one ✕ (the form's) is enough */
 
   /* P3: nothing over text. Decorations (the shelf of books, the board's clip, the plaque) are dropped. */
   .desk-surface::before, .desk-surface::after, .surface-board .desk-sheet::before, .surface-board .desk-sheet::after, .surface-deco { display: none !important; }
@@ -138,3 +139,18 @@ html[data-lighting="day"] .spot-switch button[aria-pressed="true"] { background:
 /* The desk bar carries the account menu on a phone only; on a wide screen the header is there. */
 .desk-bar-account { display: none; }
 @media (max-width: 650px) { .desk-bar-account { display: block; margin-left: auto; } .desk-bar-account .avatar { width: 34px; height: 34px; } }
+
+/* The Workshop's toolbar on a phone: the project and save state on top; the tools at the bottom, above the panes. */
+.ws-tb-top, .ws-tb-tools { display: contents; }
+@media (max-width: 767px) {
+  .workshop > .ws-toolbar { display: contents; }
+  .ws-tb-top { display: flex; order: 0; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .ws-tb-top > :first-child { flex: 1; min-width: 0; }
+  .ws-tb-top .ws-save { flex: 0 0 auto; font-size: 12px; }
+  .workshop > .ws-banner { order: 1; }
+  .workshop > .ws-main { order: 2; }
+  .ws-tb-tools { display: flex; order: 3; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px; padding: 6px 8px; border-top: 1px solid var(--border); background: oklch(0.11 0.006 270); }
+  .workshop > .ws-panes { order: 4; border-top: 0; }
+  .workshop > .ws-toast { order: 5; }
+  html[data-lighting="day"] .ws-tb-tools { background: oklch(0.99 0.006 85); }
+}

@@ -1,3 +1,4 @@
+import { newDirective } from "./directive";
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
@@ -99,7 +100,7 @@ test("the CEO sends a directive for a client, answers its questions, and sees wh
 
   await page.getByRole("button", { name: "Preview Directive" }).click();
   await page.getByRole("button", { name: "Compose directive" }).click();
-  const composer = page.getByLabel("New request");
+  const composer = await newDirective(page);
   await composer.getByLabel("CLIENT").selectOption({ label: "Orbit" });
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Refresh the brand");
   await composer.getByRole("button", { name: "Send request" }).click();

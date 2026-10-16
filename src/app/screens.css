@@ -274,3 +274,5 @@
 
 /* P6.21 P5: on a client's board, writing a new request is one button above their requests. */
 .new-request { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 18px; min-height: 44px; padding: 0 18px; border: 1px solid oklch(0.76 0.146 76 / 45%); border-radius: 3px; background: oklch(0.76 0.146 76 / 14%); color: var(--foreground); font: 600 15px "DM Sans", sans-serif; }
+/* The composer can be put away unused; with a draft it asks once before discarding. */
+.composer-close { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: -6px -6px 0 0; font-size: 14px; color: var(--muted-foreground); }

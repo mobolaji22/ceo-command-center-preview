@@ -4,7 +4,7 @@ import { BriefArchive, NotificationSettings, PhoneBriefs } from "./briefs";
 import { GovernancePanel, PlanDecisionLedger } from "./ledger";
 import { CaseFileToggle, PhoneQuestions, Standing } from "./runs";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowDownRight, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, MoreHorizontal, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, MoreHorizontal, Plus, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OwnerData, Approval } from "@/lib/model";
 import { label, riskLabel, reversibilityLabel, statusTone, fmtDate, fmtAgo, pad } from "@/lib/format";
@@ -163,11 +163,16 @@ function ResolvedList({ data, items }: { data: OwnerData; items: Approval[] }) {
 
 export function DirectiveView({ data, refresh, close }: Common & { close: () => void }) {
   const [full, setFull] = useState(false);
+  // The work comes first (P6.21, as on a client's board): a new directive is a button that opens the form, and the form can be
+  // put away unused. With nothing asked yet, the form is open.
+  const [writing, setWriting] = useState(data.intents.length === 0);
   const orgName = (id: string) => data.organizations.find((o) => o.id === id)?.name ?? "";
   const history = full ? data.intents : data.intents.slice(0, 5);
   return <div className="directive-wrap"><div className="directive-head"><div><div className="eyebrow gold">INTENT FRAMING / CEO OFFICE</div><h2><span className="brain-symbol">✦</span> Executive Directive</h2></div><Button variant="ghost" size="icon" className="icon-button" aria-label="Close directive" onClick={close}><X size={20} /></Button></div>
     <div className="philosophy"><span>THE PRINCIPLE</span><p>The CEO does not manage tasks. The CEO sets direction, resolves ambiguity, and authorizes consequential action.</p></div>
-    <Composer organizations={data.organizations} onSubmitted={refresh} />
+    {writing
+      ? <Composer organizations={data.organizations} onSubmitted={refresh} onClose={data.intents.length ? () => setWriting(false) : undefined} />
+      : <Button className="new-request" onClick={() => setWriting(true)}><Plus size={16} /> New directive</Button>}
     <div className="directive-history"><div className="section-label"><span>REQUESTS</span>{data.intents.length > 5 && <button onClick={() => setFull(!full)}>{full ? "SHOW RECENT" : `SHOW ALL ${data.intents.length}`}</button>}</div>
       {history.length === 0 ? <Empty title="Nothing requested yet." /> : history.map((i) => <div key={i.id}><small className="who">{orgName(i.organization_id)}</small><IntentCard intent={i} canAnswer={i.source === "CEO_DIRECTIVE"} refresh={refresh} /></div>)}
     </div></div>;
