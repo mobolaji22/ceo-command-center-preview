@@ -55,7 +55,8 @@ async function expectFitsThePhone(page: Page, where: string) {
 
 const back = (page: Page) => page.locator(".desk-bar .back-link").click();
 const open = (page: Page, desk: string) => page.locator(".spot-bar").getByRole("button", { name: desk, exact: true }).click();
-const settings = async (page: Page) => { await page.getByRole("button", { name: "Your account" }).click(); await page.getByRole("menuitem", { name: "Settings" }).click(); };
+// From the room: wait until any desk has finished closing (a desk's bar carries the same menu while it is open).
+const settings = async (page: Page) => { await expect(page.locator(".desk-overlay")).toHaveCount(0); await page.getByRole("button", { name: "Your account" }).click(); await page.getByRole("menuitem", { name: "Settings" }).click(); };
 
 test.describe.configure({ mode: "serial" });
 evidence(test);
