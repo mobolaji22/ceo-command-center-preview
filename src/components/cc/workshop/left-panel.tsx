@@ -82,5 +82,6 @@ export function LeftPanel({ doc, tab, setTab, territoryId, setTerritory, frameId
 const Thumb = memo(function Thumb({ doc, frameId }: { doc: DesignDocument; frameId: string }) {
   const src = useMemo(() => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(frameToSvg(doc, frameId))}`, [doc, frameId]);
   const frame = doc.frames.find((f) => f.id === frameId);
+  // eslint-disable-next-line @next/next/no-img-element -- a picture generated in the browser from the document; next/image has nothing to optimise
   return <img className="ws-terr-img" src={src} alt="" width={frame?.w} height={frame?.h} decoding="async" loading="lazy" />;
 }, (a, b) => a.frameId === b.frameId && a.doc.revision === b.doc.revision);
