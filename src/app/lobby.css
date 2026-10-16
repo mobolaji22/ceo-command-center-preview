@@ -35,7 +35,9 @@
   transform: translate(calc(-1 * var(--fx)), -50%);
   pointer-events: none;
 }
-.lobby-walk { position: absolute; inset: 0; transform-origin: 59% 48%; }
+/* walk: arriving, and the walk to the rooms (driven from lobby.tsx along src/lib/walk-path.ts); cam: looking around. Both move only
+   by transform, on their own layer, so the browser composites the motion instead of repainting the photograph every frame. */
+.lobby-walk { position: absolute; inset: 0; transform-origin: 59% 48%; will-change: transform; }
 .lobby-cam {
   position: absolute;
   inset: 0;
@@ -369,33 +371,25 @@
 .lobby[data-phase="arriving"] .lobby-card { animation: lobby-card-in 0.9s 0.55s var(--ease-settle) both; }
 .lobby[data-phase="arriving"] .lobby-plaque { animation: lobby-card-in 0.8s 0.3s var(--ease-settle) both; }
 @keyframes lobby-unveil { from { opacity: 1; } }
-@keyframes lobby-arrive { from { transform: scale(1.16) translateX(1.5%); filter: brightness(0.35) blur(3px); } }
-@keyframes lobby-card-in { from { opacity: 0; translate: 0 22px; filter: blur(6px); } }
+@keyframes lobby-arrive { from { transform: scale(1.14) translateX(1.5%); } }
+@keyframes lobby-card-in { from { opacity: 0; translate: 0 22px; } }
 
 /*
- * The walk to the rooms (1.5s, WALK_MS): the card steps aside; the camera turns across the lobby until the passage beside
- * "Rooms 01-13" is in the middle of the screen, then walks up to it, with a step's rise and fall, and stops in front of it, the
- * plaque beside it, the lights a little lower. The script measures where the passage is on screen (--walk-ox/oy, its point in the frame; --walk-dx/dy, the
- * distance to the centre). The next page opens when the walk arrives; until it is ready the end of the walk holds, with the
- * corridor's light ahead ("entered").
+ * The walk to the rooms (1.65s, WALK_MS). The camera itself is moved by the script along a computed path (src/lib/walk-path.ts): it
+ * pans the passage beside "Rooms 01-13" to the middle of the screen and zooms into it, never so little that the photograph's edge
+ * shows, as one composited transform. Here: the card and the plaque step aside, the lights hold still, the street and the sun step
+ * out, and the light lowers on a layer on top, so nothing in the photograph is redrawn mid-walk. The next page opens when the walk
+ * arrives; until it is ready the end holds, with the corridor's light ahead ("entered"), and the room then opens from the passage.
  */
-.lobby:is([data-phase="leaving"], [data-phase="entered"]) .lobby-walk {
-  transform-origin: var(--walk-ox, 10.7%) var(--walk-oy, 49%);
-  animation: lobby-walk 1.5s cubic-bezier(0.45, 0, 0.35, 1) forwards;
-}
-.lobby:is([data-phase="leaving"], [data-phase="entered"]) .lobby-glow-rooms { opacity: 1; scale: 1.6; transition-duration: 0.5s; animation: none; }
-.lobby:is([data-phase="leaving"], [data-phase="entered"]) :is(.lobby-card, .lobby-plaque) { animation: lobby-card-out 0.42s var(--ease-walk) forwards; }
-.lobby:is([data-phase="leaving"], [data-phase="entered"]) .lobby-fade { animation: lobby-cover 0.5s 1s ease-in forwards; }
-@keyframes lobby-walk {
-  0% { transform: none; filter: none; }
-  36% { transform: translate(calc(var(--walk-dx, 0px) * 0.9), calc(var(--walk-dy, 0px) * 0.9)) scale(1.3); filter: brightness(0.95); }
-  52% { transform: translate(var(--walk-dx, 0px), calc(var(--walk-dy, 0px) + 0.7vh)) scale(1.7); }
-  68% { transform: translate(var(--walk-dx, 0px), calc(var(--walk-dy, 0px) - 0.3vh)) scale(2.4); }
-  84% { transform: translate(var(--walk-dx, 0px), calc(var(--walk-dy, 0px) + 0.4vh)) scale(3.1); filter: brightness(0.85); }
-  100% { transform: translate(var(--walk-dx, 0px), var(--walk-dy, 0px)) scale(3.4); filter: brightness(0.8); }
-}
-@keyframes lobby-card-out { to { opacity: 0; translate: 0 16px; filter: blur(6px); } }
-@keyframes lobby-cover { to { opacity: 0.32; } }
+.lobby:is([data-phase="leaving"], [data-phase="entered"]) .lobby-glow { animation-play-state: paused; }
+.lobby:is([data-phase="leaving"], [data-phase="entered"]) :is(.lobby-street, .lobby-beam, .lobby-mote) { opacity: 0; animation: none; transition: opacity 0.3s ease; }
+.lobby:is([data-phase="leaving"], [data-phase="entered"]) .lobby-glow-rooms { opacity: 1; transition: opacity 0.6s ease; }
+/* Frosted glass is recomputed every frame over a moving picture: the card and the plaque drop it as they step aside. */
+.lobby:is([data-phase="leaving"], [data-phase="entered"]) :is(.lobby-card, .lobby-plaque) { animation: lobby-card-out 0.4s var(--ease-walk) forwards; }
+.lobby:is([data-phase="leaving"], [data-phase="entered"]) :is(.lobby-card, .lobby-plaque-time) { backdrop-filter: none; }
+.lobby:is([data-phase="leaving"], [data-phase="entered"]) .lobby-fade { animation: lobby-cover 0.55s 1.1s ease-in forwards; }
+@keyframes lobby-card-out { to { opacity: 0; translate: 0 16px; } }
+@keyframes lobby-cover { to { opacity: 0.86; } }
 /* In the passage, waiting for the next page: the corridor's light ahead, breathing. */
 .lobby-ahead {
   position: absolute;
@@ -431,7 +425,32 @@
   }
 }
 
+/*
+ * Arriving from the lobby (lobby-arrival.tsx): the walk ends in the passage, nearly dark, with the corridor's light ahead; the room
+ * opens from that point, an iris widening from the middle, so the zoom carries on into the hall. One layer, scaled: a dark sheet with
+ * a soft round opening, far larger than the screen, that grows until the opening has passed every corner, then goes.
+ */
+.lobby-arrival {
+  position: fixed;
+  z-index: 100;
+  left: 50%;
+  top: 50%;
+  width: 300vmax;
+  height: 300vmax;
+  margin: -150vmax 0 0 -150vmax;
+  pointer-events: none;
+  background: radial-gradient(closest-side, transparent 0%, transparent 10%, oklch(0.07 0.006 60 / 70%) 15%, oklch(0.07 0.006 60) 19%);
+  will-change: transform, opacity;
+  animation: lobby-iris 0.9s cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+@keyframes lobby-iris {
+  0% { transform: scale(0.35); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: scale(6); opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .lobby-arrival { display: none; }
   .lobby *, .lobby *::before, .lobby *::after { animation: none !important; transition: none !important; }
   .lobby-cam { translate: none; }
   .lobby-desk { translate: 0 -50%; }
