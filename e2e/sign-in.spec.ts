@@ -87,14 +87,16 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { name: /The command center/ })).toBeVisible();
 
-  await page.getByRole("button", { name: "Manage records and clients" }).click();
-  await page.getByRole("tab", { name: "Organizations" }).click();
+  // Who has access is a setting (P6.21): clients and their people are in Settings, behind the header's settings icon.
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "People and access", exact: true }).click();
+  await page.getByRole("tab", { name: "Organizations", exact: true }).click();
   await page.getByPlaceholder("Name").fill("Orbit");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByText("Organization added.")).toBeVisible();
   await shot(page, "The CEO adds a client organization");
 
-  await page.getByRole("tab", { name: "People" }).click();
+  await page.getByRole("tab", { name: "People", exact: true }).click();
   await page.getByPlaceholder("person@company.com").fill(OWNER);
   const beforeInvite = mailCount();
   await page.getByRole("button", { name: "Send invitation" }).click();
@@ -139,8 +141,12 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
   await expect(library.getByRole("status")).toContainText(/not accepted/);
   await expect(owner.locator(".resolved-row", { hasText: "fake.png" })).toHaveCount(0);
 
-  // The CEO sees the new client in the console, with its owner.
-  await page.getByRole("tab", { name: "Library" }).click();
+  // The CEO sees the new client's file in the records' library (from the corridor's "See all projects", P6.21 D1).
+  await page.goto("/");
+  await page.getByRole("button", { name: "Preview Door" }).click();
+  await page.getByRole("button", { name: "Enter corridor" }).click();
+  await page.getByRole("button", { name: /SEE ALL PROJECTS/ }).click();
+  await page.getByRole("tab", { name: "Library", exact: true }).click();
   await expect(page.locator(".resolved-row", { hasText: "logo.png" })).toBeVisible();
   await ownerCtx.close();
 });

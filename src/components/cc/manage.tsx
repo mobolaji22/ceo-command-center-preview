@@ -27,8 +27,9 @@ function useAction(refresh: () => void) {
   return { msg, setMsg, run };
 }
 
-type FolderName = "Projects" | "People" | "Organizations" | "Library";
-const FOLDERS: FolderName[] = ["Projects", "People", "Organizations", "Library"];
+// People and organizations are who has access, so they live in Settings (P6.21 D2); Records keeps the agency's records.
+type FolderName = "Projects" | "Library";
+const FOLDERS: FolderName[] = ["Projects", "Library"];
 
 /**
  * Records and access, as a computer's file explorer: a window with a folder sidebar, folders for each project, an Up button and
@@ -41,7 +42,7 @@ export function ManageView({ data, refresh, initialProjectId }: P) {
   const open = data.projects.find((p) => p.id === project) ?? null;
   const { nameOf } = useDomains();
   const find = useProjectFind(data.projects, nameOf);
-  const counts: Record<FolderName, number> = { Projects: data.projects.length, People: data.clients.length, Organizations: data.organizations.length, Library: data.organizations.length };
+  const counts: Record<FolderName, number> = { Projects: data.projects.length, Library: data.organizations.length };
   const go = (f: FolderName) => { setFolder(f); setProject(null); };
   const items = folder === "Projects" ? (open ? 1 : find.results.length) : counts[folder];
   return (
@@ -74,7 +75,7 @@ export function ManageView({ data, refresh, initialProjectId }: P) {
           {folder === "Projects" && (open
             ? <ProjectDetail key={open.id} data={data} refresh={refresh} projectId={open.id} />
             : <>
-              <p className="pd-sub">Projects begin as intents or directives. Issue one from the Directive desk.</p>
+              <p className="pd-sub">Projects begin as intents or directives. Issue one from the Directive desk. People and organizations are in Settings.</p>
               <FindBar find={find} shown={find.results.length} showDept showSort onOnly={() => { const only = find.results[0]; if (only) setProject(only.id); }} />
               {data.projects.length === 0 ? <Empty title="No projects yet." /> : find.results.length === 0 ? <Empty title="No project matches.">Try fewer words, or clear the filters.</Empty> : <div className="folder-grid">{find.results.map((p) => (
                 <button key={p.id} type="button" className="folder-tile" onClick={() => setProject(p.id)}>
@@ -84,8 +85,6 @@ export function ManageView({ data, refresh, initialProjectId }: P) {
                   <small>Opened {fmtDate(p.created_at)}</small>
                 </button>))}</div>}
             </>)}
-          {folder === "People" && <People data={data} refresh={refresh} />}
-          {folder === "Organizations" && <Orgs data={data} refresh={refresh} />}
           {folder === "Library" && <OrgLibrary data={data} />}
         </div>
       </div>
@@ -94,7 +93,7 @@ export function ManageView({ data, refresh, initialProjectId }: P) {
   );
 }
 
-function Orgs({ data, refresh }: P) {
+export function Orgs({ data, refresh }: P) {
   const ds = useDataSource();
   const [name, setName] = useState(""); const [mission, setMission] = useState("");
   const { msg, run } = useAction(refresh);
@@ -103,7 +102,7 @@ function Orgs({ data, refresh }: P) {
     <div className="mlist">{data.organizations.length === 0 ? <Empty title="No organizations yet." /> : data.organizations.map((o) => <div key={o.id} className="resolved-row"><span>{o.name}<small>{o.mission ?? "No mission set"} · {data.projects.filter((p) => p.organization_id === o.id).length} projects</small></span></div>)}</div></div>;
 }
 
-function People({ data, refresh }: P) {
+export function People({ data, refresh }: P) {
   const ds = useDataSource();
   const { guard, panel } = useStepUp();
   const [email, setEmail] = useState("");

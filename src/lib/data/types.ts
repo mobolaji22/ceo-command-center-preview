@@ -1,5 +1,5 @@
 import type { DesignDocument } from "@/lib/design/sdd";
-import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session } from "../model";
+import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -163,6 +163,24 @@ export interface DataSource {
     verify(id: string): Promise<Result<BriefCheck>>;
   };
   /** How the signed-in person wants to be told, and what has been sent or is waiting. Always their own. */
+  /**
+   * The CEO's Settings (P6.21): how the agency runs (read only), its fee and rate card, what paid models may spend, and where the
+   * person is signed in. Changing money (the fee, a rate, the envelope) needs a fresh proof; v4 refuses otherwise, and it never
+   * reaches a client.
+   */
+  settings: {
+    system(): Promise<Result<SystemView>>;
+    fees(): Promise<Result<FeesView>>;
+    setFeePolicy(input: { agencyFeePct: number; scope: FeeScope }): Promise<Result>;
+    /** Removes a client's or a project's own fee; the agency-wide fee is changed, never removed. */
+    clearFeePolicy(scope: Exclude<FeeScope, { kind: "agency" }>): Promise<Result>;
+    setRate(input: { capability: string; rigor: Rigor; unitUsd: number }): Promise<Result>;
+    removeRate(input: { capability: string; rigor: Rigor }): Promise<Result>;
+    spend(): Promise<Result<SpendView>>;
+    setSpendPolicy(input: { monthlyCeilingUsd: number; perCallCeilingUsd: number }): Promise<Result>;
+    sessions(): Promise<Result<SessionView[]>>;
+    endSession(id: string): Promise<Result>;
+  };
   notifications: {
     list(): Promise<Result<NotificationItem[]>>;
     preferences(): Promise<Result<NotificationPrefs>>;

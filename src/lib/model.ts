@@ -456,3 +456,34 @@ export type DomainView = {
     implementation: { "implemented-and-tested": number; partial: number; missing: number };
   };
 };
+
+/** The effort levels a task is planned at (v4 `RIGOR_TIERS`). A rate card prices each one. */
+export const RIGORS = ["light", "standard", "strict", "critical"] as const;
+export type Rigor = (typeof RIGORS)[number];
+
+/** Who a fee policy applies to: the whole agency, one client, or one project. The most specific applies to a plan. */
+export type FeeScope = { kind: "agency" } | { kind: "organization"; id: string } | { kind: "project"; id: string };
+
+/** The agency's fee and rate card (ADR-0028), as the CEO sets them. Plans already sent keep their price. */
+export type FeesView = {
+  policies: Array<{ scope: FeeScope; agency_fee_pct: number; updated_at: string }>;
+  rates: Array<{ capability: string; rigor: Rigor; unit_usd: number; updated_at: string }>;
+};
+
+/** What the agency lets paid models spend this month, and what is spent. No envelope means no paid-model spend. */
+export type SpendView = {
+  monthly_ceiling_usd: number; per_call_ceiling_usd: number; spent_usd: number; reserved_usd: number; remaining_usd: number;
+  calls: number; refused: number; enforced: boolean;
+};
+
+/** How the agency runs (ADR-0027): read only; the mode is set when it is deployed. */
+export type SystemView = {
+  agency_mode: "DEMO" | "LIVE";
+  reads_with: "KEYWORDS" | "MODEL";
+  model_switched_on: boolean;
+  waiting: Array<{ step: "INTERPRETATION" | "PLAN"; reason: "NO_ENVELOPE" | "CEILING_REACHED" | "PROVIDER_UNAVAILABLE" | "ANSWER_UNUSABLE"; count: number }>;
+  revisions_waiting: number;
+};
+
+/** A place the person is signed in. */
+export type SessionView = { id: string; created_at: string; last_seen_at: string; user_agent: string | null; current: boolean };

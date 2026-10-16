@@ -79,10 +79,16 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   await page.getByRole("button", { name: "Enter corridor" }).click();
   await expect(page.locator(".door-card")).toHaveCount(13);
   await shot(page, "The corridor: the thirteen domains, in five wings");
+  // The records: from the corridor's "See all projects".
+  await page.getByRole("button", { name: /SEE ALL PROJECTS/ }).click();
+  await expect(page.getByRole("tab", { name: "Projects", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Library", exact: true })).toBeVisible();
+  await shot(page, "Records: the projects and the library");
+  // Settings: from the header.
   await page.goto("/");
-  await page.getByRole("button", { name: "Manage records and clients" }).click();
-  await expect(page.getByRole("tab", { name: "Organizations" })).toBeVisible();
-  await shot(page, "Manage: clients, people, and the library");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  for (const s of ["Pricing", "Model spend", "How the agency runs", "Notifications", "People and access", "Your sessions"]) await expect(page.getByRole("tab", { name: s, exact: true })).toBeVisible();
+  await shot(page, "Settings: pricing, model spend, how the agency runs, notifications, access and sessions");
 });
 
 test("a client's room and everything in it", async ({ page }) => {
