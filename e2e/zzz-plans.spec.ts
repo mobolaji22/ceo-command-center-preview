@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { allowCeoToDecideFor, forgetSignInRequests, priceTheAgency } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
-import { openClientDesk } from "./client-room";
+import { newClientRequest, openClientDesk } from "./client-room";
 import { answerEveryQuestion } from "./answers";
 
 /**
@@ -39,7 +39,7 @@ async function signIn(page: Page, email: string) {
 
 async function sendRequest(page: Page, text: string) {
   await openClientDesk(page, "Board", /Your requests/);
-  const composer = page.getByLabel("New request");
+  const composer = await newClientRequest(page);
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill(text);
   await composer.getByRole("button", { name: "Send request" }).click();
   await expect(composer.getByRole("status")).toContainText("Received.");

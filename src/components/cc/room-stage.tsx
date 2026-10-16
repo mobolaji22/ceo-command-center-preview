@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, DoorOpen, ListChecks, PanelTop, PenTool } from "lucide-react";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { fmtDate, label, pad, statusTone } from "@/lib/format";
 import type { OwnerData } from "@/lib/model";
@@ -49,6 +49,13 @@ export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: O
   const desk = counts(data, dept, list);
   const art = roomArt(dept) ?? CORRIDOR_ART;
   const name = nameOf(dept);
+  // On a phone the rail scrolls inside its own width; keep the room you are in within view.
+  const rail = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const r = rail.current;
+    const here = r?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (r && here && r.scrollWidth > r.clientWidth) r.scrollLeft = here.offsetLeft - (r.clientWidth - here.offsetWidth) / 2;
+  }, [dept]);
   return (
     <OfficeStage
       className={`room-stage room-${dept.toLowerCase()}`}
@@ -66,7 +73,7 @@ export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: O
           <Button variant="ghost" className="back-link" onClick={back}><ArrowLeft size={16} /> ALL ROOMS</Button>
           <Button variant="ghost" className="back-link" aria-label="BACK TO OFFICE" onClick={toOffice}><DoorOpen size={16} /> OFFICE</Button>
         </div>
-        <nav className="room-rail" aria-label="Move to another room">{depts.map((d, i) => <button key={d} type="button" className="rail-door" aria-label={`Go to ${nameOf(d)}`} aria-current={d === dept ? "page" : undefined} title={nameOf(d)} disabled={!goTo} onClick={() => goTo?.(d)}>{pad(i + 1)}</button>)}</nav>
+        <nav ref={rail} className="room-rail" aria-label="Move to another room">{depts.map((d, i) => <button key={d} type="button" className="rail-door" aria-label={`Go to ${nameOf(d)}`} aria-current={d === dept ? "page" : undefined} title={nameOf(d)} disabled={!goTo} onClick={() => goTo?.(d)}>{pad(i + 1)}</button>)}</nav>
       </>}
       onAct={onAct}
     />

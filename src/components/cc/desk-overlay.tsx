@@ -61,7 +61,9 @@ export function DeskOverlay({ label, backLabel, path, surface, origin, wide, onB
       <div className="desk-scrim" aria-hidden="true" onClick={back} />
       <div ref={panelRef} className="desk-panel" role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} data-surface={surface} data-wide={wide || undefined}>
         <div className="desk-bar workspace-heading">
-          <Button variant="ghost" className="back-link" onClick={back}><ArrowLeft size={16} /> {backLabel}</Button>
+          <Button variant="ghost" className="back-link" aria-label={backLabel} onClick={back}><ArrowLeft size={16} /> <span className="back-words">{backLabel}</span></Button>
+          {/* On a phone this one bar replaces the header (P6.21 P1): the way back and the desk's name, not a path that repeats it. */}
+          <span className="desk-bar-title" aria-hidden="true">{label}</span>
           <span className="workspace-path">{path}</span>
           <span className="workspace-right"><span className="live-dot" /> LIVE LEDGER</span>
         </div>

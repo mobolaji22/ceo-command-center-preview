@@ -18,6 +18,7 @@ import "./desks.css";
 import "./day.css";
 import "./workshop.css";
 import "./lobby.css";
+import "./phone.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {

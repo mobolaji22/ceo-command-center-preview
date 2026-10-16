@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Coffee, FileCheck2, Lamp, LogOut, Monitor, NotebookPen, Library as LibraryIcon, Table2 } from "lucide-react";
+import { Coffee, FileCheck2, Lamp, Monitor, NotebookPen, Library as LibraryIcon, Table2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,15 @@ import { needYou } from "@/lib/attention";
 import type { SceneDir } from "@/lib/motion";
 import { BriefsDesk, DecisionsDesk, LibraryDesk, ProjectsDesk, RequestsDesk } from "@/components/cc/client-desks";
 import { CursorLight } from "@/components/cc/cursor-light";
-import { LightingToggle } from "@/components/cc/lighting-toggle";
 import { OfficeStage } from "@/components/cc/office-stage";
 import { CLIENT_ART } from "@/components/cc/room-art";
 import { SceneFrame, ThresholdVeil, directionBetween, isOverlayMove, type SceneOrigin } from "@/components/cc/scene";
 import { DeskOverlay } from "@/components/cc/desk-overlay";
+import { TopBar } from "@/components/cc/top-bar";
+import { ClientSettingsView } from "@/components/cc/settings";
 
 type Spot = "projects" | "decisions" | "requests" | "library" | "briefs" | "atmosphere";
-type View = "office" | Exclude<Spot, "atmosphere">;
+type View = "office" | Exclude<Spot, "atmosphere"> | "settings";
 
 const spotData: Record<Spot, { title: string; label: string; description: string; action: string; icon: typeof Coffee }> = {
   projects: { title: "THE WORK, ON THE TABLE", label: "Table", description: "Every project the agency is doing for you, and how it is going.", action: "Open projects", icon: Table2 },
@@ -80,15 +81,7 @@ export default function ClientCenter() {
   const sceneKey = view;
 
   return <main className={`command-center ${focus ? "focus-mode" : ""}`}>
-    <header className="topbar">
-      <div className="brand"><span className="brand-mark"><span /></span><span>DEVPLAYBOOK <em>/</em> CLIENT</span></div>
-      <div className="topbar-center"><span className="live-dot" /> {pending} AWAITING YOUR SIGNATURE</div>
-      <div className="topbar-right">
-        <LightingToggle />
-        <Button variant="ghost" size="icon" className="icon-button" aria-label="Sign out" title="Sign out" onClick={signOut}><LogOut size={16} /></Button>
-        <span className="avatar">{(auth.user?.email ?? "CL").slice(0, 2).toUpperCase()}</span>
-      </div>
-    </header>
+    <TopBar who="CLIENT" center={<><span className="live-dot" /> {pending} AWAITING YOUR SIGNATURE</>} initials={(auth.user?.email ?? "CL").slice(0, 2).toUpperCase()} onSettings={() => openView("settings")} onSignOut={signOut} />
 
     <CursorLight />
     <ThresholdVeil sceneKey={sceneKey} dir={dir} origin={origin} />
@@ -110,13 +103,14 @@ export default function ClientCenter() {
       />
     </SceneFrame>
 
-    {view !== "office" && data && <DeskOverlay label={`${spotData[view].label} desk`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; CLIENT &nbsp; / &nbsp; {spotData[view].label.toUpperCase()}</>} surface={`client-${view}`} origin={origin} onBack={() => openView("office")}>
+    {view !== "office" && data && <DeskOverlay label={view === "settings" ? "Settings" : `${spotData[view].label} desk`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; CLIENT &nbsp; / &nbsp; {view === "settings" ? "SETTINGS" : spotData[view].label.toUpperCase()}</>} surface={`client-${view}`} origin={origin} onBack={() => openView("office")}>
       <div key={view} className="scene scene-side">
         {view === "projects" && <ProjectsDesk data={data} isOwner={isOwner} />}
         {view === "decisions" && <DecisionsDesk data={data} isOwner={isOwner} busy={busy} msg={msg} onDecide={decide} />}
         {view === "requests" && <RequestsDesk data={data} isOwner={isOwner} organizationId={membership?.organizationId} refresh={refresh} openQuestions={openQuestions} />}
         {view === "library" && <LibraryDesk data={data} isOwner={isOwner} organizationId={membership?.organizationId} canWrite={isOwner} tick={tick} />}
         {view === "briefs" && <BriefsDesk isOwner={isOwner} organizationId={membership?.organizationId} projectIds={data.projects.map((p) => p.id)} />}
+        {view === "settings" && <ClientSettingsView isOwner={isOwner} organizationId={membership?.organizationId} projectIds={data.projects.map((p) => p.id)} />}
       </div>
     </DeskOverlay>}
   </main>;

@@ -9,6 +9,7 @@ import { fmtAgo, fmtDate } from "@/lib/format";
 import { RIGORS, type FeeScope, type FeesView, type OwnerData, type Rigor, type SystemView } from "@/lib/model";
 import { NotificationSettings } from "./briefs";
 import { Orgs, People } from "./manage";
+import { StandingPermission } from "./standing";
 import { useStepUp } from "./step-up";
 
 /**
@@ -252,4 +253,29 @@ function Sessions() {
         {!s.current && <Button variant="ghost" onClick={() => void end([s.id])}>Sign out</Button>}</li>))}</ul>
     {others.length > 1 && <Button variant="outline" onClick={() => void end(others.map((s) => s.id))}>Sign out the others</Button>}
   </>;
+}
+
+/**
+ * A client's Settings (P6.21 D4): how they are told, the permission they have given the agency (each part can be taken back), and
+ * where they are signed in. No pricing and nothing about other organizations. The same forms as on their lamp's desk.
+ */
+type ClientSection = "Notifications" | "Permissions you have given" | "Your sessions";
+export function ClientSettingsView({ isOwner, organizationId, projectIds }: { isOwner: boolean; organizationId: string | undefined; projectIds: string[] }) {
+  const sections: ClientSection[] = isOwner && organizationId ? ["Notifications", "Permissions you have given", "Your sessions"] : ["Notifications", "Your sessions"];
+  const [section, setSection] = useState<ClientSection>("Notifications");
+  return (
+    <div className="settings" data-desk="settings">
+      <h2 className="settings-title">Settings</h2>
+      <div className="settings-body">
+        <nav className="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Settings">
+          {sections.map((s) => <button key={s} type="button" role="tab" aria-selected={section === s} className={section === s ? "active" : ""} onClick={() => setSection(s)}>{s}</button>)}
+        </nav>
+        <div className="settings-pane" role="tabpanel" aria-label={section}>
+          {section === "Notifications" && <><h3>Notifications</h3><p className="settings-lead">How and when the agency tells you things.</p><NotificationSettings /></>}
+          {section === "Permissions you have given" && organizationId && <><h3>Permissions you have given</h3><p className="settings-lead">What the agency may do for you without asking first. You can take any of it back.</p><StandingPermission organizationId={organizationId} projectIds={projectIds} /></>}
+          {section === "Your sessions" && <Sessions />}
+        </div>
+      </div>
+    </div>
+  );
 }
