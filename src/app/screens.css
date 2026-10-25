@@ -14,6 +14,9 @@
 .mform textarea,
 .mform select,
 .directive-targets select,
+.composer-for select,
+.composer-attach > input,
+.directive-filter select,
 .pd-head select,
 .resolved-row select {
   width: 100%;
@@ -29,6 +32,9 @@
 .mform textarea:focus,
 .mform select:focus,
 .directive-targets select:focus,
+.composer-for select:focus,
+.composer-attach > input:focus,
+.directive-filter select:focus,
 .pd-head select:focus,
 .resolved-row select:focus { border-color: var(--primary); }
 .mform input::placeholder,
@@ -55,6 +61,51 @@
 .directive-targets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 0 0 22px; }
 .directive-targets label { display: flex; flex-direction: column; gap: 8px; font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--primary); }
 .directive-history { margin-top: 55px; }
+/* The directive desk, one layer at a time: a short heading, tabs by what each request needs, a list, then one request. */
+.directive-head .directive-principle { margin: 10px 0 0; max-width: 560px; color: var(--muted-foreground); font: italic 17px/1.4 "Cormorant Garamond", serif; }
+.directive-actions { display: flex; align-items: center; gap: 8px; }
+.directive-actions .new-request { margin: 0; }
+.directive-toolbar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px 24px; margin: 34px 0 6px; border-bottom: 1px solid var(--border); }
+.directive-toolbar .desk-tabs .tab { padding-bottom: 13px !important; }
+.directive-filter { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--muted-foreground); }
+.directive-filter select { width: auto; min-width: 190px; padding: 7px 10px; font-size: 12px; }
+.directive-list { border-top: 0; }
+.directive-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 16px; align-items: center; gap: 18px; width: 100%; padding: 17px 4px; text-align: left; color: var(--foreground); background: none; border: 0; border-bottom: 1px solid var(--border); cursor: pointer; font: 14px/1.45 "DM Sans", sans-serif; transition: background-color var(--t-feedback, .15s) ease; }
+.directive-row:hover, .directive-row:focus-visible { background: oklch(1 0 0 / 3%); outline: none; }
+.directive-row:focus-visible { box-shadow: inset 2px 0 0 var(--primary); }
+.directive-row > svg { color: var(--muted-foreground); }
+.dr-text { min-width: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.dr-text small { display: block; margin-top: 6px; color: var(--muted-foreground); font-size: 11px; }
+.dr-state { display: flex; align-items: center; gap: 10px; }
+.dr-state em { font-style: normal; font-size: 10px; letter-spacing: .06em; color: var(--primary); }
+.directive-row[data-tab="closed"] .dr-text { color: var(--muted-foreground); }
+.directive-detail { margin-top: 30px; }
+.directive-notice { margin: -8px 0 18px; }
+@media (max-width: 1000px) { .directive-wrap { margin: 30px 24px; } }
+.directive-detail-head { display: flex; justify-content: space-between; align-items: start; gap: 20px; margin: 18px 0 22px; }
+.directive-detail-head h3 { margin: 8px 0 0; font: 400 28px/1.2 "Cormorant Garamond", serif; }
+.directive-detail-head .who, .directive-detail-head small { color: var(--muted-foreground); font-size: 11px; }
+.directive-detail .desk-tabs { margin-bottom: 18px; border-bottom: 1px solid var(--border); }
+.directive-detail .desk-tabs .tab:disabled { opacity: .35; }
+.intent-card[data-part] { border: 0; padding: 0; background: none; }
+/* The composer: who it is for, then what to attach, in one line each. */
+.directive-form textarea { min-height: 170px; }
+.composer-for { display: grid; grid-template-columns: max-content minmax(0, 360px); justify-content: start; align-items: center; gap: 8px 16px; margin: 0 0 26px; }
+.composer-for label { font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--primary); }
+.composer-for small { grid-column: 2; color: var(--muted-foreground); font-size: 11px; }
+.composer-attach { display: flex; align-items: stretch; gap: 10px; margin: 0 0 8px; }
+.composer-attach .attach { flex: none; border-radius: 2px; padding: 0 14px; font-size: 12px; color: var(--muted-foreground); border-color: var(--border); }
+.composer-attach .attach:hover { color: var(--foreground); border-color: var(--primary); }
+.composer-attach > input { flex: 1; min-width: 0; padding: 9px 12px; font-size: 12px; }
+@media (max-width: 650px) {
+  .composer-for { grid-template-columns: 1fr; }
+  .composer-for small { grid-column: 1; }
+  .composer-attach { flex-wrap: wrap; }
+  .composer-attach > input { flex-basis: 100%; }
+  .directive-row { grid-template-columns: minmax(0, 1fr) 16px; }
+  .dr-state { grid-column: 1; grid-row: 2; }
+  .directive-filter select { min-width: 0; }
+}
 .brief-events { margin-top: 36px; }
 
 /* ---- Manage -------------------------------------------------------------------------------- */
@@ -276,3 +327,19 @@
 .new-request { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 18px; min-height: 44px; padding: 0 18px; border: 1px solid oklch(0.76 0.146 76 / 45%); border-radius: 3px; background: oklch(0.76 0.146 76 / 14%); color: var(--foreground); font: 600 15px "DM Sans", sans-serif; }
 /* The composer can be put away unused; with a draft it asks once before discarding. */
 .composer-close { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: -6px -6px 0 0; font-size: 14px; color: var(--muted-foreground); }
+
+/* ---- the monitor (demo only): the CEO's office and a client's room side by side ---------------------------------- */
+.monitor { height: 100svh; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); }
+.monitor-off { align-items: center; justify-content: center; padding: 24px; }
+.monitor-off h1 { font: 400 44px "Cormorant Garamond", serif; margin: 0 0 12px; }
+.monitor-off p { max-width: 560px; color: var(--muted-foreground); font-size: 14px; line-height: 1.7; }
+.monitor-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; padding: 10px 18px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: .14em; font-weight: 700; color: var(--primary); }
+.monitor-title em { font-style: normal; font-weight: 500; letter-spacing: .04em; color: var(--muted-foreground); }
+.monitor-bar label { display: flex; align-items: center; gap: 10px; margin-left: auto; color: var(--muted-foreground); }
+.monitor-bar select { background: oklch(0.11 0.005 270); color: var(--foreground); border: 1px solid var(--border); border-radius: 2px; padding: 6px 10px; font: 12px "DM Sans", sans-serif; letter-spacing: 0; }
+.monitor-reset { font-size: 11px !important; color: var(--muted-foreground) !important; }
+.monitor-panes { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; }
+.monitor-panes section { position: relative; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+.monitor-label { padding: 6px 12px; font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
+.monitor-panes iframe { flex: 1; width: 100%; border: 0; background: var(--background); }
+@media (max-width: 900px) { .monitor { height: auto; } .monitor-panes { grid-template-columns: 1fr; } .monitor-panes iframe { height: 85svh; flex: none; } .monitor-bar label { margin-left: 0; } }

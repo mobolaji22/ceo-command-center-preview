@@ -253,22 +253,29 @@ export function createApiDataSource(): DataSource {
       async submit(input) {
         const me = await call<{ isCEO: boolean; isAgency: boolean }>("GET", "/v1/me");
         const provenance = me.data?.isAgency ? "CEO_PROVIDED" : "CLIENT_PROVIDED";
+        // No client named: the agency's own work. Its organization is asked for first, so attachments have somewhere to be staged.
+        let organizationId = input.organizationId;
+        if (organizationId === null) {
+          const own = await call<{ id: string }>("POST", "/v1/organizations/internal");
+          if (own.error || !own.data) return { data: null, error: own.error };
+          organizationId = own.data.id;
+        }
         const placed: Array<{ assetId: string; scope: "PROJECT" | "ORGANIZATION" }> = [];
         for (const a of input.attachments) {
           if (a.kind === "file") {
-            const r = await stageFile(input.organizationId, a.file, provenance);
+            const r = await stageFile(organizationId, a.file, provenance);
             if (r.error || !r.data) return { data: null, error: r.error };
             placed.push({ assetId: r.data, scope: a.scope });
           } else {
             const r = await call<{ id: string }>("POST", "/v1/assets/pointers", {
-              organizationId: input.organizationId, kind: "URL_REFERENCE", name: a.url.slice(0, 200), url: a.url, scope: "PROJECT", staged: true, provenance, rights: "THIRD_PARTY_UNCLEARED",
+              organizationId, kind: "URL_REFERENCE", name: a.url.slice(0, 200), url: a.url, scope: "PROJECT", staged: true, provenance, rights: "THIRD_PARTY_UNCLEARED",
             });
             if (r.error || !r.data) return { data: null, error: r.error };
             placed.push({ assetId: r.data.id, scope: a.scope });
           }
         }
-        const r = await call<{ status: string; projectId: string | null }>("POST", "/v1/intents", { organizationId: input.organizationId, text: input.text, attachments: placed });
-        return r.error || !r.data ? { data: null, error: r.error } : ok({ status: r.data.status, projectId: r.data.projectId });
+        const r = await call<{ id: string; status: string; projectId: string | null }>("POST", "/v1/intents", { organizationId, text: input.text, attachments: placed });
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ intentId: r.data.id, status: r.data.status, projectId: r.data.projectId });
       },
       async answer(intentId, clarificationId, answer) {
         return voidResult(await call("POST", `/v1/intents/${intentId}/clarifications/${clarificationId}/answer`, answer));

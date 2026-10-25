@@ -316,6 +316,8 @@ export type Organization = {
   id: string
   mission: string | null
   name: string
+  /** `INTERNAL` holds the agency's own work (v4 ADR-0040); every other organization the agency sees is a client. Absent from an older API. */
+  kind?: "CLIENT" | "INTERNAL"
 };
 
 export type OrgRole = "CLIENT_OWNER" | "CLIENT_MEMBER";

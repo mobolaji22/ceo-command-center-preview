@@ -11,3 +11,22 @@ export async function newDirective(page: Page) {
   await expect(composer).toBeVisible();
   return composer;
 }
+
+/**
+ * The directive desk lists requests by what they need (Needs you, In progress, Closed, All) and opens one at a time (P6.21). Opens
+ * the request whose text matches, from the All tab, and returns its page; `part` picks its tab ("What it asks" or "The plan").
+ */
+export async function openDirective(page: Page, text: string | RegExp, part?: "What it asks" | "The plan") {
+  const detail = page.locator(".directive-detail");
+  // Just sent: the form closes onto the request it made once v4 has answered; wait for that rather than racing it.
+  await expect(page.getByLabel("New request")).toHaveCount(0, { timeout: 30_000 });
+  const already = (await detail.count()) > 0 && (await detail.locator(".directive-detail-head h3", { hasText: text }).count()) > 0;
+  if (!already) {
+    if (await detail.count()) await page.getByRole("button", { name: "ALL DIRECTIVES" }).click();
+    await page.getByRole("tab", { name: /^All/ }).click();
+    await page.locator(".directive-row", { hasText: text }).first().click();
+  }
+  await expect(detail.locator(".directive-detail-head h3", { hasText: text })).toBeVisible();
+  if (part) await detail.getByRole("tab", { name: new RegExp(`^${part}`) }).click();
+  return detail;
+}

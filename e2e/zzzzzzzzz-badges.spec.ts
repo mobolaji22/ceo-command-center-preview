@@ -32,10 +32,10 @@ test("a directive that is asking a question puts a count on the directive desk a
   await page.getByRole("button", { name: "Preview Directive" }).click();
   await page.getByRole("button", { name: "Compose directive" }).click();
   const composer = await newDirective(page);
-  await composer.getByLabel("CLIENT").selectOption({ label: "Orbit" });
+  await composer.getByLabel("FOR").selectOption({ label: "Orbit" });
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Refresh the brand");
   await composer.getByRole("button", { name: "Send request" }).click();
-  await expect(composer.getByRole("status")).toContainText("Received.");
+  await expect(page.locator(".directive-detail").getByRole("status").first()).toContainText("Received.");
 
   await page.goto("/");
   const directive = page.getByRole("button", { name: "Preview Directive" });
@@ -51,7 +51,7 @@ test("a directive that is asking a question puts a count on the directive desk a
 
   await directive.click();
   await page.getByRole("button", { name: "Compose directive" }).click();
-  const all = page.getByRole("button", { name: /^SHOW ALL/ });
-  if (await all.count()) await all.click();
-  await expect(page.locator(".intent-card").filter({ has: page.locator(".question") })).toHaveCount(Number(badge));
+  // The desk opens on "Needs you", and it lists exactly what the badge counted.
+  await expect(page.getByRole("tab", { name: /^Needs you/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".directive-row")).toHaveCount(Number(badge));
 });

@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { allowCeoToDecideFor, forgetSignInRequests, priceTheAgency } from "./db";
+import { openDirective } from "./directive";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { newClientRequest, openClientDesk } from "./client-room";
@@ -128,9 +129,7 @@ test("the CEO sees the plan but cannot decide it for the client until the client
     await ceoPage.goto("/");
     await ceoPage.getByRole("button", { name: "Preview Directive" }).click();
     await ceoPage.getByRole("button", { name: "Compose directive" }).click();
-    const all = ceoPage.getByRole("button", { name: /^SHOW ALL/ });
-    if (await all.count()) await all.click();
-    return ceoPage.locator(".intent-card", { hasText: "Redesign our pricing page" }).first().getByLabel("Plan");
+    return (await openDirective(ceoPage, "Redesign our pricing page", "The plan")).getByLabel("Plan");
   };
   await signIn(ceoPage, CEO);
   let plan = await openAsCeo();

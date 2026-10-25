@@ -75,8 +75,8 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   await expect(again.getByText("Discard what you wrote?")).toBeVisible();
   await again.getByRole("button", { name: "Discard" }).click();
   await expect(page.getByLabel("New request")).toHaveCount(0);
-  await expect(page.locator(".intent-card").first()).toBeVisible();
-  await shot(page, "The directive desk: send a request to a client, and every request with its plan and where it stands");
+  await expect(page.locator(".directive-row").first()).toBeVisible();
+  await shot(page, "The directive desk: requests sorted by what they need, for a client or for the agency itself");
 
   // brief desk
   await page.goto("/");

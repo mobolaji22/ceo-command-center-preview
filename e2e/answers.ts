@@ -14,7 +14,8 @@ const PREFER = [/^Keep the current direction/, /^No, none applies/];
  */
 export async function answerEveryQuestion(card: Locator, prefer: RegExp[] = []) {
   const QUESTION = ".question, .cv-question";
-  const planned = card.locator(".intent-head .pill", { hasText: "PLANNED" }).or(card.locator('[data-stage="PLAN_READY"], [data-stage="PLANNING"]').first());
+  // The directive desk shows a request's status in its own head (one request at a time); a card shows it in the card.
+  const planned = card.locator(".intent-head .pill, .directive-detail-head .pill", { hasText: "PLANNED" }).or(card.locator('[data-stage="PLAN_READY"], [data-stage="PLANNING"]').first());
   for (let asked = 0; asked < 10; asked++) {
     // Wait until the card has settled on asking or planned: questions arrive with the card, and the next may follow an answer.
     await expect(card.locator(QUESTION).first().or(planned)).toBeVisible();

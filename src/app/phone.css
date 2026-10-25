@@ -94,9 +94,9 @@ html[data-lighting="day"] .spot-switch button[aria-pressed="true"] { background:
   .phone-shell { width: 100%; height: auto; border: 0; border-radius: 0; padding: 0; background: transparent; box-shadow: none; }
   .phone-screen { height: auto; border-radius: 0; overflow: visible; background: transparent; }
   /* The Directive opens on the form, not on a statement of principle. */
-  .directive-wrap .philosophy { display: none; }
+  .directive-wrap .directive-principle { display: none; }
   .directive-head { margin-bottom: 8px; }
-  .directive-head > button { display: none; } /* the bar's ← already closes the desk; one ✕ (the form's) is enough */
+  .directive-actions > .icon-button { display: none; } /* the bar's ← already closes the desk; one ✕ (the form's) is enough */
 
   /* P3: nothing over text. Decorations (the shelf of books, the board's clip, the plaque) are dropped. */
   .desk-surface::before, .desk-surface::after, .surface-board .desk-sheet::before, .surface-board .desk-sheet::after, .surface-deco { display: none !important; }
