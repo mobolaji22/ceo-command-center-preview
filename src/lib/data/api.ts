@@ -15,6 +15,8 @@ const PROXY = "/api/v4";
 /** What the API says, in words a person can act on. Unknown codes fall back to the code itself. */
 const MESSAGES: Record<string, string> = {
   UNAUTHENTICATED: "Your session has ended. Please sign in again.",
+  SERVICE_UNAVAILABLE: "The service is temporarily unavailable. Please try again in a moment.",
+  SERVER_ERROR: "We couldn't complete that request. Please try again shortly.",
   FORBIDDEN: "You don't have access to do that.",
   STEP_UP_REQUIRED: "For safety, please confirm it's you first.",
   INVALID_OR_EXPIRED: "That link or code has expired or was already used. Ask for a new one.",
@@ -59,6 +61,7 @@ async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
       const issue = code === "INVALID_BODY" ? (json as { issues?: Array<{ message?: unknown }> } | null)?.issues?.[0]?.message : undefined;
       return fail(typeof issue === "string" && issue ? `${issue.replace(/\.$/, "")}.` : MESSAGES[code] ?? code.replace(/_/g, " ").toLowerCase(), code);
     }
+    if (res.status >= 500) return fail(MESSAGES["SERVER_ERROR"]!, "SERVER_ERROR");
     return fail(`Request failed (${res.status}).`);
   }
   return ok(json as T);

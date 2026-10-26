@@ -481,7 +481,7 @@ export type SpendView = {
 /** How the agency runs (ADR-0027): read only; the mode is set when it is deployed. */
 export type SystemView = {
   agency_mode: "DEMO" | "LIVE";
-  reads_with: "KEYWORDS" | "MODEL";
+  reads_with: "KEYWORDS" | "MODEL" | "MANUAL_BRIDGE";
   model_switched_on: boolean;
   waiting: Array<{ step: "INTERPRETATION" | "PLAN"; reason: "NO_ENVELOPE" | "CEILING_REACHED" | "PROVIDER_UNAVAILABLE" | "ANSWER_UNUSABLE"; count: number }>;
   revisions_waiting: number;
