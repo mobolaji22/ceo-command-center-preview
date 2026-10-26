@@ -140,6 +140,8 @@ const demoPlan = (): PlanContent => ({
   risks: [{ risk: "\"Develop strategic directions\" shapes everything after it", mitigation: "It waits for your decision before the next step starts" }],
   assumptions: ["Is there a spending limit we should respect? We are going with: Use the usual range for this kind of work", "Costs are estimates by effort level, not quotes."],
   open_context_needs: ["Brand guidelines"], decision_points: [{ task_id: "t2", description: "Your decision on: Develop strategic directions" }],
+  phasing: [{ task_id: "t3", upstream: "COMPLIANCE", reason: "The ranking stays inside the business; Compliance reviews only what is published." }],
+  unstaffed: ["COMPLIANCE"], exempt: [],
 });
 
 function seed(): Store {
@@ -215,8 +217,8 @@ function seed(): Store {
       { id: "ev-11", project_id: "p-3", type: "PROJECT_CREATED", summary: "Project opened: Portfolio v2", actor_id: "u-ceo", client_visible: false, created_at: ago(24 * 5) },
     ],
     intents: [
-      { id: "in-1", organization_id: "o-1", project_id: "p-1", source: "CLIENT_INTENT", status: "UNDERSTOOD", text: "Clarify our Q4 priorities and drop anything that does not move online orders.", initiator_id: "u-amara", rejection_reason: null, created_at: ago(24 * 20), understood_at: ago(24 * 20), questions: [], assumptions: [{ id: "as-1", question: "Is there a spending limit we should respect?", assumed: "Use the usual range for this kind of work", forced: false }], answers: [], materials: [] },
-      { id: "in-2", organization_id: "o-2", project_id: null, source: "CLIENT_INTENT", status: "CLARIFYING", text: "Make the patient intake feel calm.", initiator_id: "u-tunde", rejection_reason: null, created_at: ago(5), understood_at: null,
+      { id: "in-1", organization_id: "o-1", project_id: "p-1", source: "CLIENT_INTENT", status: "UNDERSTOOD", text: "Clarify our Q4 priorities and drop anything that does not move online orders.", initiator_id: "u-amara", rejection_reason: null, created_at: ago(24 * 20), understood_at: ago(24 * 20), plan_status: null, questions: [], assumptions: [{ id: "as-1", question: "Is there a spending limit we should respect?", assumed: "Use the usual range for this kind of work", forced: false }], answers: [], materials: [] },
+      { id: "in-2", organization_id: "o-2", project_id: null, source: "CLIENT_INTENT", status: "CLARIFYING", text: "Make the patient intake feel calm.", initiator_id: "u-tunde", rejection_reason: null, created_at: ago(5), understood_at: null, plan_status: null,
         questions: [{ id: "q-1", question: "What result would tell you this worked?", why: "Without a result to aim at we cannot tell a good plan from a merely busy one.", decision: "Which approach we propose, and how we measure success.", options: [{ id: "revenue", label: "More completed intakes", tradeoff: "We design around completion; extras that do not help it are left out." }, { id: "trust", label: "Patients who feel at ease", tradeoff: "We invest in tone and content; it is slower to measure." }], default_option_id: null }],
         assumptions: [], answers: [],
         materials: [{ requirement_id: "m-1", name: "Brand guidelines", why: "Design should extend your brand, not invent a new one.", if_missing: "Colors, type and tone would be guessed.", required: true, ways: ["UPLOAD", "LINK", "NONE", "SOURCE"], sourcing: false }] },
@@ -396,6 +398,12 @@ function openProject(s: Store, i: Intent) {
   });
 }
 
+/** As the API does: an intent carries its latest plan's status, read from the plans rather than stored on the intent. */
+function withPlanStatus(s: Store, intents: Intent[]): Intent[] {
+  const latest = (pid: string | null) => s.plans.filter((p) => p.project_id === pid).sort((a, b) => b.version - a.version)[0]?.status ?? null;
+  return intents.map((i) => ({ ...i, plan_status: i.project_id ? latest(i.project_id) : null }));
+}
+
 export function createFixturesDataSource(): DataSource {
   let steppedUp = false;
   if (typeof window !== "undefined") {
@@ -471,7 +479,8 @@ export function createFixturesDataSource(): DataSource {
 
     queries: {
       async ownerData() {
-        return structuredClone(load().data);
+        const s = load();
+        return structuredClone({ ...s.data, intents: withPlanStatus(s, s.data.intents) });
       },
       async domains() {
         return structuredClone(DEMO_DOMAINS);
@@ -487,7 +496,7 @@ export function createFixturesDataSource(): DataSource {
           artifacts: s.data.artifacts.filter((a) => a.client_visible && mine.has(a.project_id)),
           approvals: s.data.approvals.filter((a) => a.requires_client && mine.has(a.project_id)),
           requirements: s.data.requirements.filter((r) => r.assigned_to_client && mine.has(r.project_id)),
-          intents: s.data.intents.filter((i) => orgs.has(i.organization_id)),
+          intents: withPlanStatus(s, s.data.intents.filter((i) => orgs.has(i.organization_id))),
         });
       },
     },
@@ -589,7 +598,7 @@ export function createFixturesDataSource(): DataSource {
         const id_ = id();
         const intent: Intent = {
           id: id_, organization_id: organizationId, project_id: null, source: currentUserId() === "u-ceo" ? "CEO_DIRECTIVE" : "CLIENT_INTENT", status: clear ? "PLANNED" : "CLARIFYING",
-          text: input.text.trim(), initiator_id: currentUserId() ?? "u-ceo", rejection_reason: null, created_at: new Date().toISOString(), understood_at: clear ? new Date().toISOString() : null,
+          text: input.text.trim(), initiator_id: currentUserId() ?? "u-ceo", rejection_reason: null, created_at: new Date().toISOString(), understood_at: clear ? new Date().toISOString() : null, plan_status: null,
           questions: clear ? [] : [{ id: id(), question: "What result would tell you this worked?", why: "Without a result to aim at we cannot tell a good plan from a merely busy one.", decision: "Which approach we propose, and how we measure success.", options: [{ id: "revenue", label: "More sales or sign-ups", tradeoff: "We design around conversion." }, { id: "trust", label: "More trust and a clearer image", tradeoff: "Slower to measure." }], default_option_id: "trust" }],
           assumptions: [], answers: [], materials: [],
         };

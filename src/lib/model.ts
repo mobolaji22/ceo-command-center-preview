@@ -163,6 +163,8 @@ export type Intent = {
   rejection_reason: string | null
   created_at: string
   understood_at: string | null
+  /** The latest version of this intent's plan, if it has one. Only a SUBMITTED plan waits for a signature; a PLANNED intent keeps that status after approval. */
+  plan_status: PlanStatus | null
   questions: Array<{
     id: string
     question: string
@@ -194,6 +196,12 @@ export type PlanContent = {
   assumptions: string[]
   open_context_needs: string[]
   decision_points: Array<{ task_id: string | null; description: string }>
+  /** Steps the plan lets go ahead of a domain they would otherwise wait for, with the reason. For the CEO, not the client. */
+  phasing: Array<{ task_id: string; upstream: string; reason: string }>
+  /** Domains in the work with no capability yet: a person does their part. */
+  unstaffed: string[]
+  /** Domains a standing exemption kept out, and what would have called them up (ADR-0043). */
+  exempt: Array<{ upstream: string; dependent: string; via: string }>
 };
 
 /** One version of a project's plan. A change is a new version; earlier ones stay on record. */

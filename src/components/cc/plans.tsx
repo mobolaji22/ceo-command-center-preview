@@ -22,6 +22,9 @@ const DECISION_WORDS: Record<string, string> = { APPROVED: "Approved", REVISION_
  * what it assumes, what changed since the version before, what has been decided so far, and what the approved plan lets the
  * agency do without asking again. The API decides who may do what; this only hides actions that would be refused.
  */
+/** A dependency condition in words: "intent.collects_personal_data" reads "collects personal data". */
+const condition = (id: string) => id.replace(/^[a-z]+\./, "").replaceAll("_", " ");
+
 export function PlanPanel({ projectId, organizationId, onChanged }: { projectId: string; organizationId: string; onChanged: () => void }) {
   const ds = useDataSource();
   // Approving commits the client's money, so the server asks for a fresh proof of who is deciding (a code emailed to them). When it
@@ -158,6 +161,11 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
       {p.assumptions.length > 0 && <><h4>What we assumed</h4><ul>{p.assumptions.map((a) => <li key={a}>{a}</li>)}</ul></>}
       {p.open_context_needs.length > 0 && <><h4>What we still need from you</h4><ul>{p.open_context_needs.map((a) => <li key={a}>{a}</li>)}</ul></>}
       {p.decision_points.length > 0 && <><h4>Where we will ask you</h4><ul>{p.decision_points.map((d) => <li key={d.description}>{d.description}</li>)}</ul></>}
+      {(p.phasing.length > 0 || p.unstaffed.length > 0 || p.exempt.length > 0) && <><h4>Who is in, and what goes ahead</h4><ul className="plan-engagement">
+        {p.unstaffed.length > 0 && <li>No one is staffed yet for {p.unstaffed.map(label).join(", ")}<small>A person does that part of the work.</small></li>}
+        {p.phasing.map((x) => <li key={`${x.task_id}-${x.upstream}`}>{titleOf(x.task_id)} goes ahead of {label(x.upstream)}<small>{x.reason}</small></li>)}
+        {p.exempt.map((x) => <li key={`${x.upstream}-${x.dependent}-${x.via}`}>{label(x.upstream)} is exempt for now<small>It is not called up and reviews nothing here. Without the exemption, {label(x.dependent)}&apos;s work would have brought it in ({x.via === "required" ? "it needs its output" : condition(x.via)}).</small></li>)}
+      </ul></>}
     </div>}
 
     {shown.version > 1 && <div className="plan-change">

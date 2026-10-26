@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, CircleAlert, FolderOpen, Pause, Play, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { awaitsSignature } from "@/lib/attention";
 import { useDataSource } from "@/lib/data";
 import { fmtDate, label, statusTone } from "@/lib/format";
 import type { OwnerData, Question, RunStatus, RunTask } from "@/lib/model";
@@ -189,7 +190,7 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
 
   return <article className="question" aria-label={x.title}>
     <div className="question-head"><b>{x.title}</b><small>{audience === "agency" ? `${label(x.reason)} · ` : ""}{x.deadline && x.reason !== "PAUSED_BY_OWNER" ? `answer by ${fmtDate(x.deadline)}` : x.status === "EXPIRED" ? (held ? "overdue · the work stays on hold until it is answered" : "overdue") : ""}</small></div>
-    <p>{x.summary}</p>
+    <p className="question-summary">{x.summary}</p>
     {audience === "agency" && x.detail && <p className="question-detail">{x.detail}</p>}
     {askedOf && <small className="question-asked">{askedOf}</small>}
     <div className="question-options" role="group" aria-label="Answers">
@@ -232,7 +233,7 @@ export function CaseFileToggle({ projectId, name, audience, canControl }: { proj
 
 /** On the contracts desk: what the work is asking, and the plans waiting for a signature. */
 export function ContractsDesk({ data, onChanged }: { data: OwnerData; onChanged: () => void }) {
-  const planned = data.intents.filter((i) => i.status === "PLANNED" && i.project_id);
+  const planned = data.intents.filter(awaitsSignature);
   const name = (pid: string | null) => data.projects.find((p) => p.id === pid)?.name ?? "";
   return <div className="contracts-desk">
     <div className="section-label"><span>QUESTIONS FROM THE WORK</span></div>

@@ -101,6 +101,8 @@ type ApiPlan = {
   tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; dependsOn: string[] }>;
   milestones: Array<{ name: string; afterTasks: string[] }>; budget: { lowUsd: number; highUsd: number; confidence: number };
   risks: PlanContent["risks"]; assumptions: string[]; openContextNeeds: string[]; decisionPoints: Array<{ taskId?: string; description: string }>;
+  phasing?: Array<{ taskId: string; upstream: string; reason: string }>;
+  engagement?: { unstaffed?: string[]; exempt?: PlanContent["exempt"] };
 };
 type ApiProposal = {
   id: string; projectId: string; organizationId: string; type: string; version: number; status: PlanVersion["status"]; decisionOwner: PlanVersion["decision_owner"];
@@ -137,6 +139,8 @@ const toPlan = (c: ApiPlan): PlanContent => ({
   budget: { low_usd: c.budget.lowUsd, high_usd: c.budget.highUsd, confidence: c.budget.confidence },
   risks: c.risks, assumptions: c.assumptions, open_context_needs: c.openContextNeeds,
   decision_points: c.decisionPoints.map((d) => ({ task_id: d.taskId ?? null, description: d.description })),
+  phasing: (c.phasing ?? []).map((x) => ({ task_id: x.taskId, upstream: x.upstream, reason: x.reason })),
+  unstaffed: c.engagement?.unstaffed ?? [], exempt: c.engagement?.exempt ?? [],
 });
 const toPlanVersion = (p: ApiProposal): PlanVersion => ({
   id: p.id, project_id: p.projectId, organization_id: p.organizationId, version: p.version, status: p.status, decision_owner: p.decisionOwner,
