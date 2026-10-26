@@ -24,6 +24,7 @@ import type {
   DomainView,
   FeeScope,
   FeesView,
+  Intent,
   SessionView,
   SpendView,
 } from "../model";
@@ -41,9 +42,26 @@ import { fail, ok, type DataSource, type Result } from "./types";
  * client visibility is decided here the way the API will decide it.
  */
 
-const STORE_KEY = "dpl.fixtures.v7";
+const STORE_KEY = "dpl.fixtures.v8";
 const SESSION_KEY = "dpl.fixtures.session";
 const CHANGE_EVENT = "dpl:fixtures-change";
+/**
+ * The monitor (`/monitor`) shows the CEO's office and a client's room side by side on the same demo data. Both frames share this
+ * origin's storage, so each frame keeps who is signed in on its own window name instead (opened with `?as=<user id>`). Anywhere
+ * else the session is the browser's, as before.
+ */
+const FRAME_PREFIX = "dpl-as:";
+const frameUserId = (): string | null => (typeof window !== "undefined" && window.name.startsWith(FRAME_PREFIX) ? window.name.slice(FRAME_PREFIX.length) : null);
+function sessionUserId(): string | null {
+  if (typeof window === "undefined") return null;
+  return frameUserId() ?? window.localStorage.getItem(SESSION_KEY);
+}
+function setSessionUser(uid: string | null) {
+  if (frameUserId() !== null) window.name = FRAME_PREFIX + (uid ?? "");
+  else if (uid) window.localStorage.setItem(SESSION_KEY, uid);
+  else window.localStorage.removeItem(SESSION_KEY);
+  window.dispatchEvent(new Event(CHANGE_EVENT));
+}
 
 const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
 const id = () => crypto.randomUUID();
@@ -204,9 +222,9 @@ function seed(): Store {
         materials: [{ requirement_id: "m-1", name: "Brand guidelines", why: "Design should extend your brand, not invent a new one.", if_missing: "Colors, type and tone would be guessed.", required: true, ways: ["UPLOAD", "LINK", "NONE", "SOURCE"], sourcing: false }] },
     ],
     organizations: [
-      { id: "o-1", name: "Northwind Bakery", mission: "Fresh bread, honestly made.", created_at: ago(24 * 70) },
-      { id: "o-2", name: "Lumen Health", mission: "Care that feels unhurried.", created_at: ago(24 * 50) },
-      { id: "o-3", name: "DevPlaybook (internal)", mission: "The agency's own work.", created_at: ago(24 * 90) },
+      { id: "o-1", name: "Northwind Bakery", mission: "Fresh bread, honestly made.", kind: "CLIENT", created_at: ago(24 * 70) },
+      { id: "o-2", name: "Lumen Health", mission: "Care that feels unhurried.", kind: "CLIENT", created_at: ago(24 * 50) },
+      { id: "o-3", name: "DevPlaybook (internal)", mission: "The agency's own work.", kind: "INTERNAL", created_at: ago(24 * 90) },
     ],
     clients,
   };
@@ -259,8 +277,7 @@ function seed(): Store {
 
 /** Can the signed-in person see this project's work? The CEO reaches all of it; a client only their own organization's. */
 function mayReach(s: Store, projectId: string): boolean {
-  const uid = typeof window === "undefined" ? null : window.localStorage.getItem(SESSION_KEY);
-  const me = s.users.find((u) => u.id === uid);
+  const me = s.users.find((u) => u.id === sessionUserId());
   if (!me) return false;
   if (me.role === "owner") return true;
   const project = s.data.projects.find((p) => p.id === projectId);
@@ -271,8 +288,7 @@ const DEFAULT_PREFS: NotificationPrefs = { timezone: "UTC", quiet_hours: null, m
 
 /** Can the signed-in person read this brief? The CEO reads all; a client only what was written to their own organization. */
 function mayReadBrief(s: Store, b: { organization_id: string; audience: string }): boolean {
-  const uid = typeof window === "undefined" ? null : window.localStorage.getItem(SESSION_KEY);
-  const me = s.users.find((u) => u.id === uid);
+  const me = s.users.find((u) => u.id === sessionUserId());
   if (!me) return false;
   if (me.role === "owner") return true;
   return b.audience === "CLIENT" && me.memberships.some((m) => m.organizationId === b.organization_id);
@@ -352,11 +368,42 @@ const DEMO_DOMAINS: DomainView[] = ([
 
 const DEMO_CODE = "123456";
 
+/** For the monitor: the demo's people, so each frame can open as one of them, and a way back to the seeded demo. */
+export function fixturePeople(): Array<{ id: string; name: string; role: "owner" | "client"; organization: string | null }> {
+  const s = load();
+  return s.users.map((u) => ({ id: u.id, name: u.displayName, role: u.role, organization: s.data.organizations.find((o) => o.id === u.memberships[0]?.organizationId)?.name ?? null }));
+}
+export function resetFixtures() {
+  window.localStorage.removeItem(STORE_KEY);
+}
+/** True when a storage change elsewhere (another tab, or the monitor's other frame) touched the demo's records. */
+export const isFixturesChange = (e: StorageEvent) => e.key === STORE_KEY || e.key === null;
+
+/**
+ * An understood request opens its project with a first plan to decide, the way v4 does: before this, an answered directive said
+ * "planned" and had no plan to read. The agency's own work is the CEO's to decide; a client's is their owner's.
+ */
+function openProject(s: Store, i: Intent) {
+  if (i.project_id) return;
+  const now = new Date().toISOString();
+  const pid = id();
+  s.data.projects.unshift({ id: pid, organization_id: i.organization_id, name: i.text.slice(0, 60), description: i.text, objective: null, status: "INTAKE", priority: 50, domains: [], created_at: now, started_at: null, completed_at: null });
+  i.project_id = pid;
+  const internal = s.data.organizations.find((o) => o.id === i.organization_id)?.kind === "INTERNAL";
+  s.plans.push({
+    id: id(), project_id: pid, organization_id: i.organization_id, version: 1, status: "SUBMITTED", decision_owner: internal ? "CEO" : "CLIENT_OWNER", impact: 2, reversibility: 4, rationale: null,
+    submitted_at: now, decided_at: null, decision: null, decision_note: null, on_behalf: false, plan: { ...demoPlan(), objective: i.text },
+  });
+}
+
 export function createFixturesDataSource(): DataSource {
   let steppedUp = false;
+  if (typeof window !== "undefined") {
+    const as = new URLSearchParams(window.location.search).get("as");
+    if (as) window.name = FRAME_PREFIX + as;
+  }
   const signIn = (u: User): Result<Session> => {
-    window.localStorage.setItem(SESSION_KEY, u.id);
-    window.dispatchEvent(new Event(CHANGE_EVENT));
+    setSessionUser(u.id);
     return ok(toSession(u));
   };
   const mutate = (fn: (s: Store) => void): Result => {
@@ -368,7 +415,7 @@ export function createFixturesDataSource(): DataSource {
   const addEvent = (s: Store, e: Omit<V4Event, "id" | "created_at" | "actor_id"> & { actor_id?: string | null }) => {
     s.data.events.unshift({ id: id(), created_at: new Date().toISOString(), actor_id: e.actor_id ?? currentUserId(), ...e });
   };
-  const currentUserId = () => (typeof window === "undefined" ? null : window.localStorage.getItem(SESSION_KEY));
+  const currentUserId = sessionUserId;
   const approvalById = (s: Store, aid: string): Approval | undefined => s.data.approvals.find((a) => a.id === aid);
 
   return {
@@ -409,8 +456,7 @@ export function createFixturesDataSource(): DataSource {
         return ok(undefined as void);
       },
       async signOut() {
-        window.localStorage.removeItem(SESSION_KEY);
-        window.dispatchEvent(new Event(CHANGE_EVENT));
+        setSessionUser(null);
       },
       subscribe(onChange) {
         const h = () => onChange();
@@ -537,20 +583,21 @@ export function createFixturesDataSource(): DataSource {
         const words = input.text.trim().split(/\s+/).length;
         const clear = words >= 12;
         const s = load();
+        // No client named: the agency's own work, held by its internal organization (as v4 does, ADR-0040).
+        const organizationId = input.organizationId ?? s.data.organizations.find((o) => o.kind === "INTERNAL")?.id;
+        if (!organizationId) return fail("There is no organization for the agency's own work.", "ORGANIZATION_REQUIRED");
         const id_ = id();
-        s.data.intents.unshift({
-          id: id_, organization_id: input.organizationId, project_id: null, source: currentUserId() === "u-ceo" ? "CEO_DIRECTIVE" : "CLIENT_INTENT", status: clear ? "PLANNED" : "CLARIFYING",
+        const intent: Intent = {
+          id: id_, organization_id: organizationId, project_id: null, source: currentUserId() === "u-ceo" ? "CEO_DIRECTIVE" : "CLIENT_INTENT", status: clear ? "PLANNED" : "CLARIFYING",
           text: input.text.trim(), initiator_id: currentUserId() ?? "u-ceo", rejection_reason: null, created_at: new Date().toISOString(), understood_at: clear ? new Date().toISOString() : null,
-          questions: clear ? [] : [{ id: id(), question: "What result would tell you this worked?", why: "Without a result to aim at we cannot tell a good plan from a merely busy one.", decision: "Which approach we propose, and how we measure success.", options: [{ id: "revenue", label: "More sales or sign-ups", tradeoff: "We design around conversion." }, { id: "trust", label: "More trust and a clearer image", tradeoff: "Slower to measure." }], default_option_id: null }],
+          questions: clear ? [] : [{ id: id(), question: "What result would tell you this worked?", why: "Without a result to aim at we cannot tell a good plan from a merely busy one.", decision: "Which approach we propose, and how we measure success.", options: [{ id: "revenue", label: "More sales or sign-ups", tradeoff: "We design around conversion." }, { id: "trust", label: "More trust and a clearer image", tradeoff: "Slower to measure." }], default_option_id: "trust" }],
           assumptions: [], answers: [], materials: [],
-        });
-        if (clear) {
-          const pid = id();
-          s.data.projects.unshift({ id: pid, organization_id: input.organizationId, name: input.text.trim().slice(0, 60), description: input.text.trim(), objective: null, status: "INTAKE", priority: 50, domains: [], created_at: new Date().toISOString(), started_at: null, completed_at: null });
-          s.data.intents[0]!.project_id = pid;
-        }
+        };
+        s.data.intents.unshift(intent);
+        if (clear) openProject(s, intent);
+        addEvent(s, { project_id: intent.project_id, type: "INTENT_RECEIVED", summary: `Request received: ${intent.text.slice(0, 80)}`, client_visible: true });
         save(s);
-        return ok({ status: clear ? "PLANNED" : "CLARIFYING", projectId: s.data.intents[0]!.project_id });
+        return ok({ intentId: id_, status: intent.status, projectId: intent.project_id });
       },
       async answer(intentId, clarificationId, answer) {
         return mutate((s) => {
@@ -559,7 +606,7 @@ export function createFixturesDataSource(): DataSource {
           if (!i || !q) return;
           i.answers.push({ id: q.id, question: q.question, answer: answer.text ?? q.options.find((o) => o.id === answer.optionId)?.label ?? "our usual choice" });
           i.questions = i.questions.filter((x) => x.id !== clarificationId);
-          if (i.questions.length === 0) { i.status = "PLANNED"; i.understood_at = new Date().toISOString(); }
+          if (i.questions.length === 0) { i.status = "PLANNED"; i.understood_at = new Date().toISOString(); openProject(s, i); }
         });
       },
       async respond(requirementId) {

@@ -43,7 +43,8 @@ export type NewAttachment =
   | { kind: "file"; file: File; scope: "PROJECT" | "ORGANIZATION" }
   | { kind: "link"; url: string; scope: "PROJECT" | "ORGANIZATION" };
 
-export type IntentInput = { organizationId: string; text: string; attachments: NewAttachment[] };
+/** `organizationId: null` is the agency's own work: v4 files it under its internal organization (ADR-0040). Only the agency may send null. */
+export type IntentInput = { organizationId: string | null; text: string; attachments: NewAttachment[] };
 
 /** The ways to answer one item of the materials list. */
 export type MaterialAnswer =
@@ -114,7 +115,7 @@ export interface DataSource {
   /** Where work enters. A request is understood, questions are asked, and only then does a project open (there is no create-project command). */
   intents: {
     /** Stages each attachment, then submits the request. The answer says where it stands. */
-    submit(input: IntentInput): Promise<Result<{ status: string; projectId: string | null }>>;
+    submit(input: IntentInput): Promise<Result<{ intentId: string; status: string; projectId: string | null }>>;
     answer(intentId: string, clarificationId: string, answer: { optionId?: string; text?: string; useDefault?: boolean }): Promise<Result>;
     respond(requirementId: string, answer: MaterialAnswer, organizationId: string): Promise<Result>;
     /** What the client reads about one request, ordered and trimmed by v4 (P6.20). */

@@ -85,7 +85,7 @@ export function RequestsDesk({ data, isOwner, organizationId, refresh, openQuest
     <DeskFrame kind="board" eyebrow="ASKS, BOTH WAYS" title="Requests" line={`${data.intents.length} request${data.intents.length === 1 ? "" : "s"} · ${openQuestions} question${openQuestions === 1 ? "" : "s"} for you.`} tab={tab} onTab={setTab} tabs={[{ id: "requests", label: "Your requests", count: data.intents.length }, { id: "questions", label: "Questions from the work", count: openQuestions }]}>
       {tab === "requests" && <>
         {isOwner && organizationId && (writing
-          ? <><div className="section-label"><span>NEW REQUEST</span></div><Composer organizations={[]} fixedOrganizationId={organizationId} onSubmitted={refresh} onClose={data.intents.length ? () => setWriting(false) : undefined} /></>
+          ? <><div className="section-label"><span>NEW REQUEST</span></div><Composer organizations={[]} fixedOrganizationId={organizationId} onSubmitted={() => refresh()} onClose={data.intents.length ? () => setWriting(false) : undefined} /></>
           : <Button className="new-request" onClick={() => setWriting(true)}><Plus size={16} /> New request</Button>)}
         <div className="section-label pd-label"><span>YOUR REQUESTS</span><span>{data.intents.length}</span></div>
         <ClientIntentList intents={data.intents} canAnswer={(i) => isOwner && i.source === "CLIENT_INTENT"} refresh={refresh} empty="No requests yet." />

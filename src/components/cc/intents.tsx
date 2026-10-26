@@ -15,7 +15,7 @@ const STATUS_WORDS: Record<string, string> = {
 };
 const tone = (status: string) => (status === "CLARIFYING" ? "amber" : status === "UNDERSTOOD" || status === "PLANNED" ? "green" : "muted");
 
-type Org = { id: string; name: string };
+type Org = { id: string; name: string; kind?: "CLIENT" | "INTERNAL" | undefined };
 
 /**
  * Where a request begins: say what you want, attach what helps. Nothing here creates a project; the request is understood,
@@ -25,7 +25,11 @@ type Org = { id: string; name: string };
  * `onClose` (P6.21): the composer opens from a button, so it can be put away unused. With something written it asks once before
  * discarding, so a stray tap never loses a draft.
  */
-export function Composer({ organizations, fixedOrganizationId, onSubmitted, onClose }: { organizations: Org[]; fixedOrganizationId?: string | undefined; onSubmitted: () => void; onClose?: (() => void) | undefined }) {
+/**
+ * The agency writes for a client, or for itself (v4 ADR-0040): leaving the client unchosen files the request as the agency's own work.
+ * A client always writes for their own organization (`fixedOrganizationId`).
+ */
+export function Composer({ organizations, fixedOrganizationId, onSubmitted, onClose }: { organizations: Org[]; fixedOrganizationId?: string | undefined; onSubmitted: (sent: { intentId: string; status: string }) => void; onClose?: (() => void) | undefined }) {
   const ds = useDataSource();
   const [text, setText] = useState("");
   const [orgId, setOrgId] = useState(fixedOrganizationId ?? "");
@@ -34,34 +38,43 @@ export function Composer({ organizations, fixedOrganizationId, onSubmitted, onCl
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [discarding, setDiscarding] = useState(false);
-  const organizationId = fixedOrganizationId ?? orgId;
+  const organizationId = fixedOrganizationId ?? (orgId || null);
+  const clients = organizations.filter((o) => o.kind !== "INTERNAL");
+  // The oldest internal organization is where "no client" goes; any others are named, so they can be chosen on purpose.
+  const otherInternal = organizations.filter((o) => o.kind === "INTERNAL").slice(1);
+  const addLink = () => { if (!link.trim()) return; setItems([...items, { kind: "link", url: link.trim(), scope: "PROJECT" }]); setLink(""); };
   const close = () => { if (!onClose) return; if ((text.trim() || items.length || link.trim()) && !discarding) { setDiscarding(true); return; } onClose(); };
 
   const submit = async () => {
-    if (!organizationId) { setMsg("Choose which client this is for."); return; }
     setBusy(true); setMsg(null);
     const r = await ds.intents.submit({ organizationId, text: text.trim(), attachments: items });
     setBusy(false);
     if (r.error || !r.data) { setMsg(r.error?.message ?? "Couldn't send that."); return; }
-    setText(""); setItems([]);
-    setMsg(r.data.status === "UNDERSTOOD" || r.data.status === "PLANNED" ? "Understood. A plan is being prepared for your approval." : r.data.status === "CLARIFYING" ? "Received. A few questions below will make it sharper." : "Received.");
-    onSubmitted();
+    setText(""); setItems([]); setLink("");
+    setMsg(r.data.status === "UNDERSTOOD" || r.data.status === "PLANNED" ? "Understood. A plan is ready for a decision." : r.data.status === "CLARIFYING" ? "Received. A few questions will make it sharper." : "Received.");
+    onSubmitted({ intentId: r.data.intentId, status: r.data.status });
   };
 
   return <div className="directive-form" aria-label="New request">
     {onClose && <div className="composer-close">{discarding
       ? <><span>Discard what you wrote?</span><Button variant="ghost" onClick={() => setDiscarding(false)}>Keep writing</Button><Button variant="ghost" onClick={onClose}>Discard</Button></>
       : <Button variant="ghost" size="icon" className="icon-button" aria-label="Close without sending" title="Close" onClick={close}><X size={18} /></Button>}</div>}
+    {!fixedOrganizationId && <div className="composer-for"><label htmlFor="request-for">FOR</label>
+      <select id="request-for" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
+        <option value="">No client: the agency&apos;s own work</option>
+        {clients.length > 0 && <optgroup label="A client">{clients.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</optgroup>}
+        {otherInternal.length > 0 && <optgroup label="Other agency work">{otherInternal.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</optgroup>}
+      </select>
+      <small>{orgId ? "The client sees this request and answers what is asked of them." : "Only the agency sees it, and the plan is yours to approve."}</small></div>}
     <label htmlFor="request-text">WHAT WOULD YOU LIKE DONE?</label>
     <textarea id="request-text" value={text} maxLength={8000} onChange={(e) => setText(e.target.value)} placeholder="Describe the outcome you want, who it is for, and by when. Attach anything that helps." />
-    {!fixedOrganizationId && <div className="directive-targets"><label>CLIENT<select value={orgId} onChange={(e) => setOrgId(e.target.value)}><option value="">Choose…</option>{organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label></div>}
     {items.length > 0 && <div className="chips">{items.map((a, i) => <span key={i} className="chip">{a.kind === "file" ? a.file.name : a.url}
       <select aria-label="Where it goes" value={a.scope} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, scope: e.target.value as "PROJECT" | "ORGANIZATION" } : x)))}><option value="PROJECT">This project</option><option value="ORGANIZATION">Library</option></select>
       <button aria-label="Remove" onClick={() => setItems(items.filter((_, j) => j !== i))}><X size={12} /></button></span>)}</div>}
-    <div className="directive-targets">
+    <div className="composer-attach">
       <label className="attach"><Paperclip size={14} /> Attach a file<input type="file" onChange={(e) => { const f = e.target.files?.[0]; if (f) setItems([...items, { kind: "file", file: f, scope: "PROJECT" }]); e.target.value = ""; }} /></label>
-      <label>OR PASTE A LINK<input placeholder="https://…" value={link} onChange={(e) => setLink(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && link.trim()) { e.preventDefault(); setItems([...items, { kind: "link", url: link.trim(), scope: "PROJECT" }]); setLink(""); } }} /></label>
-      <Button type="button" variant="outline" disabled={!link.trim()} onClick={() => { setItems([...items, { kind: "link", url: link.trim(), scope: "PROJECT" }]); setLink(""); }}>Add link</Button>
+      <input aria-label="Paste a link" placeholder="or paste a link: https://…" value={link} onChange={(e) => setLink(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } }} />
+      <Button type="button" variant="outline" disabled={!link.trim()} onClick={addLink}>Add link</Button>
     </div>
     <div className="directive-footer"><span role="status">{msg ?? `${text.length} characters`}</span><Button className="approve-btn" disabled={busy || !text.trim()} onClick={submit}>{busy ? "Sending…" : "Send request"} <Send size={15} /></Button></div>
   </div>;
@@ -71,7 +84,8 @@ export function Composer({ organizations, fixedOrganizationId, onSubmitted, onCl
  * One request: where it stands and what is being asked back. The questions and the materials list are one ask; answering
  * is for the people who may (a client's owner for their own requests, the agency for its own).
  */
-export function IntentCard({ intent, canAnswer, refresh }: { intent: Intent; canAnswer: boolean; refresh: () => void }) {
+/** `part` shows one layer of it (the directive desk's tabs): what is asked, or the plan. Without it, the whole card. */
+export function IntentCard({ intent, canAnswer, refresh, part }: { intent: Intent; canAnswer: boolean; refresh: () => void; part?: "asks" | "plan" | undefined }) {
   const ds = useDataSource();
   const [msg, setMsg] = useState<string | null>(null);
   const [text, setText] = useState<Record<string, string>>({});
@@ -82,12 +96,13 @@ export function IntentCard({ intent, canAnswer, refresh }: { intent: Intent; can
     setMsg(done); refresh();
   };
   const open = intent.status === "CLARIFYING" || intent.status === "UNDERSTOOD" || intent.status === "PLANNED";
+  const asks = part !== "plan";
 
-  return <div className="intent-card" data-status={intent.status}>
-    <div className="resolved-row intent-head"><span>{intent.text}<small>{fmtAgo(intent.created_at)}{intent.source === "CEO_DIRECTIVE" ? " · from the agency" : ""}</small></span><span className={`pill ${tone(intent.status)}`}>{(STATUS_WORDS[intent.status] ?? label(intent.status)).toUpperCase()}</span></div>
+  return <div className="intent-card" data-status={intent.status} data-part={part}>
+    {!part && <div className="resolved-row intent-head"><span>{intent.text}<small>{fmtAgo(intent.created_at)}{intent.source === "CEO_DIRECTIVE" ? " · from the agency" : ""}</small></span><span className={`pill ${tone(intent.status)}`}>{(STATUS_WORDS[intent.status] ?? label(intent.status)).toUpperCase()}</span></div>}
     {msg && <p className="mmsg" role="status">{msg}</p>}
 
-    {intent.questions.length > 0 && <div className="ask-block"><div className="section-label"><span>QUESTIONS</span><span>{intent.questions.length}</span></div>
+    {asks && intent.questions.length > 0 && <div className="ask-block"><div className="section-label"><span>QUESTIONS</span><span>{intent.questions.length}</span></div>
       {intent.questions.map((q) => <div key={q.id} className="question" aria-label={q.question}>
         <b>{q.question}</b><small>{q.why} Changes: {q.decision}</small>
         {canAnswer ? <div className="options">{q.options.map((o) => <Button key={o.id} variant="outline" className="option" onClick={() => run(() => ds.intents.answer(intent.id, q.id, { optionId: o.id }), "Thank you.")}>{o.label}<small>{o.tradeoff}</small></Button>)}
@@ -97,15 +112,17 @@ export function IntentCard({ intent, canAnswer, refresh }: { intent: Intent; can
           : <small>Waiting for {intent.source === "CLIENT_INTENT" ? "the account owner" : "the agency"} to answer.</small>}
       </div>)}</div>}
 
-    {intent.materials.length > 0 && <div className="ask-block"><div className="section-label"><span>WHAT WE NEED FROM YOU</span><span>{intent.materials.length}</span></div>
+    {asks && intent.materials.length > 0 && <div className="ask-block"><div className="section-label"><span>WHAT WE NEED FROM YOU</span><span>{intent.materials.length}</span></div>
       {intent.materials.map((m) => <Material key={m.requirement_id} item={m} organizationId={intent.organization_id} canAnswer={canAnswer} onDone={(done) => { setMsg(done); refresh(); }} onError={setMsg} />)}</div>}
 
-    {open && intent.assumptions.length > 0 && <div className="ask-block"><div className="section-label"><span>WE ASSUMED</span><span>{intent.assumptions.length}</span></div>
+    {asks && open && intent.assumptions.length > 0 && <div className="ask-block"><div className="section-label"><span>WE ASSUMED</span><span>{intent.assumptions.length}</span></div>
       {intent.assumptions.map((a) => <div key={a.id} className="resolved-row"><span>{a.question}<small>We are going with: {a.assumed}{a.forced ? " (we ran out of questions on this one, so please check it)" : ""}</small></span></div>)}</div>}
 
-    {(intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && intent.questions.length === 0 && intent.materials.length === 0 && <p className="mmsg">Nothing more is needed from you right now.</p>}
+    {asks && (intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && intent.questions.length === 0 && intent.materials.length === 0 && <p className="mmsg">Nothing more is needed from you right now.</p>}
 
-    {intent.project_id && (intent.status === "PLANNED" || intent.status === "UNDERSTOOD") && <PlanPanel projectId={intent.project_id} organizationId={intent.organization_id} onChanged={refresh} />}
+    {asks && part && intent.questions.length === 0 && intent.materials.length === 0 && intent.assumptions.length === 0 && !(intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && <p className="mmsg">Nothing is being asked on this request.</p>}
+
+    {part !== "asks" && intent.project_id && (intent.status === "PLANNED" || intent.status === "UNDERSTOOD") && <PlanPanel projectId={intent.project_id} organizationId={intent.organization_id} onChanged={refresh} />}
   </div>;
 }
 
@@ -152,7 +169,7 @@ export function ClientIntentCard({ intent, canAnswer, refresh }: { intent: Inten
         <div className="cv-free"><input aria-label="Something else" placeholder="Something else…" value={text} onChange={(e) => setText(e.target.value)} />
           <Button variant="ghost" disabled={!text.trim()} onClick={() => void answer({ text: text.trim() }, "Thank you.")}>Send</Button>
           {q.default_option_id && <Button variant="ghost" onClick={() => void answer({ useDefault: true }, "We will go with our usual choice.")}>You decide</Button>}</div>
-      </> : <p className="cv-sub">Waiting for the account owner to answer.</p>}
+      </> : <p className="cv-sub">{intent.source === "CEO_DIRECTIVE" ? "The agency asked for this, so the agency answers it." : "Waiting for the account owner to answer."}</p>}
     </div>}
 
     {view.needs.required.length > 0 && <div className="cv-block"><h4>What we need from you</h4>
@@ -210,4 +227,4 @@ export function IntentList({ intents, canAnswer, refresh, empty }: { intents: In
   return <div className="intent-list">{intents.map((i) => <IntentCard key={i.id} intent={i} canAnswer={canAnswer(i)} refresh={refresh} />)}</div>;
 }
 
-export { statusTone };
+export { STATUS_WORDS as INTENT_STATUS_WORDS, tone as intentTone, statusTone };

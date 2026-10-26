@@ -1,4 +1,4 @@
-import { newDirective } from "./directive";
+import { newDirective, openDirective } from "./directive";
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
@@ -36,7 +36,7 @@ test("a client sends a request with a file and a link, answers the questions, se
   const composer = await newClientRequest(page);
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("We want a better website for our customers");
   await composer.locator('label.attach input[type="file"]').setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("Our customers like simple pages.") });
-  await composer.getByLabel("OR PASTE A LINK").fill("https://example.com/current-site");
+  await composer.getByLabel("Paste a link").fill("https://example.com/current-site");
   await composer.getByRole("button", { name: "Add link" }).click();
   // The link goes to the library, the file stays with this project.
   await composer.getByLabel("Where it goes").nth(1).selectOption("ORGANIZATION");
@@ -101,14 +101,50 @@ test("the CEO sends a directive for a client, answers its questions, and sees wh
   await page.getByRole("button", { name: "Preview Directive" }).click();
   await page.getByRole("button", { name: "Compose directive" }).click();
   const composer = await newDirective(page);
-  await composer.getByLabel("CLIENT").selectOption({ label: "Orbit" });
+  await composer.getByLabel("FOR").selectOption({ label: "Orbit" });
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Refresh the brand");
   await composer.getByRole("button", { name: "Send request" }).click();
-  await expect(composer.getByRole("status")).toContainText("Received.");
 
-  const card = page.locator(".intent-card", { hasText: "Refresh the brand" });
-  await expect(card.locator(".intent-head .pill")).toHaveText("NEEDS ANSWERS");
-  await expect(card.getByText("from the agency")).toBeVisible();
+  // Sending opens the request it made.
+  const card = await openDirective(page, "Refresh the brand");
+  await expect(card.getByRole("status").first()).toContainText("Received.");
+  await expect(card.locator(".directive-detail-head .pill")).toHaveText("NEEDS ANSWERS");
+  await expect(card.getByText("Orbit · ")).toBeVisible();
+  await expect(card.getByText(/from the agency/)).toBeVisible();
   await answerEveryQuestion(card);
-  await expect(card.locator(".intent-head .pill")).toHaveText("PLANNED");
+  await expect(card.locator(".directive-detail-head .pill")).toHaveText("PLANNED");
+});
+
+test("the CEO sends a directive with no client: it is the agency's own work, and its plan is the CEO's to decide (v4 ADR-0040)", async ({ page }) => {
+  await signIn(page, CEO);
+  await page.getByRole("button", { name: "Preview Directive" }).click();
+  await page.getByRole("button", { name: "Compose directive" }).click();
+  const composer = await newDirective(page);
+  // No client is the default.
+  await expect(composer.getByLabel("FOR")).toHaveValue("");
+  await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Rebuild our own portfolio site so that more founders book a call, by the end of March, with a budget of 3000");
+  await composer.getByRole("button", { name: "Send request" }).click();
+
+  const card = await openDirective(page, "Rebuild our own portfolio site");
+  await expect(card.getByText(/The agency's own work/)).toBeVisible();
+  await answerEveryQuestion(card);
+  await card.getByRole("tab", { name: /^The plan/ }).click();
+  const plan = card.getByLabel("Plan");
+  await expect(plan.getByText("Version 1")).toBeVisible();
+  // No client stands behind it, so nothing waits on a client's permission: the CEO may approve it.
+  await expect(plan.getByText(/You can make it only if their owner gives you permission/)).toHaveCount(0);
+  await expect(plan.getByRole("button", { name: /^Approve/ })).toBeVisible();
+
+  // The same organization holds every directive that names no client, and it is labelled as the agency's, not as a client.
+  const overview = await (await page.request.get("/api/v4/v1/console/overview")).json();
+  const own = overview.intents.find((i: { text: string }) => /own portfolio site/.test(i.text));
+  const org = overview.organizations.find((o: { id: string }) => o.id === own.organization_id);
+  expect(org.kind).toBe("INTERNAL");
+
+  // The filter shows it under the agency's own work.
+  await page.getByRole("button", { name: "ALL DIRECTIVES" }).click();
+  await page.getByRole("tab", { name: /^All/ }).click();
+  await page.getByLabel("Show directives for").selectOption({ label: "The agency's own work" });
+  await expect(page.locator(".directive-row", { hasText: "Rebuild our own portfolio site" })).toBeVisible();
+  await expect(page.locator(".directive-row", { hasText: "Refresh the brand" })).toHaveCount(0);
 });
