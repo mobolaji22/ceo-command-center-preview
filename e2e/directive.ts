@@ -20,7 +20,10 @@ export async function openDirective(page: Page, text: string | RegExp, part?: "W
   const detail = page.locator(".directive-detail");
   // Just sent: the form closes onto the request it made once v4 has answered; wait for that rather than racing it.
   await expect(page.getByLabel("New request")).toHaveCount(0, { timeout: 30_000 });
-  const already = (await detail.count()) > 0 && (await detail.locator(".directive-detail-head h3", { hasText: text }).count()) > 0;
+  // The desk then opens that request after the next read, a moment later. Checking only once raced it: the list's tabs were
+  // clicked as the request opened over them (detached), or were already gone. So it is given that moment first.
+  const head = detail.locator(".directive-detail-head h3", { hasText: text });
+  const already = await head.first().waitFor({ timeout: 5_000 }).then(() => true, () => false);
   if (!already) {
     if (await detail.count()) await page.getByRole("button", { name: "ALL DIRECTIVES" }).click();
     await page.getByRole("tab", { name: /^All/ }).click();
