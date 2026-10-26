@@ -1,21 +1,26 @@
 /*
- * The Design Workshop: a light design tool inside a computer window. Chrome reads the shared tokens (so it follows day and night);
+ * The Design Workshop: a light design tool that gives the canvas the room. No fake window chrome: the desk bar says where you
+ * are and the toolbar says how the design stands, so every row above the canvas earns its place. Chrome reads the shared tokens (so it follows day and night);
  * the canvas draws the design in the design's own colours, whatever the time of day. Selection, handles, guides and notes use
  * fixed, high-contrast marks (blue, magenta, red) so they stay visible on any design.
  */
 .desk-panel[data-surface="room-workshop"], .desk-panel[data-wide] { width: min(1560px, calc(100% - 3vw)); }
 .desk-panel[data-surface="room-workshop"] .desk-scroll { overflow: hidden; padding: 0; display: flex; }
 .desk-panel[data-surface="room-workshop"] .desk-scroll > .scene { flex: 1; min-height: 0; min-width: 0; display: flex; }
+/* On a wide screen the desk bar is one slim line here: a design tool's height belongs to the canvas. (The phone has its own bar.) */
+@media (min-width: 651px) {
+  .desk-overlay:has(> .desk-panel[data-surface="room-workshop"]) { padding: 8px 0 10px; }
+  .desk-panel[data-surface="room-workshop"] .desk-bar.workspace-heading { height: 40px; margin-bottom: 6px; padding-block: 0; }
+}
 
 .workshop { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; background: color-mix(in oklab, var(--background) 97%, transparent); box-shadow: 0 30px 70px oklch(0 0 0 / 55%); }
-.workshop .window-bar { display: flex; align-items: center; gap: 14px; padding: 10px 18px; border-bottom: 1px solid var(--border); font: 11px "DM Sans", sans-serif; color: var(--muted-foreground); }
-.workshop .window-bar > span:nth-of-type(1) { flex: 1; text-align: center; }
 .workshop-empty { flex: 1; display: grid; place-items: center; padding: 40px; color: var(--muted-foreground); }
 
-.ws-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 14px; border-bottom: 1px solid var(--border); background: color-mix(in oklab, var(--foreground) 4%, var(--background)); }
+.ws-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 6px 14px; border-bottom: 1px solid var(--border); background: color-mix(in oklab, var(--foreground) 4%, var(--background)); }
 .ws-group { display: inline-flex; align-items: center; gap: 4px; padding-right: 12px; border-right: 1px solid var(--border); }
 .ws-group:last-of-type { border-right: 0; }
 .ws-select { height: 30px; padding: 0 8px; border: 1px solid var(--border); border-radius: 2px; background: color-mix(in oklab, var(--foreground) 5%, transparent); color: var(--foreground); font: 12px "DM Sans", sans-serif; }
+.ws-project { font: 600 13px "DM Sans", sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
 .ws-ibtn { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 1px solid transparent; border-radius: 3px; background: none; color: var(--foreground); cursor: pointer; transition: background-color var(--t-feedback), border-color var(--t-feedback); }
 .ws-ibtn.sm { width: 24px; height: 24px; }
 .ws-ibtn:hover:not(:disabled) { background: color-mix(in oklab, var(--foreground) 8%, transparent); }
@@ -29,7 +34,8 @@
 .ws-btn:hover:not(:disabled) { border-color: color-mix(in oklab, var(--primary) 60%, transparent); }
 .ws-btn.primary, .ws-btn[aria-pressed="true"].primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
 .ws-btn[aria-pressed="true"]:not(.primary) { border-color: var(--primary); color: var(--primary); }
-.ws-save { margin-left: auto; font-size: 11px; color: var(--muted-foreground); display: inline-flex; align-items: center; gap: 8px; }
+.ws-status { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; }
+.ws-save { font-size: 11px; color: var(--muted-foreground); display: inline-flex; align-items: center; gap: 8px; }
 .ws-save::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: oklch(0.7 0.15 150); }
 .ws-save.is-saving::before, .ws-save.is-unsaved::before { background: oklch(0.78 0.15 80); }
 .ws-save.is-failed::before, .ws-save.is-conflict::before { background: oklch(0.65 0.2 25); }
@@ -38,7 +44,13 @@
 .ws-banner.quiet { color: var(--muted-foreground); background: color-mix(in oklab, var(--foreground) 4%, transparent); }
 .ws-banner.warn { background: color-mix(in oklab, oklch(0.65 0.2 25) 16%, transparent); }
 
-.ws-main { flex: 1; min-height: 0; display: grid; grid-template-columns: 268px minmax(0, 1fr) 332px; }
+.ws-main { --ws-left: 268px; --ws-right: 332px; flex: 1; min-height: 0; display: grid; grid-template-columns: var(--ws-left) minmax(0, 1fr) var(--ws-right); }
+/* A side panel put away gives its column to the canvas. Each pane keeps its own column, so hiding one never shifts the others. */
+@media (min-width: 901px) {
+  .ws-main > .ws-left { grid-column: 1; } .ws-main > .ws-center { grid-column: 2; } .ws-main > .ws-inspector { grid-column: 3; }
+  .ws-main[data-no-left] { --ws-left: 0px; } .ws-main[data-no-right] { --ws-right: 0px; }
+}
+.ws-main[data-no-left] > .ws-left, .ws-main[data-no-right] > .ws-inspector { display: none; }
 .ws-left, .ws-inspector { min-height: 0; display: flex; flex-direction: column; background: color-mix(in oklab, var(--foreground) 2.5%, var(--background)); }
 .ws-left { border-right: 1px solid var(--border); }
 .ws-inspector { border-left: 1px solid var(--border); }
@@ -49,11 +61,11 @@
 .ws-tabpanel { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px 28px; scrollbar-width: thin; }
 
 .ws-center { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: color-mix(in oklab, var(--foreground) 10%, var(--background)); }
-.ws-context { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.ws-context { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding: 5px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
 .ws-seg { margin-left: auto; display: inline-flex; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
 .ws-seg button { padding: 5px 12px; background: none; border: 0; color: var(--muted-foreground); font: 600 11px "DM Sans", sans-serif; cursor: pointer; }
 .ws-seg button[aria-pressed="true"] { background: color-mix(in oklab, var(--primary) 16%, transparent); color: var(--primary); }
-.ws-stage { flex: 1; min-height: 0; overflow: auto; display: flex; justify-content: center; align-items: flex-start; padding: 28px; }
+.ws-stage { flex: 1; min-height: 0; overflow: auto; display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
 .ws-stage.is-commenting { cursor: crosshair; }
 
 /* the canvas */
@@ -178,7 +190,7 @@ html:not([data-lighting="day"]) .ws-chip.bad { color: oklch(0.8 0.14 40); }
 .ws-changes li { font-size: 12px; }
 .ws-changes small { display: block; color: var(--muted-foreground); font-size: 11px; }
 
-@media (max-width: 1180px) { .ws-main { grid-template-columns: 224px minmax(0, 1fr) 292px; } }
+@media (max-width: 1180px) { .ws-main { --ws-left: 224px; --ws-right: 292px; } }
 @media (max-width: 900px) {
   /* Stacked: each row as tall as its content (min-height: 0 would let the grid squeeze the panels to nothing) and the
      column scrolls; the side panels stop at 60vh and scroll inside. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Grid3x3, Magnet, MessageSquarePlus, MoreHorizontal, MousePointer2, Redo2, Undo2, Upload, X, ZoomIn, ZoomOut } from "lucide-react";
+import { Download, Grid3x3, Magnet, MessageSquarePlus, MoreHorizontal, MousePointer2, PanelLeft, PanelRight, Redo2, Undo2, Upload, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent as RKeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -43,7 +43,7 @@ export function WorkshopDesk({ data, dept }: { data: OwnerData; dept: string }) 
   if (!project) return <div className="workshop-empty"><Empty title="No design project yet.">The Workshop opens a project that has design work. Issue a directive for one from the office.</Empty></div>;
   return (
     <WorkshopEditor key={project.id} projectId={project.id} projectName={project.name} actor={actor} store={store}
-      picker={projects.length > 1 ? <select className="ws-select" aria-label="Design project" value={project.id} onChange={(e) => setPid(e.target.value)}>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : null} />
+      picker={projects.length > 1 ? <select className="ws-select" aria-label="Design project" value={project.id} onChange={(e) => setPid(e.target.value)}>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : <b className="ws-project">{project.name}</b>} />
   );
 }
 
@@ -68,6 +68,9 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
   const [activePin, setActivePin] = useState<string | null>(null);
   const [fit, setFit] = useState(0.5);
   const [cmpW, setCmpW] = useState(260);
+  // On a wide screen either side panel can be put away, so the canvas takes the width; the fit follows the room it is given.
+  const [showLeft, setShowLeft] = useState(true);
+  const [showRight, setShowRight] = useState(true);
   // On a phone (P6.21 P6) the Workshop shows one pane at a time; selecting on the canvas opens Edit as a sheet over it.
   const phone = useIsMobile();
   const [pane, setPane] = useState<"directions" | "canvas">("canvas");
@@ -93,7 +96,7 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
     const el = stageRef.current;
     if (!el || !frame) return;
     // Comparing: three previews share the width the canvas has. Editing: the one frame fits the room.
-    const calc = () => { setFit(Math.max(0.15, phone ? Math.min(1, (el.clientWidth - 24) / frame.w) : Math.min(1, (el.clientWidth - 56) / frame.w, (el.clientHeight - 56) / frame.h))); setCmpW(Math.max(150, Math.floor((el.clientWidth - 36 - 32) / 3 - 30))); };
+    const calc = () => { setFit(Math.max(0.15, phone ? Math.min(1, (el.clientWidth - 24) / frame.w) : Math.min(1, (el.clientWidth - 32) / frame.w, (el.clientHeight - 32) / frame.h))); setCmpW(Math.max(150, Math.floor((el.clientWidth - 36 - 32) / 3 - 30))); };
     calc();
     const ro = new ResizeObserver(calc); ro.observe(el);
     return () => ro.disconnect();
@@ -160,11 +163,11 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
   const terr = territoryOf(doc, terrId)!;
   const chosen = doc.selectedTerritoryId === terrId;
   const saveText = w.saveState === "saving" ? "Saving…" : w.saveState === "unsaved" ? "Unsaved changes" : w.saveState === "failed" ? "Could not save" : w.saveState === "conflict" ? "Out of date" : `Saved at r${doc.revision}`;
-  const saveStatus = <span className={`ws-save is-${w.saveState}`} role="status">{saveText}{w.saveState === "failed" && <button type="button" onClick={() => void w.retrySave()}>Retry</button>}{w.saveState === "conflict" && <button type="button" onClick={() => void w.reload()}>Reload</button>}</span>;
+  // Where the design stands: draft or in review, and the last saved revision. It sits in the toolbar; there is no window bar to
+  // carry it, because a fake title bar cost the canvas a row and repeated what the desk bar and the toolbar already say.
+  const saveStatus = <span className="ws-status"><span className="ws-chip">{doc.status === "DRAFT" ? "Draft" : "In review"}</span><span className={`ws-save is-${w.saveState}`} role="status">{saveText}{w.saveState === "failed" && <button type="button" onClick={() => void w.retrySave()}>Retry</button>}{w.saveState === "conflict" && <button type="button" onClick={() => void w.reload()}>Reload</button>}</span></span>;
   return (
     <div className="workshop" data-desk="workshop" onKeyDown={onKey}>
-      <div className="window-bar"><div className="traffic-dots"><i /><i /><i /></div><span>&gt; DevPlaybook Design Workshop // {projectName} // r{doc.revision}</span><span className="window-more">{doc.status === "DRAFT" ? "Draft" : "In review"}</span></div>
-
       <div className="ws-toolbar" role="toolbar" aria-label="Workshop tools" data-more={more || undefined}>
         {/* On a phone (P6.21) the project and the save state stay at the top and the tools move to the bottom, by the thumb; on a
             wide screen both wrappers are transparent to layout, so the toolbar is one row as before. */}
@@ -176,6 +179,7 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
           <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!w.canUndo} onClick={w.undo}><Undo2 size={15} /></button><button type="button" className="ws-ibtn" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!w.canRedo} onClick={w.redo}><Redo2 size={15} /></button></div>
           <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Select tool" title="Select" aria-pressed={tool === "select"} onClick={() => setTool("select")}><MousePointer2 size={15} /></button><button type="button" className="ws-ibtn" aria-label="Note tool" title="Add a note on the canvas" aria-pressed={tool === "comment"} onClick={() => { setTool("comment"); setRightTab("notes"); }}><MessageSquarePlus size={15} /></button></div>
           <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Zoom out" onClick={() => stepZoom(-1)}><ZoomOut size={15} /></button><button type="button" className="ws-zoom" onClick={() => setZoom("fit")} aria-label="Fit to screen" title="Fit to screen">{Math.round(scale * 100)}%</button><button type="button" className="ws-ibtn" aria-label="Zoom in" onClick={() => stepZoom(1)}><ZoomIn size={15} /></button></div>
+          {!phone && <div className="ws-group"><button type="button" className="ws-ibtn" aria-label="Directions and layers panel" title="Show or hide the directions and layers" aria-pressed={showLeft} onClick={() => setShowLeft((v) => !v)}><PanelLeft size={15} /></button><button type="button" className="ws-ibtn" aria-label="Inspector panel" title="Show or hide the inspector" aria-pressed={showRight} onClick={() => setShowRight((v) => !v)}><PanelRight size={15} /></button></div>}
           <div className="ws-group ws-extra"><button type="button" className="ws-ibtn" aria-label="Snap to guides" title="Snap to guides and the grid" aria-pressed={snap} onClick={() => setSnap(!snap)}><Magnet size={15} /></button><button type="button" className="ws-ibtn" aria-label="Show grid" title="Show the grid" aria-pressed={grid} onClick={() => setGrid(!grid)}><Grid3x3 size={15} /></button></div>
           <div className="ws-group ws-extra"><Button variant="ghost" className="ws-btn" onClick={() => download(`${slug(projectName)}-design-r${doc.revision}.json`, "application/json", documentJson(doc))}><Download size={14} /> Data</Button><Button variant="ghost" className="ws-btn" onClick={() => download(`${slug(projectName)}-${slug(frame.name)}-r${doc.revision}.svg`, "image/svg+xml", frameToSvg(doc, frame.id))}><Download size={14} /> Frame (SVG)</Button><Button variant="ghost" className="ws-btn" onClick={() => fileRef.current?.click()}><Upload size={14} /> Import</Button><input ref={fileRef} type="file" accept="application/json,.json" hidden aria-label="Import a design document" onChange={onImport} /></div>
           <button type="button" className="ws-ibtn ws-more" aria-label="More tools" aria-expanded={more} onClick={() => setMore((m) => !m)}><MoreHorizontal size={15} /></button>
@@ -186,7 +190,7 @@ function WorkshopEditor({ projectId, projectName, actor, store, picker }: { proj
       {w.where === "device" && <p className="ws-banner quiet">Kept on this device only. The agency&apos;s design service is not connected yet, so export the design to share it.</p>}
       {w.saveNote && <p className="ws-banner warn">{w.saveNote}</p>}
 
-      <div className="ws-main" data-pane={phone ? pane : undefined} data-sheet={phone && sheet ? "" : undefined}>
+      <div className="ws-main" data-pane={phone ? pane : undefined} data-sheet={phone && sheet ? "" : undefined} data-no-left={!phone && !showLeft ? "" : undefined} data-no-right={!phone && !showRight ? "" : undefined}>
         <LeftPanel doc={doc} tab={leftTab} setTab={setLeftTab} territoryId={terrId} setTerritory={(id) => { setActiveTerr(id); setActiveFrame(null); setSelection([]); if (phone) setPane("canvas"); }} frameId={frame.id} setFrame={setActiveFrame} selection={valid} setSelection={setSelection} run={run} compare={compare} setCompare={setCompare} choose={(t) => setDialog({ kind: "choose", territory: t })} />
 
         <section className="ws-center" aria-label="Canvas">
