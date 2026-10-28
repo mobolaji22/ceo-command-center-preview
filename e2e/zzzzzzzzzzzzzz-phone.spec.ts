@@ -30,12 +30,16 @@ async function expectFitsThePhone(page: Page, where: string) {
     const W = innerWidth, H = innerHeight;
     const shown = (e: Element) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none" && !e.closest("[inert],[aria-hidden='true']"); };
     const inScroller = (e: Element) => { for (let p = e.parentElement; p; p = p.parentElement) { const s = getComputedStyle(p); if (/(auto|scroll|hidden)/.test(s.overflowX) && p.scrollWidth > p.clientWidth) return true; } return false; };
+    // Scrolled out of sight inside a scroller is not covered: a brief just past the bottom of the Lamp's list sits in the desk's
+    // bottom margin, where the point under it is the scrim, so whether the check failed depended on how long the list happened to be.
+    const clippedAt = (e: Element, x: number, y: number) => { for (let p = e.parentElement; p; p = p.parentElement) { const s = getComputedStyle(p); if (s.overflowX === "visible" && s.overflowY === "visible") continue; const c = p.getBoundingClientRect(); if (x < c.left || x > c.right || y < c.top || y > c.bottom) return true; } return false; };
     const all = [...document.querySelectorAll("body *")].filter(shown);
     const name = (e: Element) => `${e.tagName.toLowerCase()}.${String(e.className).split(" ")[0]}`;
     const off = all.filter((e) => { const r = e.getBoundingClientRect(); return (r.right > W + 1 || r.left < -1) && !inScroller(e) && !e.closest("img,picture,svg"); }).map(name);
     const covered = all.filter((e) => e.children.length === 0 && (e as HTMLElement).innerText?.trim().length > 2).filter((e) => {
       const r = e.getBoundingClientRect();
       if (r.top < 0 || r.bottom > H || r.left < 0 || r.right > W) return false;
+      if (clippedAt(e, r.left + r.width / 2, r.top + r.height / 2)) return false;
       const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return !!top && top !== e && !e.contains(top) && !top.contains(e) && !top.closest("label,button,a,.demo-banner") && !e.closest(".demo-banner");
     }).map((e) => { const r = e.getBoundingClientRect(); return `"${(e as HTMLElement).innerText.trim().slice(0, 30)}" under ${name(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)!)}`; });

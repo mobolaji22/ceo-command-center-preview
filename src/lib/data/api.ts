@@ -15,6 +15,8 @@ const PROXY = "/api/v4";
 /** What the API says, in words a person can act on. Unknown codes fall back to the code itself. */
 const MESSAGES: Record<string, string> = {
   UNAUTHENTICATED: "Your session has ended. Please sign in again.",
+  SERVICE_UNAVAILABLE: "The service is temporarily unavailable. Please try again in a moment.",
+  SERVER_ERROR: "We couldn't complete that request. Please try again shortly.",
   FORBIDDEN: "You don't have access to do that.",
   STEP_UP_REQUIRED: "For safety, please confirm it's you first.",
   INVALID_OR_EXPIRED: "That link or code has expired or was already used. Ask for a new one.",
@@ -59,6 +61,7 @@ async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
       const issue = code === "INVALID_BODY" ? (json as { issues?: Array<{ message?: unknown }> } | null)?.issues?.[0]?.message : undefined;
       return fail(typeof issue === "string" && issue ? `${issue.replace(/\.$/, "")}.` : MESSAGES[code] ?? code.replace(/_/g, " ").toLowerCase(), code);
     }
+    if (res.status >= 500) return fail(MESSAGES["SERVER_ERROR"]!, "SERVER_ERROR");
     return fail(`Request failed (${res.status}).`);
   }
   return ok(json as T);
@@ -98,6 +101,8 @@ type ApiPlan = {
   tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; dependsOn: string[] }>;
   milestones: Array<{ name: string; afterTasks: string[] }>; budget: { lowUsd: number; highUsd: number; confidence: number };
   risks: PlanContent["risks"]; assumptions: string[]; openContextNeeds: string[]; decisionPoints: Array<{ taskId?: string; description: string }>;
+  phasing?: Array<{ taskId: string; upstream: string; reason: string }>;
+  engagement?: { unstaffed?: string[]; exempt?: PlanContent["exempt"] };
 };
 type ApiProposal = {
   id: string; projectId: string; organizationId: string; type: string; version: number; status: PlanVersion["status"]; decisionOwner: PlanVersion["decision_owner"];
@@ -134,6 +139,8 @@ const toPlan = (c: ApiPlan): PlanContent => ({
   budget: { low_usd: c.budget.lowUsd, high_usd: c.budget.highUsd, confidence: c.budget.confidence },
   risks: c.risks, assumptions: c.assumptions, open_context_needs: c.openContextNeeds,
   decision_points: c.decisionPoints.map((d) => ({ task_id: d.taskId ?? null, description: d.description })),
+  phasing: (c.phasing ?? []).map((x) => ({ task_id: x.taskId, upstream: x.upstream, reason: x.reason })),
+  unstaffed: c.engagement?.unstaffed ?? [], exempt: c.engagement?.exempt ?? [],
 });
 const toPlanVersion = (p: ApiProposal): PlanVersion => ({
   id: p.id, project_id: p.projectId, organization_id: p.organizationId, version: p.version, status: p.status, decision_owner: p.decisionOwner,

@@ -208,7 +208,7 @@ function System() {
     <dl className="settings-facts">
       <div><dt>Mode</dt><dd><b>{s.agency_mode === "LIVE" ? "Live" : "Demo"}</b><small>{s.agency_mode === "LIVE"
         ? "A model reads each request and writes each plan. When it cannot, the request waits and you are told why; nothing falls back to the demo."
-        : "Requests are read with keywords and plans come from templates. For demonstrations and testing, not for clients' real work."}</small></dd></div>
+        : s.reads_with === "MANUAL_BRIDGE" ? "A chat model reads each request and writes each plan through the manual bridge. V4 validates and governs every response." : "Requests are read with keywords and plans come from templates. For demonstrations and frontend preview."}</small></dd></div>
       <div><dt>Model</dt><dd>{s.model_switched_on ? "Switched on" : "Not switched on"}</dd></div>
       <div><dt>Waiting on reasoning</dt><dd>{waiting === 0 && s.revisions_waiting === 0 ? "Nothing" : <ul className="settings-waits">
         {s.waiting.map((w) => <li key={`${w.step}:${w.reason}`}>{w.count} {w.step === "PLAN" ? `plan${w.count === 1 ? "" : "s"} to write` : `request${w.count === 1 ? "" : "s"} to read`}: {WAIT_WORDS[w.reason]}</li>)}

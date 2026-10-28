@@ -243,6 +243,7 @@
 .question-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
 .question-head b { font: 400 21px "Cormorant Garamond", serif; }
 .question-head small, .question-asked, .question-why, .question-detail { color: var(--muted-foreground); font-size: 11px; }
+.question-summary { white-space: pre-line; } /* a choice lists one option to a line */
 .question p { margin: 0; font-size: 13px; line-height: 1.6; }
 .question-options { display: flex; flex-wrap: wrap; gap: 8px; }
 .question-options button.chosen { border-color: var(--primary); color: var(--primary); }

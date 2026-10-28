@@ -59,7 +59,7 @@ export function ActionLinkCard({ token }: { token: string }) {
     {phase.kind === "gone" && <><h1 className="lobby-title">{GONE[phase.why].title}<span className="period">.</span></h1><p className="lobby-sub">{GONE[phase.why].text}</p></>}
     {phase.kind === "view" && <>
       <h1 className="lobby-title">{phase.view.title}<span className="period">.</span></h1>
-      <p className="lobby-sub">{phase.view.summary}</p>
+      <p className="lobby-sub question-summary">{phase.view.summary}</p>
       <section className="lobby-does" aria-label="What happens if you confirm"><b>{phase.view.label}</b><p>{phase.view.does}</p></section>
       <p className="lobby-sub">Nothing happens until you confirm. Anything about money, rules or risk needs you signed in.</p>
       {msg && <div className="auth-msg lobby-msg" role="alert">{msg}</div>}

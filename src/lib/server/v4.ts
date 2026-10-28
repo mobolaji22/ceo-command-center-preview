@@ -45,13 +45,19 @@ export async function callApi(path: string, init: { method?: string; secret?: st
   const headers: Record<string, string> = { ...(init.headers ?? {}) };
   if (init.secret) headers["authorization"] = `Bearer ${init.secret}`;
   if (init.ip) headers["x-forwarded-for"] = init.ip;
-  return fetch(`${apiBase()}${path}`, {
-    method: init.method ?? "GET",
-    headers,
-    ...(init.body !== undefined && init.body !== null ? { body: init.body, duplex: "half" as const } : {}),
-    redirect: "manual",
-    cache: "no-store",
-  } as RequestInit);
+  try {
+    const response = await fetch(`${apiBase()}${path}`, {
+      method: init.method ?? "GET",
+      headers,
+      ...(init.body !== undefined && init.body !== null ? { body: init.body, duplex: "half" as const } : {}),
+      redirect: "manual",
+      cache: "no-store",
+    } as RequestInit);
+    if (response.status >= 500) return json({ error: "SERVICE_UNAVAILABLE" }, 503);
+    return response;
+  } catch {
+    return json({ error: "SERVICE_UNAVAILABLE" }, 503);
+  }
 }
 
 export const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
