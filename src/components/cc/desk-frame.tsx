@@ -7,10 +7,14 @@ import { Button } from "@/components/ui/button";
  * The surface a desk is worked on. Each object in a room has the surface that object would have: the wall is a corkboard, the
  * calendar a wall calendar, the desk a wooden desk with a ledger on it, the table a table with folders, the screen a monitor,
  * the lamp a letter under lamplight, the shelf a bookshelf. The layout is the same (heading, tabs, content) so a desk is easy to
- * read wherever it is; only the material changes. Tabs keep information in layers: a desk opens on its first tab, one at a time.
+ * read wherever it is; only the material changes. Tabs keep information in layers, one at a time: a desk opens on the first tab
+ * that has something in it (`firstFilled`), so it never greets you with an empty tab while the next one holds the news.
  *
  * Styles live in desks.css by kind. `data-desk` is the stable hook for tests and for the overlay.
  */
+/** The tab to open on: the first with a count, or the first tab when every one is empty. */
+export const firstFilled = <T extends string>(tabs: readonly { id: T; count?: number }[], fallback: T): T => tabs.find((t) => t.count)?.id ?? fallback;
+
 export type DeskKind = "cork" | "board" | "calendar" | "desk" | "table" | "screen" | "paper" | "shelf";
 
 export function DeskFrame<T extends string>({ kind, eyebrow, title, line, tabs, tab, onTab, aside, above, children }: { kind: DeskKind; bar?: string; eyebrow: string; title: string; line?: ReactNode; tabs: { id: T; label: string; count?: number }[]; tab: T; onTab: (t: T) => void; aside?: ReactNode; /** Sits on the surface just above the content (the table's folder tabs). */ above?: ReactNode; children: ReactNode }) {

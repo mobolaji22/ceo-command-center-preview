@@ -13,7 +13,7 @@ import { PlanPanel } from "./plans";
 const STATUS_WORDS: Record<string, string> = {
   RECEIVED: "Received", CLARIFYING: "Needs answers", AWAITING_REASONING: "Waiting for reasoning", UNDERSTOOD: "Understood", PLANNED: "Planned", REJECTED: "Withdrawn", SUPERSEDED: "Replaced", PROPOSED: "Proposed",
 };
-const tone = (status: string) => (status === "CLARIFYING" ? "amber" : status === "UNDERSTOOD" || status === "PLANNED" ? "green" : "muted");
+const tone = statusTone;
 
 type Org = { id: string; name: string; kind?: "CLIENT" | "INTERNAL" | undefined };
 
@@ -29,7 +29,7 @@ type Org = { id: string; name: string; kind?: "CLIENT" | "INTERNAL" | undefined 
  * The agency writes for a client, or for itself (v4 ADR-0040): leaving the client unchosen files the request as the agency's own work.
  * A client always writes for their own organization (`fixedOrganizationId`).
  */
-export function Composer({ organizations, fixedOrganizationId, onSubmitted, onClose }: { organizations: Org[]; fixedOrganizationId?: string | undefined; onSubmitted: (sent: { intentId: string; status: string }) => void; onClose?: (() => void) | undefined }) {
+export function Composer({ organizations, fixedOrganizationId, onSubmitted, onClose }: { organizations: Org[]; fixedOrganizationId?: string | undefined; /** May return a promise: the form stays busy until it settles, so it closes onto a request that is already there. */ onSubmitted: (sent: { intentId: string; status: string }) => unknown; onClose?: (() => void) | undefined }) {
   const ds = useDataSource();
   const [text, setText] = useState("");
   const [orgId, setOrgId] = useState(fixedOrganizationId ?? "");
@@ -48,11 +48,11 @@ export function Composer({ organizations, fixedOrganizationId, onSubmitted, onCl
   const submit = async () => {
     setBusy(true); setMsg(null);
     const r = await ds.intents.submit({ organizationId, text: text.trim(), attachments: items });
-    setBusy(false);
-    if (r.error || !r.data) { setMsg(r.error?.message ?? "Couldn't send that."); return; }
+    if (r.error || !r.data) { setBusy(false); setMsg(r.error?.message ?? "Couldn't send that."); return; }
     setText(""); setItems([]); setLink("");
     setMsg(r.data.status === "UNDERSTOOD" || r.data.status === "PLANNED" ? "Understood. A plan is ready for a decision." : r.data.status === "CLARIFYING" ? "Received. A few questions will make it sharper." : "Received.");
-    onSubmitted({ intentId: r.data.intentId, status: r.data.status });
+    await onSubmitted({ intentId: r.data.intentId, status: r.data.status });
+    setBusy(false);
   };
 
   return <div className="directive-form" aria-label="New request">

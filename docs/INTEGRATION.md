@@ -126,6 +126,21 @@ the rooms, the projects and a few actions, built from data already on screen. Si
 they are off when typing, inside the Design Workshop, or when switched off on that list (kept per browser, like the
 lighting). In Contracts, A or R only arms approve or reject; Enter decides and Escape lets go, so a stray letter never signs.
 
+Kept in the browser, never in the API, because each is a viewing convenience for one person:
+
+- **Filters** (`useRemembered` in `src/lib/find.ts`): what was typed or chosen in a desk's find bar comes back the next time
+  that desk opens, for the rest of the visit (session storage). A remembered filter for something no longer on the list falls
+  back to all.
+- **Recent rooms**: the palette lists the last three rooms visited first, for this visit only.
+
+**Decisions are instant on screen, not in the record.** Approving or rejecting an authorization (the CEO's Contracts desk, the
+client's Decisions desk) takes it off the queue the moment it is sent and opens the next one; the API's answer confirms it, and
+an authorization the API refuses comes back with the reason. Nothing on screen says "granted" until the API has said so.
+
+**Status colours** (`statusTone` in `src/lib/format.ts`) come from one map over the read model's status types, in four
+families: waiting on someone (amber), done or going well (green), refused or broken (muted red), information (slate). A
+status the API adds fails the typecheck until it is given a family.
+
 ## Live updates
 
 **Now: polling.** Every query on screen is read again every 20 seconds while the tab is visible (`LIVE_MS` in

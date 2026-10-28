@@ -341,8 +341,9 @@
 .monitor-panes { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; }
 .monitor-panes section { position: relative; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
 .monitor-label { padding: 6px 12px; font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
-.monitor-panes iframe { flex: 1; width: 100%; border: 0; background: var(--background); }
-@media (max-width: 900px) { .monitor { height: auto; } .monitor-panes { grid-template-columns: 1fr; } .monitor-panes iframe { height: 85svh; flex: none; } .monitor-bar label { margin-left: 0; } }
+.monitor-frame { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.monitor-panes iframe { position: absolute; top: 0; left: 0; width: calc(100% / 0.75); height: calc(100% / 0.75); transform: scale(0.75); transform-origin: 0 0; border: 0; background: var(--background); }
+@media (max-width: 900px) { .monitor { height: auto; } .monitor-panes { grid-template-columns: 1fr; } .monitor-frame { height: 85svh; flex: none; } .monitor-bar label { margin-left: 0; } }
 
 /* ---- the fast lane: the palette, the shortcut list, and key hints (components/cc/command-palette) ------------------------ */
 kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border: 1px solid color-mix(in oklch, var(--foreground) 16%, transparent); border-bottom-width: 2px; border-radius: 3px; background: color-mix(in oklch, var(--foreground) 4%, transparent); color: var(--foreground); font: 600 10px/1 "DM Sans", sans-serif; letter-spacing: 0; }
@@ -407,3 +408,62 @@ kbd + kbd { margin-left: 3px; }
   .contract-actions > div { display: grid !important; grid-template-columns: 1fr 1fr; }
   .contract-actions > div > button { width: 100%; padding-inline: 8px !important; }
 }
+
+/* ---- Status families (lib/format statusTone): waiting amber, done green, refused a muted red, information slate ---------------- */
+.pill.red { color: oklch(0.74 0.11 25); background: oklch(0.62 0.13 25 / 12%); border: 1px solid oklch(0.62 0.13 25 / 30%); }
+.pill.slate { color: oklch(0.76 0.025 250); background: oklch(0.7 0.03 250 / 10%); border: 1px solid oklch(0.7 0.03 250 / 24%); }
+html[data-lighting="day"] .pill.red { color: oklch(0.47 0.14 25); background: oklch(0.6 0.15 25 / 9%); }
+html[data-lighting="day"] .pill.slate { color: oklch(0.42 0.035 250); background: oklch(0.5 0.03 250 / 8%); }
+
+/* ---- Two type scales: the editorial size belongs to the scenes; inside a desk a heading works at a reading size ---------------- */
+.desk-panel :is(.contract-main h2, .tab-pane h2, .brief-wrap h2, .computer-heading h2, .directive-head h2) { font-size: clamp(32px, 3vw, 42px); line-height: 1.05; margin: 10px 0 12px; }
+.desk-panel .brief-wrap h2 br { display: none; }
+.desk-panel .brief-wrap { margin: 36px auto; }
+.desk-panel .computer-body { padding-top: 28px; }
+
+/* ---- The Computer's rows: the whole row opens the project; its own controls sit above the link -------------------------------- */
+.dossier-row.with-case { position: relative; grid-template-columns: 55px minmax(0, 1fr) auto auto; }
+.row-link { all: unset; cursor: pointer; display: block; }
+/* No press-scale on the row link: a scale makes the link the box its stretched area is measured from, and the press is lost. */
+:root .command-center button.row-link:not(:disabled):active { scale: none; }
+.row-link::after { content: ""; position: absolute; inset: 0 0 auto; height: 91px; }
+.row-link:focus-visible { outline: none; }
+.row-link:focus-visible::after { outline: 2px solid var(--primary); outline-offset: -2px; }
+.dossier-row.with-case:hover { background: oklch(1 0 0 / 2.5%); }
+.dossier-row.with-case:hover .row-link b { color: var(--primary); }
+.dossier-row.with-case > :is(.pill, .icon-button, button:not(.row-link)) { position: relative; z-index: 1; }
+.dossier-row.with-case .case-slot { position: relative; z-index: 1; }
+
+/* ---- The Brief's window ---------------------------------------------------------------------------------------------------- */
+.brief-range { margin-top: 14px; }
+
+/* ---- The contract desk is one column: the questions and plans sit on the contract's own grid --------------------------------- */
+.contract-body .contracts-desk { max-width: none; margin: 26px 0 0; padding: 0; }
+.contract-body .contracts-desk > .section-label { margin-top: 18px; }
+
+/* ---- Loading keeps its shape (desk-skeleton.tsx) ------------------------------------------------------------------------------ */
+.desk-skeleton { max-width: 1020px; margin: 28px auto; padding: 0 24px; display: grid; gap: 14px; }
+.desk-skeleton .sk-eyebrow { width: 160px; height: 10px; }
+.desk-skeleton .sk-title { width: min(420px, 70%); height: 38px; }
+.desk-skeleton .sk-line { width: min(300px, 50%); height: 12px; }
+.sk-tabs { display: flex; gap: 26px; margin: 18px 0 8px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.sk-tab { width: 92px; height: 12px; }
+.sk-row { display: grid; grid-template-columns: 40px 1fr 90px; gap: 14px; align-items: center; min-height: 72px; border-bottom: 1px solid var(--border); }
+.sk-row > div { display: grid; gap: 8px; }
+.sk-index { width: 24px; height: 18px; }
+.sk-name { width: 55%; height: 14px; }
+.sk-meta { width: 35%; height: 10px; }
+.sk-pill { height: 24px; }
+.sk-doors { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 20px; }
+.sk-door { height: 260px; border-radius: 3px; }
+@media (prefers-reduced-motion: reduce) { .desk-skeleton .animate-pulse { animation: none; } }
+
+/* A narrower desktop (the monitor's frames, a small laptop): the header keeps one line by dropping the date and the words of the
+   jump button, which keeps its ⌘K. */
+@media (min-width: 651px) and (max-width: 1100px) {
+  .topbar-date { display: none; }
+  .topbar-center { white-space: nowrap; }
+  .topbar-search > span { display: none; }
+}
+/* Inside a desk the contract is the page: no gap above it showing the desk's ground. */
+.desk-panel .contract-wrap { margin-top: 0; }

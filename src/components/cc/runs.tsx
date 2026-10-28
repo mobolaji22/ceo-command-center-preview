@@ -41,7 +41,6 @@ export function runWords(status: RunStatus, reason: string | null): string {
     case "FAILED": return "FAILED";
   }
 }
-const runTone = (status: RunStatus) => (status === "COMPLETED" || status === "RUNNING" ? "green" : status === "CANCELLED" || status === "FAILED" ? "muted" : "amber");
 
 function stepWords(t: RunTask): { text: string; tone: string } {
   switch (t.status) {
@@ -81,7 +80,7 @@ export function useCase(projectId: string) {
 /** A project's standing in a few words, from its work. Null before any work has begun. */
 export function RunChip({ projectId }: { projectId: string }) {
   const { run } = useCase(projectId);
-  return run ? <span className={`pill ${runTone(run.status)}`}>{runWords(run.status, run.wait_reason)}</span> : null;
+  return run ? <span className={`pill ${statusTone(run.status)}`}>{runWords(run.status, run.wait_reason)}</span> : null;
 }
 
 export function CaseFile({ projectId, audience, canControl, onChanged }: { projectId: string; audience: Audience; canControl: boolean; onChanged?: (() => void) | undefined }) {
@@ -111,7 +110,7 @@ export function CaseFile({ projectId, audience, canControl, onChanged }: { proje
   const live = LIVE.includes(run.status);
   const pct = budget?.used_percent ?? null;
   return <section className="case-file" aria-label="Case file">
-    <div className="case-head"><span className={`pill ${runTone(run.status)}`}>{runWords(run.status, run.wait_reason)}</span><small>Plan version {run.plan_version}{run.ended_at ? ` · ended ${fmtDate(run.ended_at)}` : ` · started ${fmtDate(run.started_at)}`}</small></div>
+    <div className="case-head"><span className={`pill ${statusTone(run.status)}`}>{runWords(run.status, run.wait_reason)}</span><small>Plan version {run.plan_version}{run.ended_at ? ` · ended ${fmtDate(run.ended_at)}` : ` · started ${fmtDate(run.started_at)}`}</small></div>
 
     <div className="case-budget" aria-label="Budget used">
       {budget && budget.approved_usd !== null ? <>
@@ -218,7 +217,7 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
 /** A project's standing: what its work is doing if there is work, otherwise what the project itself says. */
 export function Standing({ projectId, fallback }: { projectId: string; fallback: { text: string; tone: string } }) {
   const { run } = useCase(projectId);
-  return run ? <span className={`pill ${runTone(run.status)}`}>{runWords(run.status, run.wait_reason)}</span> : <span className={`pill ${fallback.tone}`}>{fallback.text}</span>;
+  return run ? <span className={`pill ${statusTone(run.status)}`}>{runWords(run.status, run.wait_reason)}</span> : <span className={`pill ${fallback.tone}`}>{fallback.text}</span>;
 }
 
 /** On the computer: a dossier's case file, opened and closed in place. */

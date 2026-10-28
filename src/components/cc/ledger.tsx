@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useDataSource } from "@/lib/data";
-import { fmtAgo, fmtDate, label, pad } from "@/lib/format";
+import { fmtAgo, fmtDate, label, pad, statusTone } from "@/lib/format";
 import type { DecisionEntry, DelegationView, OwnerData } from "@/lib/model";
 import { StandingPermission } from "./standing";
 
@@ -12,7 +12,6 @@ import { StandingPermission } from "./standing";
  * reads it. A client's records are theirs, so these are only for the agency.
  */
 const WORDS: Record<string, string> = { APPROVED: "Approved", REVISION_REQUESTED: "Asked for a change", REJECTED: "Declined" };
-const TONE: Record<string, string> = { APPROVED: "green", REVISION_REQUESTED: "amber", REJECTED: "muted" };
 
 const nameOf = (data: OwnerData, projectId: string) => data.projects.find((p) => p.id === projectId)?.name ?? "A project";
 const orgName = (data: OwnerData, orgId: string) => data.organizations.find((o) => o.id === orgId)?.name ?? "A client";
@@ -38,7 +37,7 @@ export function PlanDecisionLedger({ data }: { data: OwnerData }) {
         <span className="row-index">{pad(i + 1)}</span>
         <div><b>{nameOf(data, projectId)}: version {e.version}</b>
           <small>{e.decided_by_role === "CEO" ? (e.on_behalf ? "The CEO, on the client's behalf" : "The CEO") : "The client's owner"} · {fmtDate(e.decided_at)} ({fmtAgo(e.decided_at)}){e.note ? ` · “${e.note}”` : ""}</small></div>
-        <span className={`pill ${TONE[e.decision] ?? "muted"}`}>{(WORDS[e.decision] ?? label(e.decision)).toUpperCase()}</span></div>)}</div>}
+        <span className={`pill ${statusTone(e.decision)}`}>{(WORDS[e.decision] ?? label(e.decision)).toUpperCase()}</span></div>)}</div>}
   </>;
 }
 
@@ -86,7 +85,7 @@ export function GovernancePanel({ data }: { data: OwnerData }) {
       return <div key={org.id} className="dossier-row">
         <span className="row-index">{pad(i + 1)}</span>
         <div><b>{org.name}</b><small>{chain!.entries.length} entr{chain!.entries.length === 1 ? "y" : "ies"} sealed{last ? ` · last: ${label(last.kind.replace(/\./g, " "))}, ${fmtAgo(last.created_at)}` : ""}{!chain!.ok ? ` · broken at entry ${chain!.broken_at}: ${chain!.reason}` : ""}</small></div>
-        <span className={`pill ${chain!.ok ? "green" : "amber"}`}>{chain!.ok ? "INTACT" : "BROKEN"}</span></div>;
+        <span className={`pill ${chain!.ok ? "green" : "red"}`}>{chain!.ok ? "INTACT" : "BROKEN"}</span></div>;
     })}</div>}
   </>;
 }

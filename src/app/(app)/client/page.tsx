@@ -15,6 +15,7 @@ import { OfficeStage } from "@/components/cc/office-stage";
 import { CLIENT_ART } from "@/components/cc/room-art";
 import { SceneFrame, ThresholdVeil, directionBetween, isOverlayMove, type SceneOrigin } from "@/components/cc/scene";
 import { DeskOverlay } from "@/components/cc/desk-overlay";
+import { DeskSkeleton } from "@/components/cc/desk-skeleton";
 import { AccountMenu, TopBar } from "@/components/cc/top-bar";
 import { ClientSettingsView } from "@/components/cc/settings";
 import { RoomKeys, type KeyBinding, type PaletteCommand } from "@/components/cc/command-palette";
@@ -72,10 +73,14 @@ export default function ClientCenter() {
   const refresh = () => { setTick((t) => t + 1); return qc.invalidateQueries({ queryKey: ["client-data"] }); };
   const signOut = async () => { await qc.cancelQueries(); qc.clear(); await ds.auth.signOut(); router.replace("/auth"); };
 
+  // A decision leaves the list the moment it is sent; the API confirms it behind the scenes, and one it refuses comes back.
+  const [sent, setSent] = useState<ReadonlySet<string>>(() => new Set());
   const decide = async (id: string, approved: boolean) => {
-    setBusy(id); setMsg(null);
+    setBusy(id); setMsg(approved ? "Recording your approval…" : "Recording your rejection…");
+    setSent((s) => new Set(s).add(id));
     const r = await ds.commands.clientResolveApproval(id, approved, "");
     setBusy(null);
+    if (r.error) setSent((s) => { const n = new Set(s); n.delete(id); return n; });
     setMsg(r.error ? r.error.message : approved ? "Approved. Thank you." : "Rejected. Your note has gone to the agency.");
     refresh();
   };
@@ -93,7 +98,7 @@ export default function ClientCenter() {
   useEffect(() => { if (restored) writePlace(view === "office" ? {} : { desk: view, project: focusProject }); }, [restored, view, focusProject]);
   const act = (id: Spot) => { if (id === "atmosphere") setFocus((f) => !f); else openView(id); };
 
-  const data = q.data;
+  const data = q.data && sent.size ? { ...q.data, approvals: q.data.approvals.filter((a) => !(a.status === "REQUESTED" && sent.has(a.id))) } : q.data;
   const membership = auth.user?.memberships[0];
   const isOwner = membership?.role === "CLIENT_OWNER";
   const pending = data?.approvals.filter((a) => a.status === "REQUESTED").length ?? 0;
@@ -144,15 +149,15 @@ export default function ClientCenter() {
       />
     </SceneFrame>
 
-    {view !== "office" && data && <DeskOverlay account={account} label={view === "settings" ? "Settings" : `${spotData[view].label} desk`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; CLIENT &nbsp; / &nbsp; {view === "settings" ? "SETTINGS" : spotData[view].label.toUpperCase()}</>} surface={`client-${view}`} origin={origin} onBack={() => openView("office")}>
-      <div key={view} className="scene scene-side">
+    {view !== "office" && <DeskOverlay account={account} label={view === "settings" ? "Settings" : `${spotData[view].label} desk`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; CLIENT &nbsp; / &nbsp; {view === "settings" ? "SETTINGS" : spotData[view].label.toUpperCase()}</>} surface={`client-${view}`} origin={origin} onBack={() => openView("office")}>
+      {!data ? <DeskSkeleton error={q.isError ? (q.error as Error).message : undefined} /> : <div key={view} className="scene scene-side">
         {view === "projects" && <ProjectsDesk data={data} isOwner={isOwner} initialProjectId={focusProject} />}
         {view === "decisions" && <DecisionsDesk data={data} isOwner={isOwner} busy={busy} msg={msg} onDecide={decide} />}
         {view === "requests" && <RequestsDesk data={data} isOwner={isOwner} organizationId={membership?.organizationId} refresh={refresh} openQuestions={openQuestions} />}
         {view === "library" && <LibraryDesk data={data} isOwner={isOwner} organizationId={membership?.organizationId} canWrite={isOwner} tick={tick} />}
         {view === "briefs" && <BriefsDesk isOwner={isOwner} organizationId={membership?.organizationId} projectIds={data.projects.map((p) => p.id)} />}
         {view === "settings" && <ClientSettingsView isOwner={isOwner} organizationId={membership?.organizationId} projectIds={data.projects.map((p) => p.id)} />}
-      </div>
+      </div>}
     </DeskOverlay>}
   </main>;
 }

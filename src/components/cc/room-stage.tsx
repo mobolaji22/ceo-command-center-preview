@@ -7,13 +7,13 @@ import { fmtDate, label, pad, statusTone } from "@/lib/format";
 import type { OwnerData } from "@/lib/model";
 import { departments, projectsIn, taskIn, type Entry } from "./corridor";
 import { useDomains, type DomainList } from "@/lib/domains";
-import { DeskFrame } from "./desk-frame";
+import { DeskFrame, firstFilled } from "./desk-frame";
 import { OfficeStage, type Spot } from "./office-stage";
 import { CORRIDOR_ART, roomArt } from "./room-art";
 import { Empty } from "./views";
 import { WorkshopDesk } from "./workshop/workshop";
 import { FindBar, Marked, TextFind } from "./find-bar";
-import { useProjectFind, type FindOption } from "@/lib/find";
+import { useProjectFind, useRemembered, type FindOption } from "@/lib/find";
 
 /**
  * A department is a room you stand in, like the CEO's office: its own photograph, three objects to press, and a desk behind each.
@@ -92,7 +92,7 @@ export function RoomDesk({ data, dept, spot, openManage }: { data: OwnerData; de
 function WallDesk({ data, dept, openManage }: { data: OwnerData; dept: string; openManage: (projectId?: string) => void }) {
   const { list, nameOf } = useDomains();
   const projects = projectsIn(data, dept, list);
-  const find = useProjectFind(projects, nameOf);
+  const find = useProjectFind(projects, nameOf, `wall.${dept}`);
   return (
     <DeskFrame kind="cork" eyebrow="PINNED TO THE WALL" title="Pinned projects" line={`${pad(projects.length)} project${projects.length === 1 ? "" : "s"} in this room.`} tab="all" onTab={() => {}} tabs={[{ id: "all", label: "All" }]}>
       {projects.length > 0 && <FindBar find={find} shown={find.results.length} />}
@@ -106,7 +106,7 @@ function CalendarDesk({ data, dept }: { data: OwnerData; dept: string }) {
   const { list } = useDomains();
   const projects = projectsIn(data, dept, list);
   const [kind, setKind] = useState("ALL");
-  const [q, setQ] = useState("");
+  const [q, setQ] = useRemembered(`calendar.${dept}.q`, "");
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const pages = useMemo(() => {
     const ids = new Set(projects.map((p) => p.id));
@@ -166,12 +166,13 @@ function TasksDesk({ data, dept }: { data: OwnerData; dept: string }) {
     waiting: mine.filter((t) => ["WAITING", "BLOCKED", "FAILED"].includes(t.status)),
     done: mine.filter((t) => t.status === "COMPLETED"),
   };
-  const [tab, setTab] = useState<"moving" | "waiting" | "done">(groups.moving.length || !groups.waiting.length ? "moving" : "waiting");
-  const [tq, setTq] = useState("");
+  const tabs = [{ id: "moving" as const, label: "In motion", count: groups.moving.length }, { id: "waiting" as const, label: "Waiting", count: groups.waiting.length }, { id: "done" as const, label: "Done", count: groups.done.length }];
+  const [tab, setTab] = useState(() => firstFilled(tabs, "moving"));
+  const [tq, setTq] = useRemembered(`tasks.${dept}.q`, "");
   const tw = tq.toLowerCase().split(/\s+/).filter(Boolean);
   const rows = groups[tab].filter((t) => !tw.length || tw.every((w) => `${t.title} ${projectName(data, t.project_id)}`.toLowerCase().includes(w)));
   return (
-    <DeskFrame kind="desk" eyebrow="ON THE DESKS" title="The desks" line={`${groups.moving.length} in motion · ${groups.waiting.length} waiting · ${groups.done.length} done.`} tab={tab} onTab={setTab} tabs={[{ id: "moving", label: "In motion", count: groups.moving.length }, { id: "waiting", label: "Waiting", count: groups.waiting.length }, { id: "done", label: "Done", count: groups.done.length }]}>
+    <DeskFrame kind="desk" eyebrow="ON THE DESKS" title="The desks" line={`${groups.moving.length} in motion · ${groups.waiting.length} waiting · ${groups.done.length} done.`} tab={tab} onTab={setTab} tabs={tabs}>
       <TextFind noun="tasks" q={tq} setQ={setTq} shown={rows.length} total={groups[tab].length} />
       {rows.length === 0 ? <Empty title={tab === "moving" ? "Nothing in motion." : tab === "waiting" ? "Nothing is waiting." : "Nothing finished yet."} /> :
         rows.map((t) => <div key={t.id} className="resolved-row"><span>{t.title}<small>{projectName(data, t.project_id)}</small></span><span className={`pill ${statusTone(t.status)}`}>{label(t.status).toUpperCase()}</span></div>)}

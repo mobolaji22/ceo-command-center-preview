@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
 import type { ClientData } from "@/lib/model";
 import { Empty } from "./views";
-import { DeskFrame } from "./desk-frame";
+import { DeskFrame, firstFilled } from "./desk-frame";
 import { useDomains } from "@/lib/domains";
 import { FindBar, TextFind } from "./find-bar";
-import { useProjectFind, type FindOption } from "@/lib/find";
+import { useProjectFind, useRemembered, type FindOption } from "@/lib/find";
 import { Library } from "./library";
 import { ClientIntentList, Composer } from "./intents";
 import { ProjectRoom, QuestionsList } from "./runs";
@@ -27,13 +27,13 @@ const projectName = (data: ClientData, pid: string | null) => data.projects.find
 export function ProjectsDesk({ data, isOwner, initialProjectId }: Common & { /** Open on this project (a link or the palette chose it). */ initialProjectId?: string | undefined }) {
   const [tab, setTab] = useState<"projects" | "timeline">("projects");
   const { nameOf } = useDomains();
-  const find = useProjectFind(data.projects, nameOf);
+  const find = useProjectFind(data.projects, nameOf, "client.projects");
   const [pid, setPid] = useState<string | undefined>(data.projects.find((p) => p.id === initialProjectId)?.id ?? data.projects[0]?.id);
   const [pidSeen, setPidSeen] = useState(initialProjectId);
   if (pidSeen !== initialProjectId) { setPidSeen(initialProjectId); if (initialProjectId) { setPid(initialProjectId); setTab("projects"); } }
   const chosen = find.results.find((p) => p.id === pid) ?? find.results[0];
   // the timeline: words to find, and one project at a time
-  const [eq, setEq] = useState("");
+  const [eq, setEq] = useRemembered("client.timeline.q", "");
   const [ep, setEp] = useState("ALL");
   const ew = eq.toLowerCase().split(/\s+/).filter(Boolean);
   const events = data.events.filter((e) => (ep === "ALL" || e.project_id === ep) && (!ew.length || ew.every((w) => `${e.summary} ${projectName(data, e.project_id)}`.toLowerCase().includes(w))));
@@ -57,9 +57,10 @@ export function ProjectsDesk({ data, isOwner, initialProjectId }: Common & { /**
 export function DecisionsDesk({ data, isOwner, busy, msg, onDecide }: Common & { busy: string | null; msg: string | null; onDecide: (id: string, approved: boolean) => void }) {
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const outstanding = data.requirements.filter((r) => r.status !== "RECEIVED");
-  const [tab, setTab] = useState<"sign" | "need">(pending.length === 0 && outstanding.length > 0 ? "need" : "sign");
+  const tabs = [{ id: "sign" as const, label: "Needs your signature", count: pending.length }, { id: "need" as const, label: "What we need from you", count: outstanding.length }];
+  const [tab, setTab] = useState(() => firstFilled(tabs, "sign"));
   return (
-    <DeskFrame kind="screen" eyebrow="WAITING ON YOU" title="Decisions" line={pending.length + outstanding.length === 0 ? "Nothing is waiting on you." : `${pending.length} to sign · ${outstanding.length} to supply.`} tab={tab} onTab={setTab} tabs={[{ id: "sign", label: "Needs your signature", count: pending.length }, { id: "need", label: "What we need from you", count: outstanding.length }]}>
+    <DeskFrame kind="screen" eyebrow="WAITING ON YOU" title="Decisions" line={pending.length + outstanding.length === 0 ? "Nothing is waiting on you." : `${pending.length} to sign · ${outstanding.length} to supply.`} tab={tab} onTab={setTab} tabs={tabs}>
       {tab === "sign" && <>
         {msg && <p className="mmsg">{msg}</p>}
         {pending.length === 0 ? <Empty title="Nothing awaits your signature." /> : pending.map((a) => (

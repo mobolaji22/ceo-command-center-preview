@@ -3,8 +3,9 @@
 import { BriefArchive, NotificationSettings, PhoneBriefs } from "./briefs";
 import { GovernancePanel, PlanDecisionLedger } from "./ledger";
 import { CaseFileToggle, PhoneQuestions, Standing } from "./runs";
-import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowDownRight, ArrowLeft, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, MoreHorizontal, Plus, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Activity, ArrowDownRight, ArrowLeft, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, Plus, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OwnerData, Approval } from "@/lib/model";
 import { label, riskLabel, reversibilityLabel, statusTone, fmtDate, fmtAgo, pad } from "@/lib/format";
@@ -14,10 +15,11 @@ import { Composer, INTENT_STATUS_WORDS, IntentCard, intentTone } from "./intents
 import { directiveNeedsYou } from "@/lib/attention";
 import { useDomains } from "@/lib/domains";
 import { FindBar, Marked } from "./find-bar";
-import { useProjectFind } from "@/lib/find";
+import { useProjectFind, useRemembered } from "@/lib/find";
 import { isFreeKey, useSingleKeys, useWindowKeys } from "@/lib/shortcuts";
 
-type Common = { data: OwnerData; refresh: () => void };
+/** `refresh` reads the records again; it returns a promise that settles once they have arrived. */
+type Common = { data: OwnerData; refresh: () => unknown };
 const CLOSED = ["COMPLETED", "CANCELLED", "ARCHIVED"];
 const projectName = (data: OwnerData, id: string | null) => data.projects.find((p) => p.id === id)?.name ?? "Organization-wide";
 
@@ -29,24 +31,24 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
   const ds = useDataSource();
   const [tab, setTab] = useState("Cases & Engagements");
   const active = data.projects.filter((p) => !CLOSED.includes(p.status));
-  // The dossiers open on what is in motion; the scope lets you look at what is finished, or at everything.
-  const [scope, setScope] = useState<"ACTIVE" | "CLOSED" | "ALL">("ACTIVE");
+  // The dossiers open on what is in motion (on everything, when nothing is); the scope lets you look at what is finished.
+  const [scope, setScope] = useRemembered<"ACTIVE" | "CLOSED" | "ALL">("computer.scope", active.length || !data.projects.length ? "ACTIVE" : "ALL");
   const scoped = useMemo(() => data.projects.filter((p) => (scope === "ALL" ? true : scope === "ACTIVE" ? !CLOSED.includes(p.status) : CLOSED.includes(p.status))), [data.projects, scope]);
   const { nameOf } = useDomains();
-  const find = useProjectFind(scoped, nameOf);
+  const find = useProjectFind(scoped, nameOf, "computer");
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
   const exceptions = pending.length + blocked.length;
   return <div className="computer-frame">
-    <div className="window-bar"><div className="traffic-dots"><i /><i /><i /></div><span>&gt; DevPlaybook V4 Core Canonical Operating System <span className="window-muted">//</span> State: <strong>Synchronized DPL-01</strong></span><MoreHorizontal size={18} /></div>
     <div className="computer-body"><div className="computer-heading"><div><div className="eyebrow gold">THE ORGANIZATIONAL NERVOUS SYSTEM</div><h2>Operating overview<span className="period">.</span></h2><p>{data.projects.length} projects · {data.tasks.length} tasks · {data.decisions.length} decisions on record.</p></div><div className="system-time"><Radio size={15} /> {ds.kind === "api" ? "LIVE FROM DEVPLAYBOOK V4" : "DEMO FIXTURES"}</div></div>
       <div className="computer-tabs" role="tablist">{["Cases & Engagements", "Decision Ledger", "Security/Gov"].map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</div>
       {tab === "Cases & Engagements" && <div className="computer-content"><div className="section-label"><span>ACTIVE DOSSIERS</span><span>{pad(active.length)} IN MOTION</span></div>
-        {data.projects.length > 0 && <FindBar find={find} shown={find.results.length} showDept extra={<select className="find-select" aria-label="Show" value={scope} onChange={(e) => setScope(e.target.value as "ACTIVE" | "CLOSED" | "ALL")}><option value="ACTIVE">In motion</option><option value="CLOSED">Finished</option><option value="ALL">Everything</option></select>} />}
+        {data.projects.length > 0 && <FindBar find={find} shown={find.results.length} showDept onOnly={() => { const only = find.results[0]; if (only) { if (pending.some((a) => a.project_id === only.id)) openContracts(only.id); else openManage(only.id); } }} extra={<select className="find-select" aria-label="Show" value={scope} onChange={(e) => setScope(e.target.value as "ACTIVE" | "CLOSED" | "ALL")}><option value="ACTIVE">In motion</option><option value="CLOSED">Finished</option><option value="ALL">Everything</option></select>} />}
         {active.length === 0 && scope === "ACTIVE" ? <Empty title="No active projects yet.">Projects begin when a request or a directive is sent. Open the Directive desk to send one.</Empty> : find.results.length === 0 ? <Empty title="No project matches.">Try fewer words, another scope, or clear the filters.</Empty> :
         <div className="dossier-list">{find.results.map((p, i) => {
           const hasPending = pending.some((a) => a.project_id === p.id);
-          return <div key={p.id} className="dossier-row with-case"><span className="row-index">{pad(i + 1)}</span><div><b><Marked text={p.name} q={find.q} /></b><small>{p.domains.length ? p.domains.join(" · ") : "No department"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /><Button variant="ghost" size="icon" className="icon-button" aria-label={`Open ${p.name}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><ArrowRight size={17} /></Button></div>;
+          // The whole row opens the project (its name is the link, stretched over the row); the case file keeps its own button.
+          return <div key={p.id} className="dossier-row with-case"><span className="row-index">{pad(i + 1)}</span><div><button type="button" className="row-link" aria-label={`Open ${p.name}${hasPending ? ", awaiting your review" : ""}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><b><Marked text={p.name} q={find.q} /></b></button><small>{p.domains.length ? p.domains.map(nameOf).join(" · ") : "No department"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /></div>;
         })}</div>}
         <div className="computer-lower"><div><div className="section-label">SIGNAL HEALTH</div><h3>{exceptions === 0 ? "Steady. Nothing needs you." : `Steady, with ${exceptions} exception${exceptions > 1 ? "s" : ""}.`}</h3><p>{pending.length} approval{pending.length === 1 ? "" : "s"} awaiting signature · {blocked.length} blocked or failed task{blocked.length === 1 ? "" : "s"}.</p></div><Button variant="ghost" className="inline-arrow" onClick={openBrief}>VIEW EXECUTIVE BRIEF <ArrowRight size={16} /></Button></div></div>}
       {tab === "Decision Ledger" && <div className="computer-content"><div className="section-label"><span>DECISION LEDGER</span><span>TRACEABLE BY DESIGN</span></div>
@@ -108,17 +110,20 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
  * screen. From the keyboard, J and K move between authorizations, and A or R arm approve or reject: nothing is decided until
  * Enter confirms it (Escape lets go), because a single stray letter must never sign anything.
  */
-export function ContractsView({ data, refresh, focusProjectId, focusApprovalId }: Common & { focusProjectId?: string | undefined; /** Open on this authorization (the palette chose it). */ focusApprovalId?: string | undefined }) {
+export function ContractsView({ data, refresh, focusProjectId, focusApprovalId, more }: Common & { focusProjectId?: string | undefined; /** Open on this authorization (the palette chose it). */ focusApprovalId?: string | undefined; /** The rest of the desk (questions, plans), on the contract's own column. */ more?: React.ReactNode }) {
   const ds = useDataSource();
   const single = useSingleKeys();
-  const pending = data.approvals.filter((a) => a.status === "REQUESTED");
+  // Decisions sent and not refused. Each leaves the queue the moment it is sent, and the next one opens; the API confirms it
+  // behind the scenes. One the API refuses comes back, selected, with the reason.
+  const [sent, setSent] = useState<ReadonlySet<string>>(() => new Set());
+  const pending = data.approvals.filter((a) => a.status === "REQUESTED" && !sent.has(a.id));
   const ordered = focusProjectId ? [...pending].sort((a, b) => (a.project_id === focusProjectId ? -1 : 0) - (b.project_id === focusProjectId ? -1 : 0)) : pending;
   const [selectedId, setSelectedId] = useState<string | null>(pending.find((x) => x.id === focusApprovalId)?.id ?? ordered[0]?.id ?? null);
   // A new choice from the palette while the desk is already open moves to it (adjusted during render, not in an effect).
   const [focusSeen, setFocusSeen] = useState(focusApprovalId);
   if (focusSeen !== focusApprovalId) { setFocusSeen(focusApprovalId); if (focusApprovalId) setSelectedId(focusApprovalId); }
   const [armed, setArmed] = useState<"approve" | "reject" | null>(null);
-  const a = data.approvals.find((x) => x.id === selectedId) ?? ordered[0];
+  const a = pending.find((x) => x.id === selectedId) ?? ordered[0];
   const [tab, setTab] = useState<"Contract Review" | "Modify Constraints & Scope" | "Request Evidence">("Contract Review");
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [text, setText] = useState("");
@@ -137,9 +142,21 @@ export function ContractsView({ data, refresh, focusProjectId, focusApprovalId }
   };
   const resolve = async (approved: boolean) => {
     if (!a) return;
+    const { id, title } = a;
+    const verb = approved ? "approved" : "rejected";
     setArmed(null);
-    await run(() => ds.commands.resolveApproval(a.id, approved), `Decision ${approved ? "approved" : "rejected"} and recorded in the governance ledger.`);
-    const next = pending.find((x) => x.id !== a.id); setSelectedId(next?.id ?? null);
+    setSent((s) => new Set(s).add(id));
+    setSelectedId(ordered.find((x) => x.id !== id)?.id ?? null);
+    setMsg(`Recording “${title}” as ${verb}…`);
+    const { error } = await ds.commands.resolveApproval(id, approved);
+    if (error) {
+      setSent((s) => { const n = new Set(s); n.delete(id); return n; });
+      setSelectedId(id);
+      setMsg(`“${title}” was not ${verb}: ${error.message}`);
+      return;
+    }
+    setMsg(`“${title}” ${verb} and recorded in the governance ledger.`);
+    refresh();
   };
   const select = (id: string) => { setSelectedId(id); setTab("Contract Review"); setMsg(null); setArmed(null); };
 
@@ -166,8 +183,8 @@ export function ContractsView({ data, refresh, focusProjectId, focusApprovalId }
 
   const resolved = data.approvals.filter((x) => x.status !== "REQUESTED").slice(0, 6);
   if (!a) return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span></div>
-    <div className="contract-body"><Empty title="No authorizations awaiting your signature.">New approval requests appear here as soon as they're raised.</Empty>
-    {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}</div></div>;
+    <div className="contract-body">{msg && <p className="mmsg" role="status">{msg}</p>}<Empty title="No authorizations awaiting your signature.">New approval requests appear here as soon as they're raised.</Empty>
+    {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}{more}</div></div>;
 
   const evidence = data.evidence.filter((e) => e.approval_id === a.id || (!e.approval_id && e.project_id === a.project_id));
   const projectRef = `DPL-AC-${a.id.slice(0, 4).toUpperCase()}`;
@@ -196,6 +213,7 @@ export function ContractsView({ data, refresh, focusProjectId, focusApprovalId }
           ? run(() => ds.commands.requestApprovalEvidence(a.id, text.trim()), "Evidence request recorded.")
           : run(() => ds.commands.setApprovalConstraints(a.id, text.trim()), "Constraints saved.")}>{tab === "Request Evidence" ? "Record request" : "Save constraints"} <ArrowRight size={16} /></Button></div>}
       {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}
+      {more}
     </div></div>;
 }
 
@@ -243,7 +261,7 @@ export function DirectiveView({ data, refresh, close }: Common & { close: () => 
         {!writing && <Button variant="ghost" size="icon" className="icon-button" aria-label="Close directive" onClick={close}><X size={20} /></Button>}</div></div>
 
     {writing
-      ? <Composer organizations={data.organizations} onSubmitted={(sent) => { refresh(); setWriting(false); setOpenId(sent.intentId); setNotice({ id: sent.intentId, text: sent.status === "CLARIFYING" ? "Received. A few questions will make it sharper." : sent.status === "PLANNED" || sent.status === "UNDERSTOOD" ? "Received and understood. The plan is ready for a decision." : "Received." }); setPart(sent.status === "CLARIFYING" ? "asks" : "plan"); setTab(sent.status === "CLARIFYING" ? "needs" : "progress"); }} onClose={data.intents.length ? () => setWriting(false) : undefined} />
+      ? <Composer organizations={data.organizations} onSubmitted={async (sent) => { await refresh(); setWriting(false); setOpenId(sent.intentId); setNotice({ id: sent.intentId, text: sent.status === "CLARIFYING" ? "Received. A few questions will make it sharper." : sent.status === "PLANNED" || sent.status === "UNDERSTOOD" ? "Received and understood. The plan is ready for a decision." : "Received." }); setPart(sent.status === "CLARIFYING" ? "asks" : "plan"); setTab(sent.status === "CLARIFYING" ? "needs" : "progress"); }} onClose={data.intents.length ? () => setWriting(false) : undefined} />
       : opened
         ? <div className="directive-detail">
             <Button variant="ghost" className="back-link" onClick={() => { setOpenId(null); setNotice(null); }}><ArrowLeft size={14} /> ALL DIRECTIVES</Button>
@@ -278,22 +296,32 @@ export function DirectiveView({ data, refresh, close }: Common & { close: () => 
   </div>;
 }
 
+type BriefRange = "visit" | "day" | "week";
+const RANGES: { id: BriefRange; label: string }[] = [{ id: "visit", label: "Since your last visit" }, { id: "day", label: "24 hours" }, { id: "week", label: "7 days" }];
+
+/**
+ * "What happened while I was away?" The last visit is read once per sign-in and kept (marking it seen is what tells the API the
+ * next visit starts now), so a second look a minute later still covers the same window instead of reading "0 signals". The range
+ * chips widen the window to a day or a week whenever "since your last visit" is too short to be useful.
+ */
 export function BriefView({ data, openContracts, openComputer }: Common & { openContracts: (projectId?: string) => void; openComputer: () => void }) {
   const ds = useDataSource();
-  const [since, setSince] = useState<string | null>(null);
+  const lastVisit = useQuery({ queryKey: ["brief-since"], queryFn: () => ds.commands.markSeen(), staleTime: Infinity, gcTime: Infinity, meta: { static: true } });
+  const [range, setRange] = useState<BriefRange>("visit");
   // Without a last visit, the brief covers the week before it was opened.
-  const [weekAgo] = useState(() => Date.now() - 7 * 864e5);
-  useEffect(() => { void ds.commands.markSeen().then((d) => setSince(d ?? new Date(weekAgo).toISOString())); }, [ds, weekAgo]);
-  const s = since ? new Date(since).getTime() : weekAgo;
+  const [opened] = useState(() => Date.now());
+  const since = range === "day" ? new Date(opened - 864e5).toISOString() : range === "week" || !lastVisit.data ? new Date(opened - 7 * 864e5).toISOString() : lastVisit.data;
+  const s = new Date(since).getTime();
   const recent = useMemo(() => data.events.filter((e) => new Date(e.created_at).getTime() > s), [data.events, s]);
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const waitingDecisions = data.decisions.filter((d) => d.status === "WAITING_FOR_HUMAN" || d.status === "PROPOSED");
   const done = data.tasks.filter((t) => t.completed_at && new Date(t.completed_at).getTime() > s);
   const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
-  return <div className="brief-wrap"><div className="eyebrow gold"><Sparkles size={15} /> THE CEO BRIEF / {new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }).toUpperCase()}</div><h2>What happened while<br /><i>I was away?</i></h2><p className="brief-lead">Since {since ? new Date(since).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "your last visit"}: {recent.length} signal{recent.length === 1 ? "" : "s"}, {done.length} task{done.length === 1 ? "" : "s"} completed.</p><div className="brief-divider" />
+  return <div className="brief-wrap"><div className="eyebrow gold"><Sparkles size={15} /> THE CEO BRIEF / {new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }).toUpperCase()}</div><h2>What happened while <br /><i>I was away?</i></h2><p className="brief-lead">Since {new Date(since).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}: {recent.length} signal{recent.length === 1 ? "" : "s"}, {done.length} task{done.length === 1 ? "" : "s"} completed.</p>
+    <div className="find-chips brief-range" role="group" aria-label="How far back">{RANGES.map((r) => <button key={r.id} type="button" className="find-chip" aria-pressed={range === r.id} onClick={() => setRange(r.id)}>{r.label}</button>)}</div><div className="brief-divider" />
     <div className="brief-grid"><div className="brief-feature"><span>01 / NEEDS YOUR JUDGMENT</span><h3>{pending.length + waitingDecisions.length === 0 ? "Nothing awaits your judgment." : `${pending.length} authorization${pending.length === 1 ? "" : "s"}, ${waitingDecisions.length} open decision${waitingDecisions.length === 1 ? "" : "s"}.`}</h3><p>{pending.slice(0, 3).map((a) => a.title).join(" · ") || "You're clear for now."}</p>{pending.length > 0 && <Button variant="ghost" className="inline-arrow" onClick={() => openContracts()}>REVIEW AUTHORIZATIONS <ArrowRight size={16} /></Button>}</div>
       <div className="brief-feature"><span>02 / ORGANIZATIONAL PULSE</span><h3>{blocked.length ? `${blocked.length} item${blocked.length > 1 ? "s" : ""} blocked.` : "Momentum is holding."}</h3><p>{done.length ? `Completed: ${done.slice(0, 3).map((t) => t.title).join(" · ")}` : "No tasks completed in this window."}</p><Button variant="ghost" className="inline-arrow" onClick={openComputer}>OPEN OPERATING SYSTEM <ArrowRight size={16} /></Button></div></div>
-    <div className="brief-events"><div className="section-label"><span>WHAT CHANGED</span><span>{recent.length}</span></div>{recent.length === 0 ? <Empty title="No new signals since your last visit." /> : recent.slice(0, 12).map((e) => <div key={e.id} className="resolved-row"><span>{e.summary}<small>{projectName(data, e.project_id)} · {fmtAgo(e.created_at)}</small></span><span className="pill muted">{label(e.type).toUpperCase()}</span></div>)}</div>
+    <div className="brief-events"><div className="section-label"><span>WHAT CHANGED</span><span>{recent.length}</span></div>{recent.length === 0 ? <Empty title={range === "visit" ? "No new signals since your last visit." : "No signals in this window."}>{range !== "week" ? "Widen the window to see more." : null}</Empty> : recent.slice(0, 12).map((e) => <div key={e.id} className="resolved-row"><span>{e.summary}<small>{projectName(data, e.project_id)} · {fmtAgo(e.created_at)}</small></span><span className="pill muted">{label(e.type).toUpperCase()}</span></div>)}</div>
     <div className="brief-events"><div className="section-label"><span>EVERYTHING YOU HAVE BEEN TOLD</span></div><BriefArchive limit={5} /></div>
     <div className="brief-signoff"><span className="live-dot" /> PREPARED BY DEVPLAYBOOK · EXECUTIVE INTELLIGENCE</div></div>;
 }
