@@ -15,11 +15,11 @@ type Shape = {
 };
 
 /**
- * Search and filters for a list of projects. Typing filters as you go; the Search button (or Enter) settles on the results, and
- * when exactly one project is left it opens it. Chips only appear when there is something to choose between. The count is spoken
- * politely so a screen reader hears the list change without being moved.
+ * Search and filters for a list of projects. Typing filters as you go, so there is no Search button to press: Enter settles on the
+ * results, and when exactly one project is left an Open button appears (Enter does the same). Chips only appear when there is
+ * something to choose between. The count is spoken politely so a screen reader hears the list change without being moved.
  */
-export function FindBar({ find, shown, noun = "projects", showDept, showSort, extra, onOnly }: { find: Shape; shown: number; noun?: string; showDept?: boolean; showSort?: boolean; extra?: ReactNode; /** Called with nothing when Search is pressed and exactly one result is left. */ onOnly?: () => void }) {
+export function FindBar({ find, shown, noun = "projects", showDept, showSort, extra, onOnly }: { find: Shape; shown: number; noun?: string; showDept?: boolean; showSort?: boolean; extra?: ReactNode; /** Called when Enter or Open is pressed and exactly one result is left. */ onOnly?: () => void }) {
   const input = useRef<HTMLInputElement>(null);
   if (find.total === 0) return null;
   return (
@@ -30,7 +30,7 @@ export function FindBar({ find, shown, noun = "projects", showDept, showSort, ex
           <input ref={input} type="search" value={find.q} placeholder={`Search ${noun}`} aria-label={`Search ${noun}`} autoComplete="off" spellCheck={false} onChange={(e) => find.setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape" && find.q) { e.stopPropagation(); find.setQ(""); } }} />
           {find.q && <button type="button" className="find-clear" aria-label="Clear search" onClick={() => { find.setQ(""); input.current?.focus(); }}><X size={13} /></button>}
         </label>
-        <Button type="submit" variant="ghost" className="find-go">Search</Button>
+        {onOnly && shown === 1 && find.filtering && <Button type="submit" variant="ghost" className="find-go">Open</Button>}
         {showDept && find.deptOptions.length > 2 && (
           <select className="find-select" aria-label="Department" value={find.dept} onChange={(e) => find.setDept(e.target.value)}>
             {find.deptOptions.map((o) => <option key={o.id} value={o.id}>{o.label}{o.id === "ALL" ? "" : ` (${o.count})`}</option>)}
@@ -66,7 +66,7 @@ export function Marked({ text, q }: { text: string; q: string }) {
 
 /**
  * The same bar for lists that are not projects (a calendar's entries, a desk's tasks, a client's timeline): words to find, and
- * chips to narrow by one thing. Everything on screen is filtered as you type; Search just settles the focus.
+ * chips to narrow by one thing. Everything on screen is filtered as you type; Enter just settles the focus.
  */
 export function TextFind({ noun, q, setQ, chips, value, onValue, shown, total, chipsLabel }: { noun: string; q: string; setQ: (q: string) => void; chips?: FindOption[]; value?: string; onValue?: (v: string) => void; shown: number; total: number; chipsLabel?: string }) {
   const input = useRef<HTMLInputElement>(null);
@@ -80,7 +80,6 @@ export function TextFind({ noun, q, setQ, chips, value, onValue, shown, total, c
           <input ref={input} type="search" value={q} placeholder={`Search ${noun}`} aria-label={`Search ${noun}`} autoComplete="off" spellCheck={false} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape" && q) { e.stopPropagation(); setQ(""); } }} />
           {q && <button type="button" className="find-clear" aria-label="Clear search" onClick={() => { setQ(""); input.current?.focus(); }}><X size={13} /></button>}
         </label>
-        <Button type="submit" variant="ghost" className="find-go">Search</Button>
       </div>
       {chips && chips.length > 2 && onValue && (
         <div className="find-chips" role="group" aria-label={chipsLabel ?? "Filter"}>

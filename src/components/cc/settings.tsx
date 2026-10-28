@@ -47,7 +47,7 @@ export function SettingsView({ data, refresh }: { data: OwnerData; refresh: () =
 
 /** A query against one settings read, refetched after a change. */
 function useSetting<T>(key: string, read: () => Promise<Result<T>>) {
-  return useQuery({ queryKey: ["settings", key], queryFn: async () => { const r = await read(); if (r.error) throw new Error(r.error.message); return r.data as T; } });
+  return useQuery({ queryKey: ["settings", key], meta: { static: true }, queryFn: async () => { const r = await read(); if (r.error) throw new Error(r.error.message); return r.data as T; } });
 }
 
 /** Runs a change behind the emailed-code check, then refreshes `key` and says what happened. */

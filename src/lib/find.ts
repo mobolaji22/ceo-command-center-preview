@@ -13,11 +13,33 @@ import type { Project } from "@/lib/model";
 export type Sort = "new" | "old" | "az";
 export type FindOption = { id: string; label: string; count: number };
 
-export function useProjectFind<P extends Pick<Project, "name" | "description" | "objective" | "status" | "domains" | "created_at">>(projects: P[], deptLabel: (code: string) => string) {
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState("ALL");
-  const [dept, setDept] = useState("ALL");
-  const [sort, setSort] = useState<Sort>("new");
+/**
+ * A filter that lasts the visit. Each desk names itself (`memo`), and what was typed or chosen there comes back the next time the
+ * desk opens, until the tab is closed. It is a viewing convenience kept in this browser (session storage), never business state,
+ * and it starts empty whenever storage is unavailable.
+ */
+export function useRemembered<T extends string = string>(memo: string | undefined, initial: NoInfer<T>): [T, (v: T) => void] {
+  const key = memo ? `dpl.find.${memo}` : null;
+  const [value, setValue] = useState<T>(() => {
+    if (!key) return initial;
+    try { return (sessionStorage.getItem(key) as T | null) ?? initial; } catch { return initial; }
+  });
+  const set = (v: T) => {
+    setValue(v);
+    if (!key) return;
+    try { if (v === initial) sessionStorage.removeItem(key); else sessionStorage.setItem(key, v); } catch { /* storage refused: it lasts while the desk is open */ }
+  };
+  return [value, set];
+}
+
+export function useProjectFind<P extends Pick<Project, "name" | "description" | "objective" | "status" | "domains" | "created_at">>(projects: P[], deptLabel: (code: string) => string, memo?: string) {
+  const [q, setQ] = useRemembered(memo && `${memo}.q`, "");
+  const [chosenStatus, setStatus] = useRemembered(memo && `${memo}.status`, "ALL");
+  const [chosenDept, setDept] = useRemembered(memo && `${memo}.dept`, "ALL");
+  const [sort, setSort] = useRemembered<Sort>(memo && `${memo}.sort`, "new");
+  // A remembered filter for something that is no longer on the list would hide everything; it falls back to all.
+  const status = chosenStatus === "ALL" || projects.some((p) => p.status === chosenStatus) ? chosenStatus : "ALL";
+  const dept = chosenDept === "ALL" || projects.some((p) => p.domains.includes(chosenDept)) ? chosenDept : "ALL";
 
   const statusOptions = useMemo<FindOption[]>(() => {
     const counts = new Map<string, number>();

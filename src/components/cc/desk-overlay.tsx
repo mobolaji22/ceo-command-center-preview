@@ -14,6 +14,9 @@ const OPEN_MS = 340;
  * panel with margins, so the room still shows in the corners. It is a real dialog: focus moves in and returns to the object that
  * was pressed, Tab stays inside (the room behind is inert), Escape and the scrim go back, and the page behind does not scroll.
  * Escape never discards typing: inside a field it only leaves the field.
+ *
+ * While a desk is open its bar is the only header (screens.css hides the room's): the way back, where you are, the ledger's state
+ * and the account menu, in one row, so the desk's own material starts right under it.
  */
 export function DeskOverlay({ label, backLabel, path, surface, origin, wide, onBack, account, children }: { /** The account menu: on a phone the desk covers the header, so its bar carries the menu (P6.21). */ account?: ReactNode; label: string; backLabel: string; path: ReactNode; surface: string; origin?: SceneOrigin | undefined; /** A working tool that needs room (the Design Workshop), not a page to read. */ wide?: boolean | undefined; onBack: () => void; children: ReactNode }) {
   const reduced = useReducedMotion();

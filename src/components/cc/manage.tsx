@@ -41,7 +41,7 @@ export function ManageView({ data, refresh, initialProjectId }: P) {
   const [project, setProject] = useState<string | null>(initialProjectId ?? null);
   const open = data.projects.find((p) => p.id === project) ?? null;
   const { nameOf } = useDomains();
-  const find = useProjectFind(data.projects, nameOf);
+  const find = useProjectFind(data.projects, nameOf, "records");
   const counts: Record<FolderName, number> = { Projects: data.projects.length, Library: data.organizations.length };
   const go = (f: FolderName) => { setFolder(f); setProject(null); };
   const items = folder === "Projects" ? (open ? 1 : find.results.length) : counts[folder];

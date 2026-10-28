@@ -143,8 +143,7 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
 
   // The CEO sees the new client's file in the records' library (from the corridor's "See all projects", P6.21 D1).
   await page.goto("/");
-  await page.getByRole("button", { name: "Preview Door" }).click();
-  await page.getByRole("button", { name: "Enter corridor" }).click();
+  await page.getByRole("button", { name: "Door", exact: true }).click();
   await page.getByRole("button", { name: /SEE ALL PROJECTS/ }).click();
   await page.getByRole("tab", { name: "Library", exact: true }).click();
   await expect(page.locator(".resolved-row", { hasText: "logo.png" })).toBeVisible();

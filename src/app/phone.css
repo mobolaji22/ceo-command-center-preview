@@ -136,8 +136,7 @@ html[data-lighting="day"] .spot-switch button[aria-pressed="true"] { background:
   html[data-lighting="day"] .ws-panes button[aria-selected="true"], html[data-lighting="day"] .ws-panes .ws-edit-open { color: oklch(0.21 0.016 60); }
 }
 
-/* The desk bar carries the account menu on a phone only; on a wide screen the header is there. */
-.desk-bar-account { display: none; }
+/* The desk bar carries the account menu at every width: while a desk is open it is the only header. */
 @media (max-width: 650px) { .desk-bar-account { display: block; margin-left: auto; } .desk-bar-account .avatar { width: 34px; height: 34px; } }
 
 /* The Workshop's toolbar on a phone: the project and save state on top; the tools at the bottom, above the panes. */

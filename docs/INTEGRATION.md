@@ -109,6 +109,62 @@ The corridor's rooms come from `GET /v1/domains` (dev-playbook-v4 ADR-0017) thro
 only room not from that read. `npm run lint` fails if a list of domain codes appears outside the demo fixtures
 (`scripts/check-domain-lists.mjs`).
 
+## Addresses, the palette and keys
+
+Where you are is in the address bar (`src/lib/place.ts`), so Back, Forward, a refresh and a link all work. Only these keys
+are the app's; anything else in the address (the demo's `?as=`) is left alone.
+
+| Address | Opens |
+| --- | --- |
+| `/?desk=contracts&project=<id>&item=<approval id>` | a CEO desk (`computer`, `phone`, `contracts`, `directive`, `brief`, `records`, `settings`), optionally on one project or authorization |
+| `/?at=corridor` | the corridor |
+| `/?room=DESIGN` · `/?room=DESIGN&spot=workshop` | a department room, or one of its objects (`wall`, `calendar`, `desk`, `workshop`); an unknown room goes to the corridor |
+| `/client?desk=decisions` · `/client?desk=projects&project=<id>` | a client desk (`projects`, `decisions`, `requests`, `library`, `briefs`, `settings`) |
+
+⌘K (Ctrl K) opens the palette in both rooms (`src/components/cc/command-palette.tsx`): what is waiting on you, the desks,
+the rooms, the projects and a few actions, built from data already on screen. Single letters open desks (`?` lists them);
+they are off when typing, inside the Design Workshop, or when switched off on that list (kept per browser, like the
+lighting). In Contracts, A or R only arms approve or reject; Enter decides and Escape lets go, so a stray letter never signs.
+
+Kept in the browser, never in the API, because each is a viewing convenience for one person:
+
+- **Filters** (`useRemembered` in `src/lib/find.ts`): what was typed or chosen in a desk's find bar comes back the next time
+  that desk opens, for the rest of the visit (session storage). A remembered filter for something no longer on the list falls
+  back to all.
+- **Recent rooms**: the palette lists the last three rooms visited first, for this visit only.
+
+**Decisions are instant on screen, not in the record.** Approving or rejecting an authorization (the CEO's Contracts desk, the
+client's Decisions desk) takes it off the queue the moment it is sent and opens the next one; the API's answer confirms it, and
+an authorization the API refuses comes back with the reason. Nothing on screen says "granted" until the API has said so.
+
+**Status colours** (`statusTone` in `src/lib/format.ts`) come from one map over the read model's status types, in four
+families: waiting on someone (amber), done or going well (green), refused or broken (muted red), information (slate). A
+status the API adds fails the typecheck until it is given a family.
+
+## Live updates
+
+**Now: polling.** Every query on screen is read again every 20 seconds while the tab is visible (`LIVE_MS` in
+`src/app/providers.tsx`); a hidden tab asks nothing. Queries whose answer only changes when you change it (a brief, your
+settings and notification preferences, the domain list, the audit chains) are marked `meta: { static: true }` and are not
+polled. In demo mode the fixtures also refresh across tabs and the monitor's frames through the `storage` event.
+
+**Next: the stream (planned, not built).** v4 already serves Server-Sent Events (`apps/api/src/routes/events-stream.ts`):
+`/v1/events/stream` for the agency, `/v1/organizations/:id/events/stream` for a client's organization and
+`/v1/projects/:id/events/stream` per project. Frames are pointers with metadata (type, project, organization), never
+payloads, and access is re-checked while a stream is open. The BFF already streams response bodies, so the plan is:
+
+1. `DataSource` gains `live.subscribe(onEvent): unsubscribe`. `api.ts` opens an `EventSource` on
+   `/api/v4/v1/events/stream` (CEO) or `/api/v4/v1/organizations/<id>/events/stream` (client); `fixtures.ts` raises the
+   same events from its `storage` listener, so both sides share one code path.
+2. One small map from event namespace to the queries it makes stale (for example, `approval.*` → overview and
+   questions; `run.*` → that project's case file) invalidates only those. The names come from `packages/contracts` (lowercase
+   dotted, never hand-typed here).
+3. While the stream is connected, polling drops to a slow safety net (60 seconds); when it drops, the app reconnects
+   with backoff and goes back to 20-second polling until it is back. "Live ledger" shows which of the two is in force.
+4. Before building: check that the host lets the BFF hold a response open (a serverless function has a maximum duration,
+   so the browser must expect the stream to end and reconnect), and add an HTTP-level test that a client's stream never
+   carries another organization's events (plan R11).
+
 ## Deviations from the preview
 
 - Framework: TanStack Start to Next.js App Router; Supabase and server functions removed.

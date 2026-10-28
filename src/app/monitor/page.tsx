@@ -12,6 +12,7 @@ type Person = ReturnType<typeof fixturePeople>[number];
  * The monitor (demo only): the CEO's office and one client's room side by side, on the same demo records, so a change made on
  * one side can be watched arriving on the other. Each frame is signed in as its own person (`?as=`); the records are shared.
  * Against the real API a session belongs to a browser, so the two views are two browsers; this page says so instead of faking it.
+ * Each frame draws a desktop-sized page at three quarters of its size, so the monitor shows the desktop experience, not the phone's.
  */
 export default function MonitorPage() {
   const ds = useDataSource();
@@ -34,8 +35,8 @@ export default function MonitorPage() {
       <Button variant="ghost" className="monitor-reset" onClick={reset} title="Put the demo back to how it started"><RotateCcw size={14} /> Reset demo</Button>
     </header>
     <div className="monitor-panes">
-      {ceo && <section aria-label="CEO's office"><div className="monitor-label">CEO · {ceo.name}</div><iframe key={`ceo:${round}`} title="CEO's office" src={`/?as=${encodeURIComponent(ceo.id)}`} /></section>}
-      {client && <section aria-label="Client's room"><div className="monitor-label">CLIENT · {clients.find((p) => p.id === client)?.name}</div><iframe key={`client:${client}:${round}`} title="Client's room" src={`/client?as=${encodeURIComponent(client)}`} /></section>}
+      {ceo && <section aria-label="CEO's office"><div className="monitor-label">CEO · {ceo.name}</div><div className="monitor-frame"><iframe key={`ceo:${round}`} title="CEO's office" src={`/?as=${encodeURIComponent(ceo.id)}`} /></div></section>}
+      {client && <section aria-label="Client's room"><div className="monitor-label">CLIENT · {clients.find((p) => p.id === client)?.name}</div><div className="monitor-frame"><iframe key={`client:${client}:${round}`} title="Client's room" src={`/client?as=${encodeURIComponent(client)}`} /></div></section>}
     </div>
   </main>;
 }

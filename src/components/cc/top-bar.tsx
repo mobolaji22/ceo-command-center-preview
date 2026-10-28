@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Settings2, Sun } from "lucide-react";
+import { Keyboard, LogOut, Search, Settings2, Sun } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { setLighting, useLighting } from "@/lib/lighting";
@@ -11,8 +11,12 @@ import { LightingToggle } from "./lighting-toggle";
  * (P6.21 P1) they would push the avatar off the screen, so they move into the account menu behind the avatar, which works at
  * every width. One header for both rooms, so they cannot drift apart.
  */
-export function TopBar({ who, center, date, initials, onSettings, onSignOut }: {
+export function TopBar({ who, center, date, initials, onSettings, onSignOut, onSearch, onKeys }: {
   who: string; center: ReactNode; date?: string | undefined; initials: string; onSettings: () => void; onSignOut: () => void;
+  /** Opens the palette (⌘K); the button says so, which is how the shortcut is found. */
+  onSearch?: (() => void) | undefined;
+  /** Opens the list of keyboard shortcuts. */
+  onKeys?: (() => void) | undefined;
 }) {
   return (
     <header className="topbar">
@@ -20,18 +24,19 @@ export function TopBar({ who, center, date, initials, onSettings, onSignOut }: {
       <div className="topbar-center">{center}</div>
       <div className="topbar-right">
         {date && <span className="topbar-date">{date}</span>}
+        {onSearch && <button type="button" className="topbar-search" aria-label="Search and jump" aria-keyshortcuts="Meta+K Control+K" onClick={onSearch}><Search size={14} aria-hidden="true" /><span>Jump to…</span><kbd aria-hidden="true">⌘K</kbd></button>}
         <span className="topbar-icons">
           <LightingToggle />
           <Button variant="ghost" size="icon" className="icon-button" aria-label="Settings" title="Settings" onClick={onSettings}><Settings2 size={16} /></Button>
           <Button variant="ghost" size="icon" className="icon-button" aria-label="Sign out" title="Sign out" onClick={onSignOut}><LogOut size={16} /></Button>
         </span>
-        <AccountMenu initials={initials} onSettings={onSettings} onSignOut={onSignOut} />
+        <AccountMenu initials={initials} onSettings={onSettings} onSignOut={onSignOut} onSearch={onSearch} onKeys={onKeys} />
       </div>
     </header>
   );
 }
 
-export function AccountMenu({ initials, onSettings, onSignOut }: { initials: string; onSettings: () => void; onSignOut: () => void }) {
+export function AccountMenu({ initials, onSettings, onSignOut, onSearch, onKeys }: { initials: string; onSettings: () => void; onSignOut: () => void; onSearch?: (() => void) | undefined; onKeys?: (() => void) | undefined }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const day = useLighting() === "day";
@@ -48,6 +53,8 @@ export function AccountMenu({ initials, onSettings, onSignOut }: { initials: str
     <div className="account" ref={ref}>
       <button type="button" className="avatar" aria-label="Your account" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{initials}</button>
       {open && <div className="account-menu" role="menu" aria-label="Your account">
+        {onSearch && <button type="button" role="menuitem" onClick={choose(onSearch)}><Search size={16} /> Search and jump</button>}
+        {onKeys && <button type="button" role="menuitem" onClick={choose(onKeys)}><Keyboard size={16} /> Keyboard shortcuts</button>}
         <button type="button" role="menuitem" onClick={choose(onSettings)}><Settings2 size={16} /> Settings</button>
         <button type="button" role="menuitemcheckbox" aria-checked={day} onClick={() => setLighting(day ? "night" : "day")}><Sun size={16} /> Day lighting{day ? ": on" : ": off"}</button>
         <button type="button" role="menuitem" onClick={choose(onSignOut)}><LogOut size={16} /> Sign out</button>

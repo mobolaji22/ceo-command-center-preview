@@ -43,7 +43,7 @@ function Statement({ s }: { s: BriefStatement }) {
 /** One brief, in order, with its sources a click away and a check on all of them. */
 export function BriefReader({ id }: { id: string }) {
   const ds = useDataSource();
-  const q = useQuery({ queryKey: ["brief", id], queryFn: async () => { const r = await ds.briefs.get(id); if (r.error) throw new Error(r.error.message); return r.data!; } });
+  const q = useQuery({ queryKey: ["brief", id], meta: { static: true }, queryFn: async () => { const r = await ds.briefs.get(id); if (r.error) throw new Error(r.error.message); return r.data!; } });
   const [check, setCheck] = useState<{ ok: boolean; facts: number; gaps: number; problems: string[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -117,7 +117,7 @@ const zones = (): string[] => { try { return (Intl as unknown as { supportedValu
 export function NotificationSettings() {
   const ds = useDataSource();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ["notification-prefs"], queryFn: async () => { const r = await ds.notifications.preferences(); if (r.error) throw new Error(r.error.message); return r.data!; } });
+  const q = useQuery({ queryKey: ["notification-prefs"], meta: { static: true }, queryFn: async () => { const r = await ds.notifications.preferences(); if (r.error) throw new Error(r.error.message); return r.data!; } });
   const [draft, setDraft] = useState<NotificationPrefs | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -158,7 +158,7 @@ export function NotificationSettings() {
 export function BriefPage({ id }: { id: string }) {
   const ds = useDataSource();
   const auth = useAuth();
-  const q = useQuery({ queryKey: ["brief", id], queryFn: async () => { const r = await ds.briefs.get(id); if (r.error) throw new Error(r.error.message); return r.data!; } });
+  const q = useQuery({ queryKey: ["brief", id], meta: { static: true }, queryFn: async () => { const r = await ds.briefs.get(id); if (r.error) throw new Error(r.error.message); return r.data!; } });
   const home = auth.user?.role === "owner" ? "/" : "/client";
   return <main className="command-center">
     <header className="topbar">

@@ -7,14 +7,13 @@ import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
 import type { ClientPlanView, DecisionEntry, DelegationView, PlanChange, PlanVersion } from "@/lib/model";
 import { ClientPlanDoc } from "./client-plan";
-import { fmtAgo, fmtDate, label } from "@/lib/format";
+import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
 import { useStepUp } from "./step-up";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 const STATUS_WORDS: Record<string, string> = {
   SUBMITTED: "Awaiting a decision", APPROVED: "Approved", REVISION_REQUESTED: "Change requested", REJECTED: "Declined", SUPERSEDED: "Replaced", DRAFT: "Draft",
 };
-const tone = (s: string) => (s === "APPROVED" ? "green" : s === "SUBMITTED" ? "amber" : "muted");
 const DECISION_WORDS: Record<string, string> = { APPROVED: "Approved", REVISION_REQUESTED: "Asked for a change", REJECTED: "Declined" };
 
 /**
@@ -142,7 +141,7 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
   return <section className="plan" aria-label="Plan">
     <div className="section-label"><span>THE PLAN</span>
       <span className="plan-versions" role="tablist" aria-label="Versions">{versions.map((v) => <button key={v.id} role="tab" aria-selected={v.id === shown.id} className={v.id === shown.id ? "active" : ""} onClick={() => { setPicked(v.version); setMode(null); }}>v{v.version}</button>)}</span></div>
-    <div className="resolved-row"><span>Version {shown.version}{shown.rationale && <small>{shown.rationale}</small>}</span><span className={`pill ${tone(shown.status)}`}>{(STATUS_WORDS[shown.status] ?? label(shown.status)).toUpperCase()}</span></div>
+    <div className="resolved-row"><span>Version {shown.version}{shown.rationale && <small>{shown.rationale}</small>}</span><span className={`pill ${statusTone(shown.status)}`}>{(STATUS_WORDS[shown.status] ?? label(shown.status)).toUpperCase()}</span></div>
     {msg && <p className="mmsg" role="status">{msg}</p>}
 
     {!isCEO ? (clientView ? <ClientPlanDoc view={clientView} actions={actionsBlock} /> : null) : <div className="plan-doc">
