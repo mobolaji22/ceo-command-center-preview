@@ -153,7 +153,7 @@ export default function ClientCenter() {
       {!data ? <DeskSkeleton error={q.isError ? (q.error as Error).message : undefined} /> : <div key={view} className="scene scene-side">
         {view === "projects" && <ProjectsDesk data={data} isOwner={isOwner} initialProjectId={focusProject} />}
         {view === "decisions" && <DecisionsDesk data={data} isOwner={isOwner} busy={busy} msg={msg} onDecide={decide} />}
-        {view === "requests" && <RequestsDesk data={data} isOwner={isOwner} organizationId={membership?.organizationId} refresh={refresh} openQuestions={openQuestions} />}
+        {view === "requests" && <RequestsDesk data={data} isOwner={isOwner} organizationId={membership?.organizationId} refresh={refresh} openQuestions={openQuestions} focusProject={focusProject} />}
         {view === "library" && <LibraryDesk data={data} isOwner={isOwner} organizationId={membership?.organizationId} canWrite={isOwner} tick={tick} />}
         {view === "briefs" && <BriefsDesk isOwner={isOwner} organizationId={membership?.organizationId} projectIds={data.projects.map((p) => p.id)} />}
         {view === "settings" && <ClientSettingsView isOwner={isOwner} organizationId={membership?.organizationId} projectIds={data.projects.map((p) => p.id)} />}

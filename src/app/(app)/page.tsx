@@ -25,7 +25,7 @@ import { OFFICE_ART } from "@/components/cc/room-art";
 import { ManageView } from "@/components/cc/manage";
 import { ContractsDesk } from "@/components/cc/runs";
 import { RoomKeys, type KeyBinding, type PaletteCommand } from "@/components/cc/command-palette";
-import { usePlaceFromHistory, writePlace, type Place } from "@/lib/place";
+import { readPlace, usePlaceFromHistory, writePlace, type Place } from "@/lib/place";
 import { setLighting, useLighting } from "@/lib/lighting";
 import { label } from "@/lib/format";
 
@@ -66,7 +66,13 @@ export default function Index() {
   const ds = useDataSource();
   const qc = useQueryClient();
   const domains = useDomains();
-  useEffect(() => { if (!auth.loading && auth.user && !auth.isOwner) router.replace("/client"); }, [auth, router]);
+  // Where the address pointed on arrival, before the office writes its own place into it.
+  const [arrival] = useState<Place>(() => (typeof window === "undefined" ? {} : readPlace()));
+  useEffect(() => {
+    if (auth.loading || !auth.user || auth.isOwner) return;
+    // A link to a project's Workshop (the question about a design direction carries one) is the client's own questions there.
+    router.replace(arrival.spot === "workshop" && arrival.project ? `/client?desk=requests&project=${encodeURIComponent(arrival.project)}` : "/client");
+  }, [auth, router, arrival]);
   const q = useQuery({ queryKey: ownerKey, queryFn: () => ds.queries.ownerData(), enabled: auth.isOwner });
   const refresh = () => qc.invalidateQueries({ queryKey: ownerKey });
   // The same list the phone and the contracts desk show (one shared request), so each count is what is found by opening it.

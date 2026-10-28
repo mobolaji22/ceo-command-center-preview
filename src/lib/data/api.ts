@@ -1,4 +1,5 @@
 import type { DesignDocument } from "@/lib/design/sdd";
+import type { SddView } from "@/lib/design/v4";
 import type { ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
@@ -41,6 +42,7 @@ const MESSAGES: Record<string, string> = {
   ALREADY_ANSWERED: "This was already answered.",
   EXPIRED: "This link has expired.",
   REVISION_CONFLICT: "Someone else saved a newer version of this design. Reload to see it.",
+  INTERVENTION_NOT_FOUND: "That couldn't be found.",
 };
 
 async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
@@ -320,6 +322,11 @@ export function createApiDataSource(): DataSource {
         return r.error?.code === "NOT_FOUND" ? ok<DesignDocument | null>(null) : r;
       },
       save: (doc, baseRevision) => call<{ revision: number }>("PUT", `/v1/projects/${encodeURIComponent(doc.projectId)}/design-document`, { baseRevision, document: doc }),
+      read: (projectId) => call<SddView>("GET", `/v1/projects/${encodeURIComponent(projectId)}/sdd`),
+      async selectTerritory(projectId, territoryId, changes) {
+        const r = await call<unknown>("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/territories/${encodeURIComponent(territoryId)}/select`, changes?.trim() ? { changes: changes.trim() } : {});
+        return r.error ? { data: null, error: r.error } : ok(undefined);
+      },
     },
 
     runs: {

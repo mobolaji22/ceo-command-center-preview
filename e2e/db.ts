@@ -119,3 +119,18 @@ export function priceTheAgency(ceoEmail: string) {
       ON CONFLICT (capability, rigor) DO UPDATE SET "unitCents" = EXCLUDED."unitCents";`;
   execFileSync("psql", [u.toString(), "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio: "pipe" });
 }
+
+/**
+ * Stands in for the worker driving a Design project's run with a model (ADR-0049): has v4 drive the newest live run with a
+ * territory-exploration step, its model a script (e2e/design-run.mjs), until it stops on the question of which direction to take.
+ * Returns that question, with the project it belongs to.
+ */
+export function driveDesignRun(ceoEmail: string): { id: string; summary: string; projectId: string; projectName: string } {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const out = execFileSync("npx", ["tsx", resolve("e2e/design-run.mjs"), ceoEmail], {
+    cwd: V4_DIR, encoding: "utf8",
+    env: { ...process.env, DATABASE_URL: u.toString(), AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-0000", APP_URL: "http://localhost:3100" },
+  });
+  return JSON.parse(out.trim().split("\n").at(-1)!) as { id: string; summary: string; projectId: string; projectName: string };
+}

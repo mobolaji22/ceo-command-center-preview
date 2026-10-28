@@ -1,4 +1,5 @@
 import type { DesignDocument } from "@/lib/design/sdd";
+import type { SddView } from "@/lib/design/v4";
 import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 
 /**
@@ -138,6 +139,13 @@ export interface DataSource {
   design: {
     load(projectId: string): Promise<Result<DesignDocument | null>>;
     save(doc: DesignDocument, baseRevision: number): Promise<Result<{ revision: number }>>;
+    /** v4's design document for the project (ADR-0049): the approved revision, and the one in progress if this person may see it. */
+    read(projectId: string): Promise<Result<SddView>>;
+    /**
+     * Choose a direction where the territories are drawn. It answers the question the work asked, the same one a numbered reply
+     * answers, so v4 decides who may (the client's owner, or the CEO under their permission). `changes` is "select with changes".
+     */
+    selectTerritory(projectId: string, territoryId: string, changes?: string): Promise<Result>;
   };
   runs: {
     /** Newest first. */
