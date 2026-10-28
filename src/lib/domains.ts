@@ -15,7 +15,7 @@ export const humanize = (code: string) => code.charAt(0) + code.slice(1).toLower
  */
 export function useDomains(): { list: DomainList; loading: boolean; nameOf: (code: string) => string } {
   const ds = useDataSource();
-  const q = useQuery({ queryKey: ["domains"], queryFn: () => ds.queries.domains(), staleTime: Infinity });
+  const q = useQuery({ queryKey: ["domains"], queryFn: () => ds.queries.domains(), staleTime: Infinity, meta: { static: true } });
   const list = q.data ?? [];
   return { list, loading: q.isPending, nameOf: (code) => list.find((d) => d.code === code)?.name ?? humanize(code) };
 }

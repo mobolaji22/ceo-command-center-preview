@@ -62,6 +62,7 @@ export function GovernancePanel({ data }: { data: OwnerData }) {
   });
   const chains = useQuery({
     queryKey: ["governance-chains", ...orgs.map((o) => o.id)],
+    meta: { static: true },
     queryFn: async () => Promise.all(orgs.map(async (o) => ({ org: o, chain: (await ds.audit.chain(o.id)).data }))),
   });
   const live = delegations.data ?? [];

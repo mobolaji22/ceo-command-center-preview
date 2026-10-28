@@ -24,11 +24,13 @@ type Common = { data: ClientData; isOwner: boolean };
 const projectName = (data: ClientData, pid: string | null) => data.projects.find((p) => p.id === pid)?.name ?? "";
 
 /** The round table: the work itself. One project at a time, then the story so far. */
-export function ProjectsDesk({ data, isOwner }: Common) {
+export function ProjectsDesk({ data, isOwner, initialProjectId }: Common & { /** Open on this project (a link or the palette chose it). */ initialProjectId?: string | undefined }) {
   const [tab, setTab] = useState<"projects" | "timeline">("projects");
   const { nameOf } = useDomains();
   const find = useProjectFind(data.projects, nameOf);
-  const [pid, setPid] = useState<string | undefined>(data.projects[0]?.id);
+  const [pid, setPid] = useState<string | undefined>(data.projects.find((p) => p.id === initialProjectId)?.id ?? data.projects[0]?.id);
+  const [pidSeen, setPidSeen] = useState(initialProjectId);
+  if (pidSeen !== initialProjectId) { setPidSeen(initialProjectId); if (initialProjectId) { setPid(initialProjectId); setTab("projects"); } }
   const chosen = find.results.find((p) => p.id === pid) ?? find.results[0];
   // the timeline: words to find, and one project at a time
   const [eq, setEq] = useState("");

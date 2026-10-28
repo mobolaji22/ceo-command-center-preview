@@ -15,6 +15,7 @@ import { directiveNeedsYou } from "@/lib/attention";
 import { useDomains } from "@/lib/domains";
 import { FindBar, Marked } from "./find-bar";
 import { useProjectFind } from "@/lib/find";
+import { isFreeKey, useSingleKeys, useWindowKeys } from "@/lib/shortcuts";
 
 type Common = { data: OwnerData; refresh: () => void };
 const CLOSED = ["COMPLETED", "CANCELLED", "ARCHIVED"];
@@ -102,11 +103,21 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
     </div><div className="phone-home" /></div></div></div>;
 }
 
-export function ContractsView({ data, refresh, focusProjectId }: Common & { focusProjectId?: string | undefined }) {
+/**
+ * The contracts desk. The decision bar stays at the foot of the desk while the contract is read, so the decision is never off
+ * screen. From the keyboard, J and K move between authorizations, and A or R arm approve or reject: nothing is decided until
+ * Enter confirms it (Escape lets go), because a single stray letter must never sign anything.
+ */
+export function ContractsView({ data, refresh, focusProjectId, focusApprovalId }: Common & { focusProjectId?: string | undefined; /** Open on this authorization (the palette chose it). */ focusApprovalId?: string | undefined }) {
   const ds = useDataSource();
+  const single = useSingleKeys();
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
   const ordered = focusProjectId ? [...pending].sort((a, b) => (a.project_id === focusProjectId ? -1 : 0) - (b.project_id === focusProjectId ? -1 : 0)) : pending;
-  const [selectedId, setSelectedId] = useState<string | null>(ordered[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(pending.find((x) => x.id === focusApprovalId)?.id ?? ordered[0]?.id ?? null);
+  // A new choice from the palette while the desk is already open moves to it (adjusted during render, not in an effect).
+  const [focusSeen, setFocusSeen] = useState(focusApprovalId);
+  if (focusSeen !== focusApprovalId) { setFocusSeen(focusApprovalId); if (focusApprovalId) setSelectedId(focusApprovalId); }
+  const [armed, setArmed] = useState<"approve" | "reject" | null>(null);
   const a = data.approvals.find((x) => x.id === selectedId) ?? ordered[0];
   const [tab, setTab] = useState<"Contract Review" | "Modify Constraints & Scope" | "Request Evidence">("Contract Review");
   const [evidenceOpen, setEvidenceOpen] = useState(false);
@@ -118,12 +129,6 @@ export function ContractsView({ data, refresh, focusProjectId }: Common & { focu
   const [textFor, setTextFor] = useState(draftFor);
   if (textFor !== draftFor) { setTextFor(draftFor); setText(tab === "Modify Constraints & Scope" ? a?.constraints ?? "" : tab === "Request Evidence" ? a?.evidence_request ?? "" : ""); }
 
-  const resolved = data.approvals.filter((x) => x.status !== "REQUESTED").slice(0, 6);
-  if (!a) return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span></div>
-    <div className="contract-body"><Empty title="No authorizations awaiting your signature.">New approval requests appear here as soon as they're raised.</Empty>
-    {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}</div></div>;
-
-  const evidence = data.evidence.filter((e) => e.approval_id === a.id || (!e.approval_id && e.project_id === a.project_id));
   const run = async (fn: () => PromiseLike<{ error: { message: string } | null }>, done: string) => {
     setBusy(true); setMsg(null);
     const { error } = await fn();
@@ -131,13 +136,44 @@ export function ContractsView({ data, refresh, focusProjectId }: Common & { focu
     setMsg(done); setBusy(false); refresh();
   };
   const resolve = async (approved: boolean) => {
+    if (!a) return;
+    setArmed(null);
     await run(() => ds.commands.resolveApproval(a.id, approved), `Decision ${approved ? "approved" : "rejected"} and recorded in the governance ledger.`);
     const next = pending.find((x) => x.id !== a.id); setSelectedId(next?.id ?? null);
   };
+  const select = (id: string) => { setSelectedId(id); setTab("Contract Review"); setMsg(null); setArmed(null); };
+
+  // Captured before the desk's own keys, so Escape lets go of an armed decision instead of closing the desk.
+  useWindowKeys((e) => {
+    if (!a || tab !== "Contract Review") return;
+    if (armed && (e.key === "Enter" || e.key === "Escape")) {
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === "Enter" && !busy) void resolve(armed === "approve"); else setArmed(null);
+      return;
+    }
+    if (!single || !isFreeKey(e)) return;
+    const k = e.key.toLowerCase();
+    if ((k === "j" || k === "k") && ordered.length > 1) {
+      e.preventDefault(); e.stopPropagation();
+      const i = ordered.findIndex((x) => x.id === a.id);
+      const next = ordered[(i + (k === "j" ? 1 : -1) + ordered.length) % ordered.length];
+      if (next) select(next.id);
+    } else if ((k === "a" || k === "r") && !busy) {
+      e.preventDefault(); e.stopPropagation();
+      setArmed(k === "a" ? "approve" : "reject");
+    }
+  }, true);
+
+  const resolved = data.approvals.filter((x) => x.status !== "REQUESTED").slice(0, 6);
+  if (!a) return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span></div>
+    <div className="contract-body"><Empty title="No authorizations awaiting your signature.">New approval requests appear here as soon as they're raised.</Empty>
+    {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}</div></div>;
+
+  const evidence = data.evidence.filter((e) => e.approval_id === a.id || (!e.approval_id && e.project_id === a.project_id));
   const projectRef = `DPL-AC-${a.id.slice(0, 4).toUpperCase()}`;
 
   return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span><span className="protocol-id">{projectRef}</span></div>
-    {ordered.length > 1 && <div className="approval-queue">{ordered.map((x, i) => <button key={x.id} className={x.id === a.id ? "active" : ""} onClick={() => { setSelectedId(x.id); setTab("Contract Review"); setMsg(null); }}><span>{pad(i + 1)}</span>{x.title}</button>)}</div>}
+    {ordered.length > 1 && <div className="approval-queue">{ordered.map((x, i) => <button key={x.id} className={x.id === a.id ? "active" : ""} onClick={() => select(x.id)}><span>{pad(i + 1)}</span>{x.title}</button>)}</div>}
     {ds.capabilities.approvalNotes && <div className="contract-tabs" role="tablist">{(["Contract Review", "Modify Constraints & Scope", "Request Evidence"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>{t}</Button>)}</div>}
     <div className="contract-body"><div className="classification"><span><LockKeyhole size={15} /> CLASSIFICATION: {label(a.target_type).toUpperCase()} · {projectName(data, a.project_id).toUpperCase()}</span><strong>{a.requires_client ? "CLIENT & CEO APPROVAL" : "CEO APPROVAL REQUIRED"}</strong></div>
       {tab === "Contract Review" && <><div className="contract-columns"><div className="contract-main"><div className="eyebrow gold">01 / PROPOSED ACTION</div><h2>{a.title}<span className="period">.</span></h2>{a.recommendation && <p className="contract-lead">{a.recommendation}</p>}<div className="contract-rule" /><div className="eyebrow gold">02 / ORGANIZATIONAL REASONING</div><p className="reasoning">{a.reason}</p>
@@ -147,7 +183,12 @@ export function ContractsView({ data, refresh, focusProjectId }: Common & { focu
         <Button variant="ghost" className="evidence-trigger" onClick={() => setEvidenceOpen(!evidenceOpen)}><FileText size={17} /> Substantiating Evidence Trail ({evidence.length}) <ChevronDown size={16} className={evidenceOpen ? "rotated" : ""} /></Button>
         {evidenceOpen && <div className="evidence-list">{evidence.length === 0 ? <div>No evidence attached yet.</div> : evidence.map((e, i) => <div key={e.id}><span>{pad(i + 1)}</span> {e.claim} <small>{e.source} · {Math.round(e.confidence * 100)}% confidence</small></div>)}</div>}</div>
         <aside className="contract-aside"><div className="eyebrow">DECISION PROFILE</div><div className="aside-stat"><span>RISK LEVEL</span><strong>{riskLabel(a.risk)}</strong></div><div className="aside-stat"><span>REVERSIBILITY</span><strong>{reversibilityLabel(a.reversibility)}</strong></div><div className="aside-stat"><span>DECISION OWNER</span><strong>{a.requires_client ? "CEO + Client" : "Chief Executive Officer"}</strong></div><div className="aside-stat"><span>RAISED</span><strong>{fmtDate(a.created_at)}</strong></div><div className="aside-note"><ShieldCheck size={17} /> {a.requires_client ? "This is the client's decision. You can make it only with the permission their owner has given you; every use is recorded for them to see." : "Your decision is recorded in the governance ledger."}</div></aside></div>
-        <div className="contract-actions"><span>{msg ?? "Review the evidence before resolving this authorization."}</span><div><Button variant="outline" className="reject-btn" disabled={busy} onClick={() => resolve(false)}>Reject proposal</Button><Button className="approve-btn" disabled={busy} onClick={() => resolve(true)}><Check size={16} /> Approve authorization</Button></div></div></>}
+        <div className="contract-actions" data-armed={armed ?? undefined}>
+          <span role="status">{armed
+            ? <>Press <kbd>Enter</kbd> to {armed} &ldquo;{a.title}&rdquo;, or <kbd>Esc</kbd> to let go.</>
+            : <><b className="contract-stakes">{riskLabel(a.risk)} risk · {reversibilityLabel(a.reversibility)} reversibility</b>{msg ?? "Review the evidence before resolving this authorization."}{single && <span className="contract-keys" aria-hidden="true"><kbd>A</kbd> approve <kbd>R</kbd> reject{ordered.length > 1 && <> <kbd>J</kbd><kbd>K</kbd> next</>}</span>}</>}</span>
+          <div><Button variant="outline" className="reject-btn" disabled={busy} data-armed={armed === "reject" || undefined} onClick={() => resolve(false)}>Reject proposal</Button><Button className="approve-btn" disabled={busy} data-armed={armed === "approve" || undefined} onClick={() => resolve(true)}><Check size={16} /> Approve authorization</Button></div>
+        </div></>}
       {tab !== "Contract Review" && <div className="tab-pane"><div className="eyebrow gold">{tab === "Request Evidence" ? "ASK FOR CLARITY" : "CONTROL THE BOUNDARIES"}</div><h2>{tab === "Request Evidence" ? "Request evidence" : "Shape the scope"}<span className="period">.</span></h2><p>{tab === "Request Evidence" ? "Ask the organization to substantiate a part of this proposal before you decide." : "Specify the limits that must be met before authorization proceeds."}</p>
         <textarea aria-label={tab} value={text} maxLength={4000} onChange={(e) => setText(e.target.value)} placeholder={tab === "Request Evidence" ? "What additional evidence would help you make this decision?" : "e.g. Limit the discovery phase to 60 days…"} />
         {msg && <p>{msg}</p>}

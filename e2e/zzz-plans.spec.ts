@@ -127,8 +127,7 @@ test("the CEO sees the plan but cannot decide it for the client until the client
   const ceoPage = await (await browser.newContext()).newPage();
   const openAsCeo = async () => {
     await ceoPage.goto("/");
-    await ceoPage.getByRole("button", { name: "Preview Directive" }).click();
-    await ceoPage.getByRole("button", { name: "Compose directive" }).click();
+    await ceoPage.getByRole("button", { name: "Directive", exact: true }).click();
     return (await openDirective(ceoPage, "Redesign our pricing page", "The plan")).getByLabel("Plan");
   };
   await signIn(ceoPage, CEO);

@@ -85,7 +85,7 @@ for (const width of [390, 360]) {
       // The switch: hotspots on the picture instead of the bar, and back. The choice is kept.
       await page.getByRole("button", { name: "Hotspots", exact: true }).click();
       await expect(page.locator(".spot-bar")).toHaveCount(0);
-      await expect(page.getByRole("button", { name: "Preview Computer" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Computer", exact: true })).toBeVisible();
       await page.reload();
       await expect(page.getByRole("button", { name: "Hotspots", exact: true })).toHaveAttribute("aria-pressed", "true");
       await page.getByRole("button", { name: "Bar", exact: true }).click();

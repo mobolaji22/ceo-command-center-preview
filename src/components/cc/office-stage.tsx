@@ -4,6 +4,7 @@ import { ArrowRight, X, type LucideIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSingleKeys } from "@/lib/shortcuts";
 import { LitImage } from "./lit-image";
 import type { LitArt } from "./room-art";
 
@@ -18,6 +19,8 @@ export type Spot<K extends string = string> = {
   count?: number;
   /** Spoken version of the count for assistive tech (the badge itself is decorative). */
   countNote?: string;
+  /** The single key that opens it (lib/shortcuts), shown on its preview. */
+  shortcut?: string | undefined;
 };
 
 /**
@@ -38,8 +41,9 @@ function keepWays(w: Ways) {
  * so they cannot drift apart. Hotspot positions and preview positions live in the stylesheet by id (.hotspot-<id>,
  * .preview-<id>) because they depend on how the photograph is cropped at each screen width.
  *
- * A preview opens when a hover lingers or a hotspot takes keyboard focus, and pins when pressed (press again to unpin). While
- * one is pinned, hovering another hotspot shows that one until the pointer leaves, and then the pinned one returns.
+ * Hovering an object (or tabbing to it) previews it; pressing it goes straight in. The preview is for looking, not a step on the
+ * way: someone who knows the room never pays for it. While the room's data is still arriving a press shows the preview instead,
+ * because there is nothing behind the object yet.
  */
 export function OfficeStage<K extends string>({
   art,
@@ -75,8 +79,8 @@ export function OfficeStage<K extends string>({
   /** `at` is where the pressed object sits on the stage, in percent, so the next screen can open out of it. */
   onAct: (id: K, at: { x: number; y: number }) => void;
 }) {
-  const [pinned, setPinned] = useState<K | null>(null);
   const [hovered, setHovered] = useState<K | null>(null);
+  const single = useSingleKeys();
   const [lastActed, setLastActed] = useState<K | null>(null);
   const timer = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -84,9 +88,9 @@ export function OfficeStage<K extends string>({
   const phone = useIsMobile();
   // Read once; it only shows once `phone` is known, which is after hydration, so the first render matches the server's.
   const [ways, setWays] = useState<Ways>(() => (typeof window === "undefined" ? "bar" : readWays()));
-  const choose = (w: Ways) => { setWays(w); keepWays(w); setPinned(null); setHovered(null); };
+  const choose = (w: Ways) => { setWays(w); keepWays(w); setHovered(null); };
   const barMode = phone && ways === "bar";
-  const shown = barMode ? null : hovered ?? pinned;
+  const shown = barMode ? null : hovered;
   const spot = spots.find((s) => s.id === shown);
 
   const hoverIn = (id: K, e: { pointerType: string }) => {
@@ -148,9 +152,16 @@ export function OfficeStage<K extends string>({
   }, [shown]);
   const close = () => {
     window.clearTimeout(timer.current);
-    setPinned(null);
     setHovered(null);
   };
+  const enter = (id: K) => {
+    if (actionDisabled?.(id)) { window.clearTimeout(timer.current); setHovered(id); return; }
+    const at = centreOf(id);
+    close();
+    setLastActed(id);
+    onAct(id, at);
+  };
+  const keyOf = (s: Spot<K>) => (single && s.shortcut ? s.shortcut.toUpperCase() : undefined);
 
   return (
     <div ref={stageRef} className={`office-stage${className ? ` ${className}` : ""}`} data-ways={phone ? ways : undefined}>
@@ -170,14 +181,15 @@ export function OfficeStage<K extends string>({
           size="icon"
           className={`hotspot hotspot-${s.id} ${shown === s.id ? "selected" : ""}`}
           data-return-focus={lastActed === s.id || undefined}
-          aria-label={`Preview ${s.label}`}
+          aria-label={s.label}
           aria-describedby={s.count ? `hotspot-note-${s.id}` : undefined}
-          title={s.label}
+          aria-keyshortcuts={keyOf(s)}
+          title={keyOf(s) ? `${s.label} (${keyOf(s)})` : s.label}
           onPointerEnter={(e) => hoverIn(s.id, e)}
           onPointerLeave={hoverOut}
           onFocus={(e) => { if (e.currentTarget.matches(":focus-visible")) setHovered(s.id); }}
           onBlur={(e) => { if (!(e.relatedTarget instanceof Node && panelRef.current?.contains(e.relatedTarget))) setHovered(null); }}
-          onClick={() => { window.clearTimeout(timer.current); setHovered(null); setPinned(pinned === s.id ? null : s.id); }}
+          onClick={() => enter(s.id)}
         >
           <span className="hotspot-center" />
           {s.count ? <><span className="hotspot-badge" aria-hidden="true">{s.count > 9 ? "9+" : s.count}</span><span id={`hotspot-note-${s.id}`} className="sr-only">{s.countNote}</span></> : null}
@@ -196,11 +208,12 @@ export function OfficeStage<K extends string>({
         >
           <div className="preview-top">
             <span className="preview-icon"><spot.icon size={17} /></span>
+            {keyOf(spot) && <span className="preview-key" aria-hidden="true">Press <kbd>{keyOf(spot)}</kbd></span>}
             <Button variant="ghost" size="icon" className="icon-button tiny" aria-label="Close preview" onClick={close}><X size={15} /></Button>
           </div>
           <div className="eyebrow gold">{spot.title}</div>
           <p className="preview-description">{previewText?.(spot.id) ?? spot.description}</p>
-          <Button variant="ghost" className="text-action" disabled={actionDisabled?.(spot.id) ?? false} onClick={() => { const at = centreOf(spot.id); close(); setLastActed(spot.id); onAct(spot.id, at); }}>{spot.action} <ArrowRight size={15} /></Button>
+          <Button variant="ghost" className="text-action" disabled={actionDisabled?.(spot.id) ?? false} onClick={() => enter(spot.id)}>{spot.action} <ArrowRight size={15} /></Button>
         </div>
       )}
       {phone && <div className="spot-switch" role="group" aria-label="How to move around this room">

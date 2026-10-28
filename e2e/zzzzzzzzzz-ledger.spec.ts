@@ -26,8 +26,7 @@ test.beforeEach(() => forgetSignInRequests());
 
 test("the ledger lists every plan decision with who made it, and the governance tab shows what is in force and that the chains are intact", async ({ page }) => {
   await signIn(page, CEO);
-  await page.getByRole("button", { name: "Preview Computer" }).click();
-  await page.getByRole("button", { name: "Open operating system" }).click();
+  await page.getByRole("button", { name: "Computer", exact: true }).click();
 
   await page.getByRole("tab", { name: "Decision Ledger" }).click();
   const decisions = page.getByLabel("Plan decisions");

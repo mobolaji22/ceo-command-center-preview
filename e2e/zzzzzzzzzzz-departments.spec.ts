@@ -27,8 +27,7 @@ test.beforeEach(() => forgetSignInRequests());
 
 test("the corridor has the thirteen domains in five wings, in order, and entering one with work in it shows the work", async ({ page }) => {
   await signIn(page, CEO);
-  await page.getByRole("button", { name: "Preview Door" }).click();
-  await page.getByRole("button", { name: "Enter corridor" }).click();
+  await page.getByRole("button", { name: "Door", exact: true }).click();
 
   const served = await page.request.get("/api/v4/v1/domains");
   expect(served.status()).toBe(200);
@@ -51,8 +50,7 @@ test("the corridor has the thirteen domains in five wings, in order, and enterin
   await expect(page.getByLabel("On the desks")).toContainText(/\d+ in motion · \d+ waiting · \d+ done/);
   await shot(page, "A department room: a photograph with its wall, calendar and desk to press, and what is in motion, waiting and done");
   // The projects are pinned to the wall: press the wall, open its desk, and they are there.
-  await page.getByRole("button", { name: "Preview Wall" }).click();
-  await page.getByRole("button", { name: "Open pinned projects", exact: true }).click();
+  await page.getByRole("button", { name: "Wall", exact: true }).click();
   await expect(page.locator(".pin-card").first()).toBeVisible();
   await shot(page, "The wall desk: the projects pinned to the department");
   await page.getByRole("button", { name: "BACK TO ROOM" }).click();

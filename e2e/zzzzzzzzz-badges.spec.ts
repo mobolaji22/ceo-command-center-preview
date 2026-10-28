@@ -29,8 +29,7 @@ test.beforeEach(() => forgetSignInRequests());
 test("a directive that is asking a question puts a count on the directive desk and the phone, and the desk shows exactly that many", async ({ page }) => {
   await signIn(page, CEO);
   // a request too vague to plan is asking the CEO a question
-  await page.getByRole("button", { name: "Preview Directive" }).click();
-  await page.getByRole("button", { name: "Compose directive" }).click();
+  await page.getByRole("button", { name: "Directive", exact: true }).click();
   const composer = await newDirective(page);
   await composer.getByLabel("FOR").selectOption({ label: "Orbit" });
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Refresh the brand");
@@ -38,19 +37,18 @@ test("a directive that is asking a question puts a count on the directive desk a
   await expect(page.locator(".directive-detail").getByRole("status").first()).toContainText("Received.");
 
   await page.goto("/");
-  const directive = page.getByRole("button", { name: "Preview Directive" });
-  const phone = page.getByRole("button", { name: "Preview Phone" });
+  const directive = page.getByRole("button", { name: "Directive", exact: true });
+  const phone = page.getByRole("button", { name: "Phone", exact: true });
   await expect(directive).toHaveAccessibleDescription(/^\d+ (needs|need) you$/);
   await expect(phone).toHaveAccessibleDescription(/^\d+ (needs|need) you$/);
   const badge = (await directive.locator(".hotspot-badge").innerText()).trim();
   expect(badge).toMatch(/^[1-9]$/);
   // the brief and the door carry no count
-  await expect(page.getByRole("button", { name: "Preview Brief" }).locator(".hotspot-badge")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Preview Door" }).locator(".hotspot-badge")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Brief", exact: true }).locator(".hotspot-badge")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Door", exact: true }).locator(".hotspot-badge")).toHaveCount(0);
   await shot(page, "The office: a count on the places that need the CEO");
 
   await directive.click();
-  await page.getByRole("button", { name: "Compose directive" }).click();
   // The desk opens on "Needs you", and it lists exactly what the badge counted.
   await expect(page.getByRole("tab", { name: /^Needs you/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".directive-row")).toHaveCount(Number(badge));

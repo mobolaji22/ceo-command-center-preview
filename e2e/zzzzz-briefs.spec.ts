@@ -104,16 +104,14 @@ test("a quiet hours window with the same start and end is refused in words, and 
 
 test("the CEO reads every client's briefs on the brief desk, and sets how they are told on the phone", async ({ page }) => {
   await signIn(page, CEO);
-  await page.getByRole("button", { name: "Preview Brief" }).click();
-  await page.getByRole("button", { name: "Review full brief" }).click();
+  await page.getByRole("button", { name: "Brief", exact: true }).click();
   const archive = page.getByLabel("Briefs", { exact: true });
   await expect(archive.locator(".brief-row").first()).toBeVisible();
   await archive.locator(".brief-row").first().getByRole("button", { name: /^Read / }).click();
   await expect(archive.getByRole("article").first().locator(".brief-statement").first()).toBeVisible();
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Preview Phone" }).click();
-  await page.getByRole("button", { name: "Open phone" }).click();
+  await page.getByRole("button", { name: "Phone", exact: true }).click();
   await page.getByRole("button", { name: /^How you are told/ }).click();
   const form = page.getByRole("form", { name: "How you are told" });
   await form.getByLabel("Digest", { exact: true }).selectOption("OFF");
@@ -121,9 +119,9 @@ test("the CEO reads every client's briefs on the brief desk, and sets how they a
   await form.getByRole("button", { name: "Save" }).click();
   await expect(form.getByRole("status")).toHaveText("Saved.");
 
+  // A reload keeps the desk that was open (the address names it), so the phone is still in hand.
   await page.reload();
-  await page.getByRole("button", { name: "Preview Phone" }).click();
-  await page.getByRole("button", { name: "Open phone" }).click();
+  await expect(page.locator('.desk-panel[data-surface="phone"]')).toBeVisible();
   await page.getByRole("button", { name: /^How you are told/ }).click();
   await expect(page.getByRole("form", { name: "How you are told" }).getByLabel("Digest", { exact: true })).toHaveValue("OFF");
 });

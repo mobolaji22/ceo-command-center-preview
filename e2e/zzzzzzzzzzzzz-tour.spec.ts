@@ -34,8 +34,7 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   await expect(page.getByText(/projects · \d+ awaiting your signature/)).toBeVisible();
 
   // computer: the cases, each with its case file
-  await page.getByRole("button", { name: "Preview Computer" }).click();
-  await page.getByRole("button", { name: "Open operating system" }).click();
+  await page.getByRole("button", { name: "Computer", exact: true }).click();
   await expect(page.getByText(/\d+ projects · \d+ tasks · \d+ decisions on record/)).toBeVisible();
   await expect(page.locator(".dossier-row").first()).toBeVisible();
   await expectRoomHeldStill(page);
@@ -45,16 +44,14 @@ test("the CEO's office and every desk in it", async ({ page }) => {
 
   // contracts desk
   await page.goto("/");
-  await page.getByRole("button", { name: "Preview Contracts" }).click();
-  await page.getByRole("button", { name: "Review contracts", exact: true }).click();
+  await page.getByRole("button", { name: "Contracts", exact: true }).click();
   await expect(page.locator(".contracts-desk").getByText("QUESTIONS FROM THE WORK")).toBeVisible();
   await expect(page.locator(".contracts-desk").getByText("PLANS AWAITING A SIGNATURE")).toBeVisible();
   await shot(page, "The contracts desk: what the work is asking, and the plans waiting for a signature");
 
   // phone
   await page.goto("/");
-  await page.getByRole("button", { name: "Preview Phone" }).click();
-  await page.getByRole("button", { name: "Open phone" }).click();
+  await page.getByRole("button", { name: "Phone", exact: true }).click();
   await expect(page.getByText("Questions From The Work")).toBeVisible();
   await page.getByRole("button", { name: /^How you are told/ }).click();
   await expect(page.getByRole("form", { name: "How you are told" })).toBeVisible();
@@ -62,8 +59,7 @@ test("the CEO's office and every desk in it", async ({ page }) => {
 
   // directive desk
   await page.goto("/");
-  await page.getByRole("button", { name: "Preview Directive" }).click();
-  await page.getByRole("button", { name: "Compose directive" }).click();
+  await page.getByRole("button", { name: "Directive", exact: true }).click();
   // The work first; a new directive is a button, and the form can be put away (P6.21). A draft is never discarded unasked.
   await expect(page.getByRole("button", { name: "New directive", exact: true })).toBeVisible();
   const composer = await newDirective(page);
@@ -80,16 +76,14 @@ test("the CEO's office and every desk in it", async ({ page }) => {
 
   // brief desk
   await page.goto("/");
-  await page.getByRole("button", { name: "Preview Brief" }).click();
-  await page.getByRole("button", { name: "Review full brief" }).click();
+  await page.getByRole("button", { name: "Brief", exact: true }).click();
   await expect(page.getByText("EVERYTHING YOU HAVE BEEN TOLD")).toBeVisible();
   await expect(page.getByLabel("Briefs", { exact: true }).locator(".brief-row").first()).toBeVisible();
   await shot(page, "The brief desk: what happened while the CEO was away, and every brief with its sources");
 
   // corridor and manage
   await page.goto("/");
-  await page.getByRole("button", { name: "Preview Door" }).click();
-  await page.getByRole("button", { name: "Enter corridor" }).click();
+  await page.getByRole("button", { name: "Door", exact: true }).click();
   await expect(page.locator(".door-card")).toHaveCount(13);
   await shot(page, "The corridor: the thirteen domains, in five wings");
   // The records: from the corridor's "See all projects".

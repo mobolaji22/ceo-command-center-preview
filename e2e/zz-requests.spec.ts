@@ -98,8 +98,7 @@ test("the CEO sends a directive for a client, answers its questions, and sees wh
   expect(theirs.status).toBe("PLANNED");
   expect(theirs.project_id).toBeTruthy();
 
-  await page.getByRole("button", { name: "Preview Directive" }).click();
-  await page.getByRole("button", { name: "Compose directive" }).click();
+  await page.getByRole("button", { name: "Directive", exact: true }).click();
   const composer = await newDirective(page);
   await composer.getByLabel("FOR").selectOption({ label: "Orbit" });
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Refresh the brand");
@@ -117,8 +116,7 @@ test("the CEO sends a directive for a client, answers its questions, and sees wh
 
 test("the CEO sends a directive with no client: it is the agency's own work, and its plan is the CEO's to decide (v4 ADR-0040)", async ({ page }) => {
   await signIn(page, CEO);
-  await page.getByRole("button", { name: "Preview Directive" }).click();
-  await page.getByRole("button", { name: "Compose directive" }).click();
+  await page.getByRole("button", { name: "Directive", exact: true }).click();
   const composer = await newDirective(page);
   // No client is the default.
   await expect(composer.getByLabel("FOR")).toHaveValue("");

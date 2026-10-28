@@ -29,8 +29,7 @@ test.beforeEach(() => forgetSignInRequests());
 
 test("the CEO sets a standing permission for a client under the client's permission, the owner sees it as done for them and takes it back", async ({ browser, page }) => {
   await signIn(page, CEO);
-  await page.getByRole("button", { name: "Preview Computer" }).click();
-  await page.getByRole("button", { name: "Open operating system" }).click();
+  await page.getByRole("button", { name: "Computer", exact: true }).click();
   await page.getByRole("tab", { name: "Security/Gov" }).click();
 
   const orbit = page.getByRole("region", { name: "Standing permission for Orbit" });
@@ -71,9 +70,9 @@ test("the CEO sets a standing permission for a client under the client's permiss
   await mine.getByRole("button", { name: "Confirm: take it back" }).click();
   await expect(mine.getByText(/^In force, until/)).toHaveCount(0);
 
+  // A reload keeps the desk that was open (the address names it): the computer is still on.
   await page.reload();
-  await page.getByRole("button", { name: "Preview Computer" }).click();
-  await page.getByRole("button", { name: "Open operating system" }).click();
+  await expect(page.locator('.desk-panel[data-surface="computer"]')).toBeVisible();
   await page.getByRole("tab", { name: "Security/Gov" }).click();
   await expect(page.getByRole("region", { name: "Standing permission for Orbit" }).getByText(/^In force, until/)).toHaveCount(0);
   await ownerPage.context().close();

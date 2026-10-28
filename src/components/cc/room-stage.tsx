@@ -30,7 +30,7 @@ const spotData: Record<RoomSpot, Omit<Spot<RoomSpot>, "id">> = {
 };
 const SPOTS: RoomSpot[] = ["wall", "calendar", "desk"];
 /** The Design room has a fourth object: the monitors, where the design is worked on. */
-const spotsFor = (dept: string): RoomSpot[] => (dept === "DESIGN" ? [...SPOTS, "workshop"] : SPOTS);
+export const spotsFor = (dept: string): RoomSpot[] => (dept === "DESIGN" ? [...SPOTS, "workshop"] : SPOTS);
 
 const tasksOf = (data: OwnerData, dept: string, list: DomainList) => data.tasks.filter((t) => taskIn(t, dept, list));
 const counts = (data: OwnerData, dept: string, list: DomainList) => {
