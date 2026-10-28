@@ -79,7 +79,8 @@ test("a client reads the plan, asks for a change, sees what changed, approves it
 
   // Ask for a change: the answer is the next version, with what changed.
   await plan.getByRole("button", { name: "Ask for a change" }).click();
-  await plan.getByLabel("WHAT WOULD YOU LIKE CHANGED?").fill("Make it cheaper");
+  // The plan's steps are each at the least effort their own model needs (v4 ADR-0049 W3), so dropping work is what makes it cheaper.
+  await plan.getByLabel("WHAT WOULD YOU LIKE CHANGED?").fill("Make it cheaper and drop the content");
   await plan.getByRole("button", { name: "Send" }).click();
   await expect(plan.getByRole("status")).toContainText("Version 2 is ready for you");
   await expect(plan.getByRole("tab", { name: "v2" })).toHaveAttribute("aria-selected", "true");
