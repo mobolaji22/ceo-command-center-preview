@@ -1,17 +1,20 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
+import { drawn } from "@/lib/design/edit";
 import { POSTURE_WORDS, choosing, documentOf, framesOf, layoutOf, slotOf, tokenLines, treeOf, type NodeTree, type SddDocument, type SddTerritory, type StudyFrame } from "@/lib/design/v4";
+import { Artboard } from "./canvas";
 import { Empty } from "../views";
 
 /**
  * The directions territory exploration drew, from v4's design document (ADR-0049): three territories side by side, each with its
- * key frames and the thinking behind it, and the choice between them. The frames are structured wireframes, not rendered designs
- * (Design §45.3): the canvas draws the structure, and the words on it are placeholders for the copy Content writes. Choosing answers
- * the question the work asked; v4 decides who may, and this only says what it answered.
+ * key frames and the thinking behind it, and the choice between them. Each key frame is drawn as v4 placed it, in the direction's
+ * own colours and type, and is a section of a page rather than a whole one; the words on it are placeholders for the copy Content
+ * writes and images are marked as such (Design §45.3). Choosing answers the question the work asked; v4 decides who may, and this
+ * only says what it answered.
  */
 export function Directions({ projectId, onChosen }: { projectId: string; onChosen?: (() => void) | undefined }) {
   const ds = useDataSource();
@@ -40,7 +43,7 @@ export function Directions({ projectId, onChosen }: { projectId: string; onChose
   return <section className="directions" aria-label="Design directions">
     <header className="directions-head">
       <b>{open ? "Choose a direction" : "The directions explored"}</b>
-      <p>{doc.basis.reason || "Three directions, each drawn as key frames for a desktop and a phone."} These are wireframes, not finished designs: the words on them are placeholders for the copy that is written next.</p>
+      <p>{doc.basis.reason || "Three directions, each drawn as key frames for a desktop and a phone."} Each frame shows the part of a page that carries the idea, in that direction's colours and type. They are not finished designs: the words are placeholders for the copy that is written next, and images are marked.</p>
     </header>
     <div className="directions-grid">
       {doc.territories.map((t) => <Territory key={t.id} doc={doc} territory={t} open={open} chosenHere={chosenHere} onChoose={choose} />)}
@@ -60,12 +63,12 @@ function Territory({ doc, territory: t, open, chosenHere, onChoose }: { doc: Sdd
     <div className="direction-head">
       <span className="direction-posture">{t.posture ? POSTURE_WORDS[t.posture] ?? t.posture : "Direction"}</span>
       {status && <span className="pill">{status.toUpperCase()}</span>}
-      <span className="direction-flag" title="A structured wireframe; nothing here claims how it will look rendered.">Not rendered</span>
+      <span className="direction-flag" title="The words and images are placeholders until Content and the art direction fill them.">Placeholders</span>
     </div>
     <h3>{t.concept}</h3>
     {t.thesis && <p className="direction-thesis">{t.thesis}</p>}
     <div className="direction-frames">
-      {frames.length === 0 ? <small>No key frames were drawn for this direction.</small> : frames.map((f) => <Wireframe key={f.id} doc={doc} frame={f} />)}
+      {frames.length === 0 ? <small>No key frames were drawn for this direction.</small> : frames.map((f) => <KeyFrame key={f.id} doc={doc} frame={f} />)}
     </div>
     <details className="direction-detail">
       <summary>The thinking behind it</summary>
@@ -87,6 +90,26 @@ function Territory({ doc, territory: t, open, chosenHere, onChoose }: { doc: Sdd
   </article>;
 }
 
+/** One key frame as v4 placed it, scaled to the room it has. A frame with nothing placed yet is shown as its structure instead. */
+function KeyFrame({ doc, frame }: { doc: SddDocument; frame: StudyFrame }) {
+  const sdd = doc.frames.find((f) => f.id === frame.id);
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setWidth(e?.contentRect.width ?? 0));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  if (!sdd?.width || !sdd.height || drawn(doc, sdd).length === 0) return <Wireframe doc={doc} frame={frame} />;
+  const scale = width / sdd.width;
+  return <figure className="keyframe" aria-label={`${frame.viewport} key frame`}>
+    <div ref={ref} className="keyframe-board" style={{ height: Math.round(sdd.height * scale) }}>{width > 0 && <Artboard doc={doc} frameId={sdd.id} scale={scale} readOnly />}</div>
+    <figcaption>{frame.viewport === "phone" ? "Phone" : frame.viewport === "desktop" ? "Desktop" : frame.viewport}</figcaption>
+  </figure>;
+}
+
 /** One key frame drawn from its node tree: boxes nested as the nodes are, each named for its role, words shown as slots. */
 function Wireframe({ doc, frame }: { doc: SddDocument; frame: StudyFrame }) {
   const tree = treeOf(doc, frame);
@@ -100,9 +123,9 @@ function Box({ tree: { node, children } }: { tree: NodeTree }) {
   const slot = slotOf(node);
   const layout = layoutOf(node);
   const kind = node.type === "text" ? "text" : node.type === "control" ? "control" : node.type === "image" || node.type === "media" ? "media" : "group";
-  return <div className={`wf wf-${kind}`} title={layout || undefined} data-node={node.id}>
-    <span className="wf-role">{node.role}</span>
-    {slot && <span className="wf-slot">{slot.purpose || slot.key}{slot.maxChars ? <small> · up to {slot.maxChars} characters</small> : null}</span>}
+  return <div className={`wire wire-${kind}`} title={layout || undefined} data-node={node.id}>
+    <span className="wire-role">{node.role}</span>
+    {slot && <span className="wire-slot">{slot.purpose || slot.key}{slot.maxChars ? <small> · up to {slot.maxChars} characters</small> : null}</span>}
     {children.map((c) => <Box key={c.node.id} tree={c} />)}
   </div>;
 }

@@ -1,5 +1,5 @@
 {
- "schemaVersion": "2",
+ "schemaVersion": "3",
  "documentId": "sdd-p-1",
  "projectId": "p-1",
  "tenantId": "o-1",
@@ -33,10 +33,10 @@
    "posture": "CONSERVATIVE",
    "meaningInterpretation": "Freshness is the promise, and the roast date is its proof; the page must show the date before it asks for a subscription.",
    "audienceExperience": "A home brewer who buys in shops sees the roast date first and feels they are buying from the roaster, not a reseller.",
-   "composition": "A single column from the roast date to the subscription and its terms.",
-   "typography": "A sturdy grotesque for headings, tabular figures for dates and prices.",
+   "composition": "A slim bar, then a first screen that leads with the roast date, three proof cards in a row and the terms in a band of their own.",
+   "typography": "A sturdy grotesque for the promise, a mono with tabular figures for the roast date, a plain sans for reading.",
    "artDirection": "Beans and bags photographed in the roastery, with the date stamp in frame.",
-   "colourAndMaterial": null,
+   "colourAndMaterial": "Unbleached kraft for the page, roastery green for the one action, a darker paper for the cards and the terms.",
    "interactionAndMotion": null,
    "signature": {
     "noneBecause": "The roast date carries the page; a further device would compete with it"
@@ -63,15 +63,52 @@
    "techniqueMapping": "Deliberately familiar: subscription-site conventions keep ordering obvious, and the roast date is the one thing raised above them.",
    "tokens": {
     "colour": {
-     "surface.base": "unbleached kraft"
+     "surface": "#F4EEE3",
+     "text": "#1E1A16",
+     "accent": "#2F5D50",
+     "paper": "#E8DFCF"
     },
     "type": {
-     "date": "tabular figures, large"
+     "display": {
+      "family": "grotesk",
+      "size": 56,
+      "weight": 700,
+      "tracking": -0.01,
+      "lineHeight": 1.1
+     },
+     "date": {
+      "family": "mono",
+      "size": 24,
+      "weight": 500,
+      "tracking": 0,
+      "lineHeight": 1.2
+     },
+     "body": {
+      "family": "sans",
+      "size": 18,
+      "weight": 400,
+      "tracking": 0,
+      "lineHeight": 1.5
+     },
+     "label": {
+      "family": "sans",
+      "size": 15,
+      "weight": 600,
+      "tracking": 0.02,
+      "lineHeight": 1.3
+     }
     },
     "space": {
-     "section": "generous"
-    }
+     "gap": 16,
+     "section": 96
+    },
+    "radius": {
+     "control": 6,
+     "card": 8
+    },
+    "motion": {}
    },
+   "tokenNotes": {},
    "keyFrameIds": [
     "territory.conservative.desktop",
     "territory.conservative.phone"
@@ -88,10 +125,10 @@
    "posture": "DISTINCTIVE",
    "meaningInterpretation": "Freshness is the promise, and the roast date is its proof; the page must show the date before it asks for a subscription.",
    "audienceExperience": "A home brewer who buys in shops sees the roast date first and feels they are buying from the roaster, not a reseller.",
-   "composition": "A ticket-shaped panel anchors the first screen, with the subscription as its last line.",
-   "typography": "A sturdy grotesque for headings, tabular figures for dates and prices.",
+   "composition": "The first screen splits in two: the promise on the left, the batch ticket on the right. A wide roastery photograph follows, then the terms.",
+   "typography": "A heavy grotesque for the promise, a typewriter mono for everything on the ticket, a reading serif for the story.",
    "artDirection": "Beans and bags photographed in the roastery, with the date stamp in frame.",
-   "colourAndMaterial": null,
+   "colourAndMaterial": "Manila for the page, off-white ticket stock, black ink and a stamp red for the action and the tear line.",
    "interactionAndMotion": null,
    "signature": {
     "device": "The batch ticket, repeated on every page"
@@ -118,15 +155,53 @@
    "techniqueMapping": "Collides a roastery's batch ticket with a subscription checkout, so the proof and the order are one object.",
    "tokens": {
     "colour": {
-     "surface.base": "unbleached kraft"
+     "surface": "#EFE6D2",
+     "text": "#111111",
+     "accent": "#B8321F",
+     "ticket": "#FFFDF6"
     },
     "type": {
-     "date": "tabular figures, large"
+     "display": {
+      "family": "grotesk",
+      "size": 64,
+      "weight": 800,
+      "tracking": -0.02,
+      "lineHeight": 1
+     },
+     "ticket": {
+      "family": "mono",
+      "size": 20,
+      "weight": 500,
+      "tracking": 0.04,
+      "lineHeight": 1.4
+     },
+     "body": {
+      "family": "serif",
+      "size": 18,
+      "weight": 400,
+      "tracking": 0,
+      "lineHeight": 1.55
+     },
+     "stamp": {
+      "family": "mono",
+      "size": 14,
+      "weight": 700,
+      "tracking": 0.08,
+      "lineHeight": 1.2
+     }
     },
     "space": {
-     "section": "generous"
-    }
+     "tight": 12,
+     "block": 24,
+     "section": 80
+    },
+    "radius": {
+     "card": 2,
+     "control": 2
+    },
+    "motion": {}
    },
+   "tokenNotes": {},
    "keyFrameIds": [
     "territory.distinctive.desktop",
     "territory.distinctive.phone"
@@ -143,10 +218,10 @@
    "posture": "EXPERIMENTAL",
    "meaningInterpretation": "Freshness is the promise, and the roast date is its proof; the page must show the date before it asks for a subscription.",
    "audienceExperience": "A home brewer who buys in shops sees the roast date first and feels they are buying from the roaster, not a reseller.",
-   "composition": "A week strip runs across the first screen and the subscription sits on the next roast day.",
-   "typography": "A sturdy grotesque for headings, tabular figures for dates and prices.",
+   "composition": "A strip of seven days crosses the first screen with the next roast day lit; the booking card sits under it. The phone shows the next roast day and the two after it.",
+   "typography": "A tall display serif for the week, a small spaced mono for days and dates, a plain sans for reading.",
    "artDirection": "Beans and bags photographed in the roastery, with the date stamp in frame.",
-   "colourAndMaterial": null,
+   "colourAndMaterial": "Night roastery: a near-black page, warm paper text, dark day cells and an amber flame for the next roast.",
    "interactionAndMotion": null,
    "signature": {
     "device": "The week strip with the next roast day marked"
@@ -173,15 +248,46 @@
    "techniqueMapping": "Maps a booking calendar onto ordering coffee, so freshness becomes a date you choose rather than a claim you read.",
    "tokens": {
     "colour": {
-     "surface.base": "unbleached kraft"
+     "surface": "#14120F",
+     "text": "#F3EDE2",
+     "accent": "#E8B04A",
+     "day": "#2A251E"
     },
     "type": {
-     "date": "tabular figures, large"
+     "display": {
+      "family": "serif",
+      "size": 72,
+      "weight": 400,
+      "tracking": -0.02,
+      "lineHeight": 1.05
+     },
+     "body": {
+      "family": "sans",
+      "size": 17,
+      "weight": 400,
+      "tracking": 0,
+      "lineHeight": 1.5
+     },
+     "day": {
+      "family": "mono",
+      "size": 14,
+      "weight": 500,
+      "tracking": 0.06,
+      "lineHeight": 1.3
+     }
     },
     "space": {
-     "section": "generous"
-    }
+     "cell": 8,
+     "block": 24,
+     "section": 72
+    },
+    "radius": {
+     "card": 12,
+     "control": 999
+    },
+    "motion": {}
    },
+   "tokenNotes": {},
    "keyFrameIds": [
     "territory.experimental.desktop",
     "territory.experimental.phone"
@@ -195,93 +301,196 @@
  "selectedTerritoryId": null,
  "decisionLog": [],
  "designGenome": null,
- "tokens": {},
+ "tokens": null,
  "assets": [],
  "pagesOrBoards": [],
  "frames": [
   {
    "id": "territory.conservative.desktop",
    "territoryId": "territory.conservative",
+   "page": null,
    "viewport": "desktop",
    "rootNodeId": "territory.conservative.desktop.page",
    "nodeIds": [
     "territory.conservative.desktop.page",
+    "territory.conservative.desktop.nav",
+    "territory.conservative.desktop.brand",
+    "territory.conservative.desktop.nav-cta",
     "territory.conservative.desktop.hero",
-    "territory.conservative.desktop.headline",
     "territory.conservative.desktop.roast-date",
+    "territory.conservative.desktop.headline",
+    "territory.conservative.desktop.lede",
     "territory.conservative.desktop.cta",
+    "territory.conservative.desktop.proof",
+    "territory.conservative.desktop.proof-1",
+    "territory.conservative.desktop.proof-1-title",
+    "territory.conservative.desktop.proof-1-body",
+    "territory.conservative.desktop.proof-2",
+    "territory.conservative.desktop.proof-2-title",
+    "territory.conservative.desktop.proof-2-body",
+    "territory.conservative.desktop.proof-3",
+    "territory.conservative.desktop.proof-3-title",
+    "territory.conservative.desktop.proof-3-body",
+    "territory.conservative.desktop.terms-band",
     "territory.conservative.desktop.terms"
-   ]
+   ],
+   "width": 1440,
+   "height": 1518
   },
   {
    "id": "territory.conservative.phone",
    "territoryId": "territory.conservative",
+   "page": null,
    "viewport": "phone",
    "rootNodeId": "territory.conservative.phone.page",
    "nodeIds": [
     "territory.conservative.phone.page",
+    "territory.conservative.phone.nav",
+    "territory.conservative.phone.brand",
+    "territory.conservative.phone.nav-cta",
     "territory.conservative.phone.hero",
-    "territory.conservative.phone.headline",
     "territory.conservative.phone.roast-date",
+    "territory.conservative.phone.headline",
+    "territory.conservative.phone.lede",
     "territory.conservative.phone.cta",
+    "territory.conservative.phone.proof",
+    "territory.conservative.phone.proof-1",
+    "territory.conservative.phone.proof-1-title",
+    "territory.conservative.phone.proof-1-body",
+    "territory.conservative.phone.proof-2",
+    "territory.conservative.phone.proof-2-title",
+    "territory.conservative.phone.proof-2-body",
+    "territory.conservative.phone.proof-3",
+    "territory.conservative.phone.proof-3-title",
+    "territory.conservative.phone.proof-3-body",
+    "territory.conservative.phone.terms-band",
     "territory.conservative.phone.terms"
-   ]
+   ],
+   "width": 390,
+   "height": 1655
   },
   {
    "id": "territory.distinctive.desktop",
    "territoryId": "territory.distinctive",
+   "page": null,
    "viewport": "desktop",
    "rootNodeId": "territory.distinctive.desktop.page",
    "nodeIds": [
     "territory.distinctive.desktop.page",
     "territory.distinctive.desktop.hero",
+    "territory.distinctive.desktop.pitch",
     "territory.distinctive.desktop.headline",
+    "territory.distinctive.desktop.lede",
+    "territory.distinctive.desktop.ticket",
+    "territory.distinctive.desktop.ticket-head",
+    "territory.distinctive.desktop.batch-no",
     "territory.distinctive.desktop.roast-date",
+    "territory.distinctive.desktop.origin",
+    "territory.distinctive.desktop.profile",
+    "territory.distinctive.desktop.tear",
+    "territory.distinctive.desktop.price",
     "territory.distinctive.desktop.cta",
+    "territory.distinctive.desktop.roastery",
     "territory.distinctive.desktop.terms"
-   ]
+   ],
+   "width": 1440,
+   "height": 1728
   },
   {
    "id": "territory.distinctive.phone",
    "territoryId": "territory.distinctive",
+   "page": null,
    "viewport": "phone",
    "rootNodeId": "territory.distinctive.phone.page",
    "nodeIds": [
     "territory.distinctive.phone.page",
     "territory.distinctive.phone.hero",
+    "territory.distinctive.phone.pitch",
     "territory.distinctive.phone.headline",
+    "territory.distinctive.phone.lede",
+    "territory.distinctive.phone.ticket",
+    "territory.distinctive.phone.ticket-head",
+    "territory.distinctive.phone.batch-no",
     "territory.distinctive.phone.roast-date",
+    "territory.distinctive.phone.origin",
+    "territory.distinctive.phone.profile",
+    "territory.distinctive.phone.tear",
+    "territory.distinctive.phone.price",
     "territory.distinctive.phone.cta",
+    "territory.distinctive.phone.roastery",
     "territory.distinctive.phone.terms"
-   ]
+   ],
+   "width": 390,
+   "height": 1424
   },
   {
    "id": "territory.experimental.desktop",
    "territoryId": "territory.experimental",
+   "page": null,
    "viewport": "desktop",
    "rootNodeId": "territory.experimental.desktop.page",
    "nodeIds": [
     "territory.experimental.desktop.page",
-    "territory.experimental.desktop.hero",
+    "territory.experimental.desktop.kicker",
     "territory.experimental.desktop.headline",
-    "territory.experimental.desktop.roast-date",
+    "territory.experimental.desktop.week",
+    "territory.experimental.desktop.day-1",
+    "territory.experimental.desktop.day-1-name",
+    "territory.experimental.desktop.day-1-roast",
+    "territory.experimental.desktop.day-2",
+    "territory.experimental.desktop.day-2-name",
+    "territory.experimental.desktop.day-2-roast",
+    "territory.experimental.desktop.day-3",
+    "territory.experimental.desktop.day-3-name",
+    "territory.experimental.desktop.day-3-roast",
+    "territory.experimental.desktop.day-4",
+    "territory.experimental.desktop.day-4-name",
+    "territory.experimental.desktop.day-4-roast",
+    "territory.experimental.desktop.day-5",
+    "territory.experimental.desktop.day-5-name",
+    "territory.experimental.desktop.day-5-roast",
+    "territory.experimental.desktop.day-6",
+    "territory.experimental.desktop.day-6-name",
+    "territory.experimental.desktop.day-6-roast",
+    "territory.experimental.desktop.day-7",
+    "territory.experimental.desktop.day-7-name",
+    "territory.experimental.desktop.day-7-roast",
+    "territory.experimental.desktop.booking",
+    "territory.experimental.desktop.booking-title",
     "territory.experimental.desktop.cta",
     "territory.experimental.desktop.terms"
-   ]
+   ],
+   "width": 1440,
+   "height": 900
   },
   {
    "id": "territory.experimental.phone",
    "territoryId": "territory.experimental",
+   "page": null,
    "viewport": "phone",
    "rootNodeId": "territory.experimental.phone.page",
    "nodeIds": [
     "territory.experimental.phone.page",
-    "territory.experimental.phone.hero",
+    "territory.experimental.phone.kicker",
     "territory.experimental.phone.headline",
-    "territory.experimental.phone.roast-date",
+    "territory.experimental.phone.week",
+    "territory.experimental.phone.day-4",
+    "territory.experimental.phone.day-4-name",
+    "territory.experimental.phone.day-4-roast",
+    "territory.experimental.phone.later",
+    "territory.experimental.phone.day-5",
+    "territory.experimental.phone.day-5-name",
+    "territory.experimental.phone.day-5-roast",
+    "territory.experimental.phone.day-6",
+    "territory.experimental.phone.day-6-name",
+    "territory.experimental.phone.day-6-roast",
+    "territory.experimental.phone.booking",
+    "territory.experimental.phone.booking-title",
     "territory.experimental.phone.cta",
     "territory.experimental.phone.terms"
-   ]
+   ],
+   "width": 390,
+   "height": 844
   }
  ],
  "nodes": [
@@ -291,17 +500,153 @@
    "type": "frame",
    "parentId": null,
    "children": [
+    "territory.conservative.desktop.nav",
     "territory.conservative.desktop.hero",
-    "territory.conservative.desktop.terms"
+    "territory.conservative.desktop.proof",
+    "territory.conservative.desktop.terms-band"
    ],
    "geometry": {
-    "description": "1440 wide, one column of 1040 centred"
+    "intent": "1440 wide, one column of 1040 centred",
+    "box": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 1518
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": {
+     "token": "surface"
+    },
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.nav",
+   "role": "navigation",
+   "type": "group",
+   "parentId": "territory.conservative.desktop.page",
+   "children": [
+    "territory.conservative.desktop.brand",
+    "territory.conservative.desktop.nav-cta"
+   ],
+   "geometry": {
+    "intent": "a slim bar at the top",
+    "box": {
+     "x": 200,
+     "y": 96,
+     "w": 1040,
+     "h": 44
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.brand",
+   "role": "brand",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.nav",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "brand_name",
+     "purpose": "The roastery's name",
+     "maxChars": 18,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 200,
+     "y": 108,
+     "w": 146,
+     "h": 20
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.nav-cta",
+   "role": "secondary action",
+   "type": "control",
+   "parentId": "territory.conservative.desktop.nav",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "nav_subscribe",
+     "purpose": "Go to the subscription",
+     "maxChars": 12,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 1110,
+     "y": 96,
+     "w": 130,
+     "h": 44
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "control",
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "center",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.conservative.desktop.hero",
@@ -309,18 +654,75 @@
    "type": "group",
    "parentId": "territory.conservative.desktop.page",
    "children": [
-    "territory.conservative.desktop.headline",
     "territory.conservative.desktop.roast-date",
+    "territory.conservative.desktop.headline",
+    "territory.conservative.desktop.lede",
     "territory.conservative.desktop.cta"
    ],
    "geometry": {
-    "description": "full width, first screen"
+    "intent": "full width, 60% of the viewport tall, content left",
+    "box": {
+     "x": 0,
+     "y": 236,
+     "w": 1440,
+     "h": 540
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.roast-date",
+   "role": "roast date",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "roast_date",
+     "purpose": "This week's roast date, as printed on the bag",
+     "maxChars": 28,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 200,
+     "y": 357,
+     "w": 404,
+     "h": 29
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "date",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.conservative.desktop.headline",
@@ -336,31 +738,77 @@
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 200,
+     "y": 402,
+     "w": 1040,
+     "h": 124
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "display",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
-   "id": "territory.conservative.desktop.roast-date",
-   "role": "proof",
+   "id": "territory.conservative.desktop.lede",
+   "role": "supporting message",
    "type": "text",
    "parentId": "territory.conservative.desktop.hero",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "roast_date_label",
-     "purpose": "When this week's batch was roasted",
-     "maxChars": 32,
+     "key": "hero_lede",
+     "purpose": "How the weekly roast reaches the door",
+     "maxChars": 140,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 200,
+     "y": 542,
+     "w": 1040,
+     "h": 54
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.conservative.desktop.cta",
@@ -370,40 +818,506 @@
    "children": [],
    "content": {
     "contentRef": {
-     "key": "subscribe_cta",
+     "key": "hero_cta",
      "purpose": "Start a subscription",
      "maxChars": 24,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 200,
+     "y": 612,
+     "w": 227,
+     "h": 44
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "control",
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "center",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
-   "id": "territory.conservative.desktop.terms",
-   "role": "reassurance",
-   "type": "text",
+   "id": "territory.conservative.desktop.proof",
+   "role": "proof",
+   "type": "group",
    "parentId": "territory.conservative.desktop.page",
+   "children": [
+    "territory.conservative.desktop.proof-1",
+    "territory.conservative.desktop.proof-2",
+    "territory.conservative.desktop.proof-3"
+   ],
+   "geometry": {
+    "intent": "three columns under the hero",
+    "box": {
+     "x": 200,
+     "y": 872,
+     "w": 1040,
+     "h": 235
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.proof-1",
+   "role": "proof card",
+   "type": "group",
+   "parentId": "territory.conservative.desktop.proof",
+   "children": [
+    "territory.conservative.desktop.proof-1-title",
+    "territory.conservative.desktop.proof-1-body"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 200,
+     "y": 872,
+     "w": 336,
+     "h": 235
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "paper"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.proof-1-title",
+   "role": "proof title",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.proof-1",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "pause_cancel_note",
-     "purpose": "They can pause or cancel",
-     "maxChars": 80,
+     "key": "proof_small_batch_title",
+     "purpose": "Why small batches",
+     "maxChars": 32,
      "status": "PLACEHOLDER"
     }
    },
    "geometry": {
-    "description": "a band under the hero"
+    "intent": null,
+    "box": {
+     "x": 232,
+     "y": 904,
+     "w": 260,
+     "h": 20
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.proof-1-body",
+   "role": "proof body",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.proof-1",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "proof_small_batch_body",
+     "purpose": "Why small batches, in a sentence or two",
+     "maxChars": 120,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 232,
+     "y": 940,
+     "w": 272,
+     "h": 135
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.proof-2",
+   "role": "proof card",
+   "type": "group",
+   "parentId": "territory.conservative.desktop.proof",
+   "children": [
+    "territory.conservative.desktop.proof-2-title",
+    "territory.conservative.desktop.proof-2-body"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 552,
+     "y": 872,
+     "w": 336,
+     "h": 235
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "paper"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.proof-2-title",
+   "role": "proof title",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.proof-2",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "proof_roast_date_title",
+     "purpose": "Where the date is printed",
+     "maxChars": 32,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 584,
+     "y": 904,
+     "w": 260,
+     "h": 20
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.proof-2-body",
+   "role": "proof body",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.proof-2",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "proof_roast_date_body",
+     "purpose": "Where the date is printed, in a sentence or two",
+     "maxChars": 120,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 584,
+     "y": 940,
+     "w": 272,
+     "h": 135
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.proof-3",
+   "role": "proof card",
+   "type": "group",
+   "parentId": "territory.conservative.desktop.proof",
+   "children": [
+    "territory.conservative.desktop.proof-3-title",
+    "territory.conservative.desktop.proof-3-body"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 904,
+     "y": 872,
+     "w": 336,
+     "h": 235
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "paper"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.proof-3-title",
+   "role": "proof title",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.proof-3",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "proof_pause_title",
+     "purpose": "Pause or cancel any week",
+     "maxChars": 32,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 936,
+     "y": 904,
+     "w": 260,
+     "h": 20
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.proof-3-body",
+   "role": "proof body",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.proof-3",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "proof_pause_body",
+     "purpose": "Pause or cancel any week, in a sentence or two",
+     "maxChars": 120,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 936,
+     "y": 940,
+     "w": 272,
+     "h": 135
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.terms-band",
+   "role": "terms",
+   "type": "group",
+   "parentId": "territory.conservative.desktop.page",
+   "children": [
+    "territory.conservative.desktop.terms"
+   ],
+   "geometry": {
+    "intent": "full width band under the proof",
+    "box": {
+     "x": 0,
+     "y": 1203,
+     "w": 1440,
+     "h": 219
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "paper"
+    },
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.desktop.terms",
+   "role": "terms",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.terms-band",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "subscription_terms",
+     "purpose": "Pause or cancel, plainly",
+     "maxChars": 90,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 200,
+     "y": 1299,
+     "w": 843,
+     "h": 27
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.conservative.phone.page",
@@ -411,17 +1325,153 @@
    "type": "frame",
    "parentId": null,
    "children": [
+    "territory.conservative.phone.nav",
     "territory.conservative.phone.hero",
-    "territory.conservative.phone.terms"
+    "territory.conservative.phone.proof",
+    "territory.conservative.phone.terms-band"
    ],
    "geometry": {
-    "description": "390 wide, one column"
+    "intent": "390 wide, one column",
+    "box": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1655
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": {
+     "token": "surface"
+    },
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.nav",
+   "role": "navigation",
+   "type": "group",
+   "parentId": "territory.conservative.phone.page",
+   "children": [
+    "territory.conservative.phone.brand",
+    "territory.conservative.phone.nav-cta"
+   ],
+   "geometry": {
+    "intent": "a slim bar at the top",
+    "box": {
+     "x": 20,
+     "y": 56,
+     "w": 350,
+     "h": 44
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.brand",
+   "role": "brand",
+   "type": "text",
+   "parentId": "territory.conservative.phone.nav",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "brand_name",
+     "purpose": "The roastery's name",
+     "maxChars": 18,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 68,
+     "w": 146,
+     "h": 20
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.nav-cta",
+   "role": "secondary action",
+   "type": "control",
+   "parentId": "territory.conservative.phone.nav",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "nav_subscribe",
+     "purpose": "Go to the subscription",
+     "maxChars": 12,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 240,
+     "y": 56,
+     "w": 130,
+     "h": 44
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "control",
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "center",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.conservative.phone.hero",
@@ -429,18 +1479,75 @@
    "type": "group",
    "parentId": "territory.conservative.phone.page",
    "children": [
-    "territory.conservative.phone.headline",
     "territory.conservative.phone.roast-date",
+    "territory.conservative.phone.headline",
+    "territory.conservative.phone.lede",
     "territory.conservative.phone.cta"
    ],
    "geometry": {
-    "description": "full width, first screen"
+    "intent": "full width, 60% of the viewport tall, content left",
+    "box": {
+     "x": 0,
+     "y": 156,
+     "w": 390,
+     "h": 506
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.roast-date",
+   "role": "roast date",
+   "type": "text",
+   "parentId": "territory.conservative.phone.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "roast_date",
+     "purpose": "This week's roast date, as printed on the bag",
+     "maxChars": 28,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 199,
+     "w": 350,
+     "h": 53
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "date",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": 22
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.conservative.phone.headline",
@@ -456,31 +1563,77 @@
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 268,
+     "w": 350,
+     "h": 168
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "display",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": 38
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
-   "id": "territory.conservative.phone.roast-date",
-   "role": "proof",
+   "id": "territory.conservative.phone.lede",
+   "role": "supporting message",
    "type": "text",
    "parentId": "territory.conservative.phone.hero",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "roast_date_label",
-     "purpose": "When this week's batch was roasted",
-     "maxChars": 32,
+     "key": "hero_lede",
+     "purpose": "How the weekly roast reaches the door",
+     "maxChars": 140,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 452,
+     "w": 350,
+     "h": 108
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.conservative.phone.cta",
@@ -490,40 +1643,506 @@
    "children": [],
    "content": {
     "contentRef": {
-     "key": "subscribe_cta",
+     "key": "hero_cta",
      "purpose": "Start a subscription",
      "maxChars": 24,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 576,
+     "w": 227,
+     "h": 44
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "control",
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "center",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
-   "id": "territory.conservative.phone.terms",
-   "role": "reassurance",
-   "type": "text",
+   "id": "territory.conservative.phone.proof",
+   "role": "proof",
+   "type": "group",
    "parentId": "territory.conservative.phone.page",
+   "children": [
+    "territory.conservative.phone.proof-1",
+    "territory.conservative.phone.proof-2",
+    "territory.conservative.phone.proof-3"
+   ],
+   "geometry": {
+    "intent": "stacked under the hero",
+    "box": {
+     "x": 20,
+     "y": 718,
+     "w": 350,
+     "h": 632
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.proof-1",
+   "role": "proof card",
+   "type": "group",
+   "parentId": "territory.conservative.phone.proof",
+   "children": [
+    "territory.conservative.phone.proof-1-title",
+    "territory.conservative.phone.proof-1-body"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 718,
+     "w": 350,
+     "h": 200
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "paper"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.proof-1-title",
+   "role": "proof title",
+   "type": "text",
+   "parentId": "territory.conservative.phone.proof-1",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "pause_cancel_note",
-     "purpose": "They can pause or cancel",
-     "maxChars": 80,
+     "key": "proof_small_batch_title",
+     "purpose": "Why small batches",
+     "maxChars": 32,
      "status": "PLACEHOLDER"
     }
    },
    "geometry": {
-    "description": "stacked under the hero"
+    "intent": null,
+    "box": {
+     "x": 48,
+     "y": 746,
+     "w": 260,
+     "h": 20
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.proof-1-body",
+   "role": "proof body",
+   "type": "text",
+   "parentId": "territory.conservative.phone.proof-1",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "proof_small_batch_body",
+     "purpose": "Why small batches, in a sentence or two",
+     "maxChars": 120,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 48,
+     "y": 782,
+     "w": 294,
+     "h": 108
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.proof-2",
+   "role": "proof card",
+   "type": "group",
+   "parentId": "territory.conservative.phone.proof",
+   "children": [
+    "territory.conservative.phone.proof-2-title",
+    "territory.conservative.phone.proof-2-body"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 934,
+     "w": 350,
+     "h": 200
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "paper"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.proof-2-title",
+   "role": "proof title",
+   "type": "text",
+   "parentId": "territory.conservative.phone.proof-2",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "proof_roast_date_title",
+     "purpose": "Where the date is printed",
+     "maxChars": 32,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 48,
+     "y": 962,
+     "w": 260,
+     "h": 20
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.proof-2-body",
+   "role": "proof body",
+   "type": "text",
+   "parentId": "territory.conservative.phone.proof-2",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "proof_roast_date_body",
+     "purpose": "Where the date is printed, in a sentence or two",
+     "maxChars": 120,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 48,
+     "y": 998,
+     "w": 294,
+     "h": 108
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.proof-3",
+   "role": "proof card",
+   "type": "group",
+   "parentId": "territory.conservative.phone.proof",
+   "children": [
+    "territory.conservative.phone.proof-3-title",
+    "territory.conservative.phone.proof-3-body"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 1150,
+     "w": 350,
+     "h": 200
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "paper"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.proof-3-title",
+   "role": "proof title",
+   "type": "text",
+   "parentId": "territory.conservative.phone.proof-3",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "proof_pause_title",
+     "purpose": "Pause or cancel any week",
+     "maxChars": 32,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 48,
+     "y": 1178,
+     "w": 260,
+     "h": 20
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "label",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.proof-3-body",
+   "role": "proof body",
+   "type": "text",
+   "parentId": "territory.conservative.phone.proof-3",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "proof_pause_body",
+     "purpose": "Pause or cancel any week, in a sentence or two",
+     "maxChars": 120,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 48,
+     "y": 1214,
+     "w": 294,
+     "h": 108
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.terms-band",
+   "role": "terms",
+   "type": "group",
+   "parentId": "territory.conservative.phone.page",
+   "children": [
+    "territory.conservative.phone.terms"
+   ],
+   "geometry": {
+    "intent": "full width band under the proof",
+    "box": {
+     "x": 0,
+     "y": 1406,
+     "w": 390,
+     "h": 193
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "paper"
+    },
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.conservative.phone.terms",
+   "role": "terms",
+   "type": "text",
+   "parentId": "territory.conservative.phone.terms-band",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "subscription_terms",
+     "purpose": "Pause or cancel, plainly",
+     "maxChars": 90,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 1462,
+     "w": 350,
+     "h": 81
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.distinctive.desktop.page",
@@ -532,16 +2151,32 @@
    "parentId": null,
    "children": [
     "territory.distinctive.desktop.hero",
+    "territory.distinctive.desktop.roastery",
     "territory.distinctive.desktop.terms"
    ],
    "geometry": {
-    "description": "1440 wide, one column of 1040 centred"
+    "intent": "1440 wide, one column of 1120 centred",
+    "box": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 1728
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": {
+     "token": "surface"
+    },
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.distinctive.desktop.hero",
@@ -549,101 +2184,576 @@
    "type": "group",
    "parentId": "territory.distinctive.desktop.page",
    "children": [
-    "territory.distinctive.desktop.headline",
-    "territory.distinctive.desktop.roast-date",
-    "territory.distinctive.desktop.cta"
+    "territory.distinctive.desktop.pitch",
+    "territory.distinctive.desktop.ticket"
    ],
    "geometry": {
-    "description": "full width, first screen"
+    "intent": "first screen, the promise left and the ticket right",
+    "box": {
+     "x": 160,
+     "y": 80,
+     "w": 1120,
+     "h": 900
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.desktop.pitch",
+   "role": "promise",
+   "type": "group",
+   "parentId": "territory.distinctive.desktop.hero",
+   "children": [
+    "territory.distinctive.desktop.headline",
+    "territory.distinctive.desktop.lede"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 160,
+     "y": 355,
+     "w": 554,
+     "h": 350
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.distinctive.desktop.headline",
    "role": "headline",
    "type": "text",
-   "parentId": "territory.distinctive.desktop.hero",
+   "parentId": "territory.distinctive.desktop.pitch",
    "children": [],
    "content": {
     "contentRef": {
      "key": "hero_headline",
      "purpose": "Roasted weekly, so it arrives fresh",
-     "maxChars": 56,
+     "maxChars": 48,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 160,
+     "y": 386,
+     "w": 554,
+     "h": 192
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "display",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
-   "id": "territory.distinctive.desktop.roast-date",
-   "role": "proof",
+   "id": "territory.distinctive.desktop.lede",
+   "role": "supporting message",
    "type": "text",
-   "parentId": "territory.distinctive.desktop.hero",
+   "parentId": "territory.distinctive.desktop.pitch",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "roast_date_label",
-     "purpose": "When this week's batch was roasted",
+     "key": "hero_lede",
+     "purpose": "What the ticket on every bag records",
+     "maxChars": 140,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 160,
+     "y": 590,
+     "w": 554,
+     "h": 84
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.desktop.ticket",
+   "role": "batch ticket",
+   "type": "group",
+   "parentId": "territory.distinctive.desktop.hero",
+   "children": [
+    "territory.distinctive.desktop.ticket-head",
+    "territory.distinctive.desktop.origin",
+    "territory.distinctive.desktop.profile",
+    "territory.distinctive.desktop.tear",
+    "territory.distinctive.desktop.price",
+    "territory.distinctive.desktop.cta"
+   ],
+   "geometry": {
+    "intent": "a ticket-shaped panel",
+    "box": {
+     "x": 726,
+     "y": 355,
+     "w": 554,
+     "h": 350
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "ticket"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.desktop.ticket-head",
+   "role": "ticket header",
+   "type": "group",
+   "parentId": "territory.distinctive.desktop.ticket",
+   "children": [
+    "territory.distinctive.desktop.batch-no",
+    "territory.distinctive.desktop.roast-date"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 750,
+     "y": 379,
+     "w": 506,
+     "h": 56
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.desktop.batch-no",
+   "role": "batch number",
+   "type": "text",
+   "parentId": "territory.distinctive.desktop.ticket-head",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "batch_number",
+     "purpose": "This week's batch number",
+     "maxChars": 12,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 750,
+     "y": 399,
+     "w": 115,
+     "h": 17
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "stamp",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.desktop.roast-date",
+   "role": "roast date",
+   "type": "text",
+   "parentId": "territory.distinctive.desktop.ticket-head",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "roast_date",
+     "purpose": "The roast date, as on the bag",
+     "maxChars": 20,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 1009,
+     "y": 379,
+     "w": 247,
+     "h": 56
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "ticket",
+    "colour": {
+     "token": "text"
+    },
+    "align": "right",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.desktop.origin",
+   "role": "origin",
+   "type": "text",
+   "parentId": "territory.distinctive.desktop.ticket",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "batch_origin",
+     "purpose": "Farm and region of this batch",
+     "maxChars": 40,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 750,
+     "y": 447,
+     "w": 506,
+     "h": 56
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "ticket",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.desktop.profile",
+   "role": "roast profile",
+   "type": "text",
+   "parentId": "territory.distinctive.desktop.ticket",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "batch_profile",
+     "purpose": "Roast level and tasting notes",
+     "maxChars": 60,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 750,
+     "y": 515,
+     "w": 506,
+     "h": 56
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "ticket",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.desktop.tear",
+   "role": "tear line",
+   "type": "shape",
+   "parentId": "territory.distinctive.desktop.ticket",
+   "children": [],
+   "geometry": {
+    "intent": "a 2px rule across the ticket",
+    "box": {
+     "x": 750,
+     "y": 583,
+     "w": 506,
+     "h": 2
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.desktop.price",
+   "role": "price",
+   "type": "text",
+   "parentId": "territory.distinctive.desktop.ticket",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "subscription_price",
+     "purpose": "Price per bag and delivery rhythm",
      "maxChars": 32,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 750,
+     "y": 597,
+     "w": 410,
+     "h": 28
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "ticket",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.distinctive.desktop.cta",
    "role": "primary action",
    "type": "control",
-   "parentId": "territory.distinctive.desktop.hero",
+   "parentId": "territory.distinctive.desktop.ticket",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "subscribe_cta",
-     "purpose": "Start a subscription",
-     "maxChars": 24,
+     "key": "hero_cta",
+     "purpose": "Subscribe to the next batch",
+     "maxChars": 28,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": "full width",
+    "box": {
+     "x": 750,
+     "y": 637,
+     "w": 506,
+     "h": 44
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "control",
+    "opacity": 1
+   },
+   "text": {
+    "style": "stamp",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "center",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.desktop.roastery",
+   "role": "roastery photograph",
+   "type": "image",
+   "parentId": "territory.distinctive.desktop.page",
+   "children": [],
+   "geometry": {
+    "intent": "21:9, the roaster at the drum",
+    "box": {
+     "x": 160,
+     "y": 1060,
+     "w": 1120,
+     "h": 480
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.distinctive.desktop.terms",
-   "role": "reassurance",
+   "role": "terms",
    "type": "text",
    "parentId": "territory.distinctive.desktop.page",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "pause_cancel_note",
-     "purpose": "They can pause or cancel",
-     "maxChars": 80,
+     "key": "subscription_terms",
+     "purpose": "Pause or cancel, plainly",
+     "maxChars": 90,
      "status": "PLACEHOLDER"
     }
    },
    "geometry": {
-    "description": "a band under the hero"
+    "intent": null,
+    "box": {
+     "x": 160,
+     "y": 1620,
+     "w": 810,
+     "h": 28
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.distinctive.phone.page",
@@ -652,16 +2762,32 @@
    "parentId": null,
    "children": [
     "territory.distinctive.phone.hero",
+    "territory.distinctive.phone.roastery",
     "territory.distinctive.phone.terms"
    ],
    "geometry": {
-    "description": "390 wide, one column"
+    "intent": "390 wide, one column",
+    "box": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1424
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": {
+     "token": "surface"
+    },
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.distinctive.phone.hero",
@@ -669,101 +2795,576 @@
    "type": "group",
    "parentId": "territory.distinctive.phone.page",
    "children": [
-    "territory.distinctive.phone.headline",
-    "territory.distinctive.phone.roast-date",
-    "territory.distinctive.phone.cta"
+    "territory.distinctive.phone.pitch",
+    "territory.distinctive.phone.ticket"
    ],
    "geometry": {
-    "description": "full width, first screen"
+    "intent": "the promise, then the ticket",
+    "box": {
+     "x": 20,
+     "y": 48,
+     "w": 350,
+     "h": 710
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.phone.pitch",
+   "role": "promise",
+   "type": "group",
+   "parentId": "territory.distinctive.phone.hero",
+   "children": [
+    "territory.distinctive.phone.headline",
+    "territory.distinctive.phone.lede"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 48,
+     "w": 350,
+     "h": 292
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.distinctive.phone.headline",
    "role": "headline",
    "type": "text",
-   "parentId": "territory.distinctive.phone.hero",
+   "parentId": "territory.distinctive.phone.pitch",
    "children": [],
    "content": {
     "contentRef": {
      "key": "hero_headline",
      "purpose": "Roasted weekly, so it arrives fresh",
-     "maxChars": 56,
+     "maxChars": 48,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 48,
+     "w": 350,
+     "h": 168
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "display",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": 42
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
-   "id": "territory.distinctive.phone.roast-date",
-   "role": "proof",
+   "id": "territory.distinctive.phone.lede",
+   "role": "supporting message",
    "type": "text",
-   "parentId": "territory.distinctive.phone.hero",
+   "parentId": "territory.distinctive.phone.pitch",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "roast_date_label",
-     "purpose": "When this week's batch was roasted",
+     "key": "hero_lede",
+     "purpose": "What the ticket on every bag records",
+     "maxChars": 140,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 228,
+     "w": 350,
+     "h": 112
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.phone.ticket",
+   "role": "batch ticket",
+   "type": "group",
+   "parentId": "territory.distinctive.phone.hero",
+   "children": [
+    "territory.distinctive.phone.ticket-head",
+    "territory.distinctive.phone.origin",
+    "territory.distinctive.phone.profile",
+    "territory.distinctive.phone.tear",
+    "territory.distinctive.phone.price",
+    "territory.distinctive.phone.cta"
+   ],
+   "geometry": {
+    "intent": "a ticket-shaped panel",
+    "box": {
+     "x": 20,
+     "y": 352,
+     "w": 350,
+     "h": 406
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "ticket"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.phone.ticket-head",
+   "role": "ticket header",
+   "type": "group",
+   "parentId": "territory.distinctive.phone.ticket",
+   "children": [
+    "territory.distinctive.phone.batch-no",
+    "territory.distinctive.phone.roast-date"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 44,
+     "y": 376,
+     "w": 302,
+     "h": 56
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.phone.batch-no",
+   "role": "batch number",
+   "type": "text",
+   "parentId": "territory.distinctive.phone.ticket-head",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "batch_number",
+     "purpose": "This week's batch number",
+     "maxChars": 12,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 44,
+     "y": 396,
+     "w": 115,
+     "h": 17
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "stamp",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.phone.roast-date",
+   "role": "roast date",
+   "type": "text",
+   "parentId": "territory.distinctive.phone.ticket-head",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "roast_date",
+     "purpose": "The roast date, as on the bag",
+     "maxChars": 20,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 201,
+     "y": 376,
+     "w": 145,
+     "h": 56
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "ticket",
+    "colour": {
+     "token": "text"
+    },
+    "align": "right",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.phone.origin",
+   "role": "origin",
+   "type": "text",
+   "parentId": "territory.distinctive.phone.ticket",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "batch_origin",
+     "purpose": "Farm and region of this batch",
+     "maxChars": 40,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 44,
+     "y": 444,
+     "w": 302,
+     "h": 56
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "ticket",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.phone.profile",
+   "role": "roast profile",
+   "type": "text",
+   "parentId": "territory.distinctive.phone.ticket",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "batch_profile",
+     "purpose": "Roast level and tasting notes",
+     "maxChars": 60,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 44,
+     "y": 512,
+     "w": 302,
+     "h": 84
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "ticket",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.phone.tear",
+   "role": "tear line",
+   "type": "shape",
+   "parentId": "territory.distinctive.phone.ticket",
+   "children": [],
+   "geometry": {
+    "intent": "a 2px rule across the ticket",
+    "box": {
+     "x": 44,
+     "y": 608,
+     "w": 302,
+     "h": 2
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.phone.price",
+   "role": "price",
+   "type": "text",
+   "parentId": "territory.distinctive.phone.ticket",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "subscription_price",
+     "purpose": "Price per bag and delivery rhythm",
      "maxChars": 32,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 44,
+     "y": 622,
+     "w": 302,
+     "h": 56
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "ticket",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.distinctive.phone.cta",
    "role": "primary action",
    "type": "control",
-   "parentId": "territory.distinctive.phone.hero",
+   "parentId": "territory.distinctive.phone.ticket",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "subscribe_cta",
-     "purpose": "Start a subscription",
-     "maxChars": 24,
+     "key": "hero_cta",
+     "purpose": "Subscribe to the next batch",
+     "maxChars": 28,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": "full width",
+    "box": {
+     "x": 44,
+     "y": 690,
+     "w": 302,
+     "h": 44
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "control",
+    "opacity": 1
+   },
+   "text": {
+    "style": "stamp",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "center",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.distinctive.phone.roastery",
+   "role": "roastery photograph",
+   "type": "image",
+   "parentId": "territory.distinctive.phone.page",
+   "children": [],
+   "geometry": {
+    "intent": "4:5 portrait, the roaster at the drum",
+    "box": {
+     "x": 20,
+     "y": 806,
+     "w": 350,
+     "h": 438
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.distinctive.phone.terms",
-   "role": "reassurance",
+   "role": "terms",
    "type": "text",
    "parentId": "territory.distinctive.phone.page",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "pause_cancel_note",
-     "purpose": "They can pause or cancel",
-     "maxChars": 80,
+     "key": "subscription_terms",
+     "purpose": "Pause or cancel, plainly",
+     "maxChars": 90,
      "status": "PLACEHOLDER"
     }
    },
    "geometry": {
-    "description": "stacked under the hero"
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 1292,
+     "w": 350,
+     "h": 84
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.experimental.desktop.page",
@@ -771,119 +3372,1154 @@
    "type": "frame",
    "parentId": null,
    "children": [
-    "territory.experimental.desktop.hero",
+    "territory.experimental.desktop.kicker",
+    "territory.experimental.desktop.headline",
+    "territory.experimental.desktop.week",
+    "territory.experimental.desktop.booking",
     "territory.experimental.desktop.terms"
    ],
    "geometry": {
-    "description": "1440 wide, one column of 1040 centred"
+    "intent": "1440 wide, one column of 1200 centred",
+    "box": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 900
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": {
+     "token": "surface"
+    },
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
-   "id": "territory.experimental.desktop.hero",
-   "role": "hero",
-   "type": "group",
+   "id": "territory.experimental.desktop.kicker",
+   "role": "week label",
+   "type": "text",
    "parentId": "territory.experimental.desktop.page",
-   "children": [
-    "territory.experimental.desktop.headline",
-    "territory.experimental.desktop.roast-date",
-    "territory.experimental.desktop.cta"
-   ],
-   "geometry": {
-    "description": "full width, first screen"
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "week_label",
+     "purpose": "Which week of roasts this is",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 120,
+     "y": 72,
+     "w": 222,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.experimental.desktop.headline",
    "role": "headline",
    "type": "text",
-   "parentId": "territory.experimental.desktop.hero",
+   "parentId": "territory.experimental.desktop.page",
    "children": [],
    "content": {
     "contentRef": {
      "key": "hero_headline",
      "purpose": "Roasted weekly, so it arrives fresh",
-     "maxChars": 56,
+     "maxChars": 40,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 120,
+     "y": 163,
+     "w": 1200,
+     "h": 152
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "display",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
-   "id": "territory.experimental.desktop.roast-date",
-   "role": "proof",
+   "id": "territory.experimental.desktop.week",
+   "role": "week strip",
+   "type": "group",
+   "parentId": "territory.experimental.desktop.page",
+   "children": [
+    "territory.experimental.desktop.day-1",
+    "territory.experimental.desktop.day-2",
+    "territory.experimental.desktop.day-3",
+    "territory.experimental.desktop.day-4",
+    "territory.experimental.desktop.day-5",
+    "territory.experimental.desktop.day-6",
+    "territory.experimental.desktop.day-7"
+   ],
+   "geometry": {
+    "intent": "a strip of seven days under the headline",
+    "box": {
+     "x": 120,
+     "y": 387,
+     "w": 1200,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-1",
+   "role": "day",
+   "type": "group",
+   "parentId": "territory.experimental.desktop.week",
+   "children": [
+    "territory.experimental.desktop.day-1-name",
+    "territory.experimental.desktop.day-1-roast"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 120,
+     "y": 387,
+     "w": 164,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "day"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-1-name",
+   "role": "day name",
    "type": "text",
-   "parentId": "territory.experimental.desktop.hero",
+   "parentId": "territory.experimental.desktop.day-1",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "roast_date_label",
-     "purpose": "When this week's batch was roasted",
-     "maxChars": 32,
+     "key": "day_1_name",
+     "purpose": "Day and date",
+     "maxChars": 10,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 136,
+     "y": 403,
+     "w": 93,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-1-roast",
+   "role": "roast on that day",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-1",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_1_roast",
+     "purpose": "What is roasted that day, or rest",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 136,
+     "y": 430,
+     "w": 132,
+     "h": 37
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-2",
+   "role": "day",
+   "type": "group",
+   "parentId": "territory.experimental.desktop.week",
+   "children": [
+    "territory.experimental.desktop.day-2-name",
+    "territory.experimental.desktop.day-2-roast"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 292,
+     "y": 387,
+     "w": 164,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "day"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-2-name",
+   "role": "day name",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-2",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_2_name",
+     "purpose": "Day and date",
+     "maxChars": 10,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 308,
+     "y": 403,
+     "w": 93,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-2-roast",
+   "role": "roast on that day",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-2",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_2_roast",
+     "purpose": "What is roasted that day, or rest",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 308,
+     "y": 430,
+     "w": 132,
+     "h": 37
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-3",
+   "role": "day",
+   "type": "group",
+   "parentId": "territory.experimental.desktop.week",
+   "children": [
+    "territory.experimental.desktop.day-3-name",
+    "territory.experimental.desktop.day-3-roast"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 464,
+     "y": 387,
+     "w": 164,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "day"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-3-name",
+   "role": "day name",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-3",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_3_name",
+     "purpose": "Day and date",
+     "maxChars": 10,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 480,
+     "y": 403,
+     "w": 93,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-3-roast",
+   "role": "roast on that day",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-3",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_3_roast",
+     "purpose": "What is roasted that day, or rest",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 480,
+     "y": 430,
+     "w": 132,
+     "h": 37
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-4",
+   "role": "next roast day",
+   "type": "group",
+   "parentId": "territory.experimental.desktop.week",
+   "children": [
+    "territory.experimental.desktop.day-4-name",
+    "territory.experimental.desktop.day-4-roast"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 636,
+     "y": 387,
+     "w": 164,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-4-name",
+   "role": "day name",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-4",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_4_name",
+     "purpose": "Day and date",
+     "maxChars": 10,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 652,
+     "y": 403,
+     "w": 93,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-4-roast",
+   "role": "roast on that day",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-4",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_4_roast",
+     "purpose": "What is roasted that day, or rest",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 652,
+     "y": 430,
+     "w": 132,
+     "h": 37
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-5",
+   "role": "day",
+   "type": "group",
+   "parentId": "territory.experimental.desktop.week",
+   "children": [
+    "territory.experimental.desktop.day-5-name",
+    "territory.experimental.desktop.day-5-roast"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 808,
+     "y": 387,
+     "w": 164,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "day"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-5-name",
+   "role": "day name",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-5",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_5_name",
+     "purpose": "Day and date",
+     "maxChars": 10,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 824,
+     "y": 403,
+     "w": 93,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-5-roast",
+   "role": "roast on that day",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-5",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_5_roast",
+     "purpose": "What is roasted that day, or rest",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 824,
+     "y": 430,
+     "w": 132,
+     "h": 37
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-6",
+   "role": "day",
+   "type": "group",
+   "parentId": "territory.experimental.desktop.week",
+   "children": [
+    "territory.experimental.desktop.day-6-name",
+    "territory.experimental.desktop.day-6-roast"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 980,
+     "y": 387,
+     "w": 164,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "day"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-6-name",
+   "role": "day name",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-6",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_6_name",
+     "purpose": "Day and date",
+     "maxChars": 10,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 996,
+     "y": 403,
+     "w": 93,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-6-roast",
+   "role": "roast on that day",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-6",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_6_roast",
+     "purpose": "What is roasted that day, or rest",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 996,
+     "y": 430,
+     "w": 132,
+     "h": 37
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-7",
+   "role": "day",
+   "type": "group",
+   "parentId": "territory.experimental.desktop.week",
+   "children": [
+    "territory.experimental.desktop.day-7-name",
+    "territory.experimental.desktop.day-7-roast"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 1152,
+     "y": 387,
+     "w": 164,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "day"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-7-name",
+   "role": "day name",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-7",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_7_name",
+     "purpose": "Day and date",
+     "maxChars": 10,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 1168,
+     "y": 403,
+     "w": 93,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.day-7-roast",
+   "role": "roast on that day",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.day-7",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_7_roast",
+     "purpose": "What is roasted that day, or rest",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 1168,
+     "y": 430,
+     "w": 132,
+     "h": 37
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.booking",
+   "role": "booking",
+   "type": "group",
+   "parentId": "territory.experimental.desktop.page",
+   "children": [
+    "territory.experimental.desktop.booking-title",
+    "territory.experimental.desktop.cta"
+   ],
+   "geometry": {
+    "intent": "a card under the strip, 50% wide, centred",
+    "box": {
+     "x": 420,
+     "y": 555,
+     "w": 600,
+     "h": 112
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "day"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.desktop.booking-title",
+   "role": "booking title",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.booking",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "booking_title",
+     "purpose": "Book a place on the next roast",
+     "maxChars": 40,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 543,
+     "y": 571,
+     "w": 354,
+     "h": 26
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "center",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.experimental.desktop.cta",
    "role": "primary action",
    "type": "control",
-   "parentId": "territory.experimental.desktop.hero",
+   "parentId": "territory.experimental.desktop.booking",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "subscribe_cta",
-     "purpose": "Start a subscription",
-     "maxChars": 24,
+     "key": "hero_cta",
+     "purpose": "Book my bag",
+     "maxChars": 18,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 624,
+     "y": 605,
+     "w": 192,
+     "h": 46
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "control",
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "center",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.experimental.desktop.terms",
-   "role": "reassurance",
+   "role": "terms",
    "type": "text",
    "parentId": "territory.experimental.desktop.page",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "pause_cancel_note",
-     "purpose": "They can pause or cancel",
-     "maxChars": 80,
+     "key": "subscription_terms",
+     "purpose": "Pause or cancel, plainly",
+     "maxChars": 90,
      "status": "PLACEHOLDER"
     }
    },
    "geometry": {
-    "description": "a band under the hero"
+    "intent": null,
+    "box": {
+     "x": 120,
+     "y": 739,
+     "w": 796,
+     "h": 26
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.experimental.phone.page",
@@ -891,121 +4527,707 @@
    "type": "frame",
    "parentId": null,
    "children": [
-    "territory.experimental.phone.hero",
+    "territory.experimental.phone.kicker",
+    "territory.experimental.phone.headline",
+    "territory.experimental.phone.week",
+    "territory.experimental.phone.booking",
     "territory.experimental.phone.terms"
    ],
    "geometry": {
-    "description": "390 wide, one column"
+    "intent": "390 wide, one column",
+    "box": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 844
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": {
+     "token": "surface"
+    },
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
-   "id": "territory.experimental.phone.hero",
-   "role": "hero",
-   "type": "group",
+   "id": "territory.experimental.phone.kicker",
+   "role": "week label",
+   "type": "text",
    "parentId": "territory.experimental.phone.page",
-   "children": [
-    "territory.experimental.phone.headline",
-    "territory.experimental.phone.roast-date",
-    "territory.experimental.phone.cta"
-   ],
-   "geometry": {
-    "description": "full width, first screen"
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "week_label",
+     "purpose": "Which week of roasts this is",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 44,
+     "w": 222,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.experimental.phone.headline",
    "role": "headline",
    "type": "text",
-   "parentId": "territory.experimental.phone.hero",
+   "parentId": "territory.experimental.phone.page",
    "children": [],
    "content": {
     "contentRef": {
      "key": "hero_headline",
      "purpose": "Roasted weekly, so it arrives fresh",
-     "maxChars": 56,
+     "maxChars": 40,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 107,
+     "w": 350,
+     "h": 145
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "display",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": 46
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
-   "id": "territory.experimental.phone.roast-date",
-   "role": "proof",
+   "id": "territory.experimental.phone.week",
+   "role": "week strip",
+   "type": "group",
+   "parentId": "territory.experimental.phone.page",
+   "children": [
+    "territory.experimental.phone.day-4",
+    "territory.experimental.phone.later"
+   ],
+   "geometry": {
+    "intent": "the next roast day, then the two after it",
+    "box": {
+     "x": 20,
+     "y": 296,
+     "w": 350,
+     "h": 182
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.day-4",
+   "role": "next roast day",
+   "type": "group",
+   "parentId": "territory.experimental.phone.week",
+   "children": [
+    "territory.experimental.phone.day-4-name",
+    "territory.experimental.phone.day-4-roast"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 296,
+     "w": 350,
+     "h": 78
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.day-4-name",
+   "role": "day name",
    "type": "text",
-   "parentId": "territory.experimental.phone.hero",
+   "parentId": "territory.experimental.phone.day-4",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "roast_date_label",
-     "purpose": "When this week's batch was roasted",
-     "maxChars": 32,
+     "key": "day_4_name",
+     "purpose": "Day and date",
+     "maxChars": 10,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 36,
+     "y": 312,
+     "w": 93,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.day-4-roast",
+   "role": "roast on that day",
+   "type": "text",
+   "parentId": "territory.experimental.phone.day-4",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_4_roast",
+     "purpose": "What is roasted that day, or rest",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 36,
+     "y": 339,
+     "w": 222,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.later",
+   "role": "later days",
+   "type": "group",
+   "parentId": "territory.experimental.phone.week",
+   "children": [
+    "territory.experimental.phone.day-5",
+    "territory.experimental.phone.day-6"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 382,
+     "w": 350,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.day-5",
+   "role": "day",
+   "type": "group",
+   "parentId": "territory.experimental.phone.later",
+   "children": [
+    "territory.experimental.phone.day-5-name",
+    "territory.experimental.phone.day-5-roast"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 382,
+     "w": 171,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "day"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.day-5-name",
+   "role": "day name",
+   "type": "text",
+   "parentId": "territory.experimental.phone.day-5",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_5_name",
+     "purpose": "Day and date",
+     "maxChars": 10,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 36,
+     "y": 398,
+     "w": 93,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.day-5-roast",
+   "role": "roast on that day",
+   "type": "text",
+   "parentId": "territory.experimental.phone.day-5",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_5_roast",
+     "purpose": "What is roasted that day, or rest",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 36,
+     "y": 425,
+     "w": 139,
+     "h": 37
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.day-6",
+   "role": "day",
+   "type": "group",
+   "parentId": "territory.experimental.phone.later",
+   "children": [
+    "territory.experimental.phone.day-6-name",
+    "territory.experimental.phone.day-6-roast"
+   ],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 199,
+     "y": 382,
+     "w": 171,
+     "h": 96
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "day"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.day-6-name",
+   "role": "day name",
+   "type": "text",
+   "parentId": "territory.experimental.phone.day-6",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_6_name",
+     "purpose": "Day and date",
+     "maxChars": 10,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 215,
+     "y": 398,
+     "w": 93,
+     "h": 19
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.day-6-roast",
+   "role": "roast on that day",
+   "type": "text",
+   "parentId": "territory.experimental.phone.day-6",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "day_6_roast",
+     "purpose": "What is roasted that day, or rest",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 215,
+     "y": 425,
+     "w": 139,
+     "h": 37
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "day",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.booking",
+   "role": "booking",
+   "type": "group",
+   "parentId": "territory.experimental.phone.page",
+   "children": [
+    "territory.experimental.phone.booking-title",
+    "territory.experimental.phone.cta"
+   ],
+   "geometry": {
+    "intent": "a card under the strip",
+    "box": {
+     "x": 20,
+     "y": 522,
+     "w": 350,
+     "h": 137
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "day"
+    },
+    "stroke": null,
+    "radius": "card",
+    "opacity": 1
+   },
+   "text": null,
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
+  },
+  {
+   "id": "territory.experimental.phone.booking-title",
+   "role": "booking title",
+   "type": "text",
+   "parentId": "territory.experimental.phone.booking",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "booking_title",
+     "purpose": "Book a place on the next roast",
+     "maxChars": 40,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 36,
+     "y": 538,
+     "w": 318,
+     "h": 51
+    }
+   },
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.experimental.phone.cta",
    "role": "primary action",
    "type": "control",
-   "parentId": "territory.experimental.phone.hero",
+   "parentId": "territory.experimental.phone.booking",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "subscribe_cta",
-     "purpose": "Start a subscription",
-     "maxChars": 24,
+     "key": "hero_cta",
+     "purpose": "Book my bag",
+     "maxChars": 18,
      "status": "PLACEHOLDER"
     }
    },
-   "styleRefs": [],
+   "geometry": {
+    "intent": null,
+    "box": {
+     "x": 36,
+     "y": 597,
+     "w": 192,
+     "h": 46
+    }
+   },
+   "style": {
+    "fill": {
+     "token": "accent"
+    },
+    "stroke": null,
+    "radius": "control",
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "surface"
+    },
+    "align": "center",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   },
   {
    "id": "territory.experimental.phone.terms",
-   "role": "reassurance",
+   "role": "terms",
    "type": "text",
    "parentId": "territory.experimental.phone.page",
    "children": [],
    "content": {
     "contentRef": {
-     "key": "pause_cancel_note",
-     "purpose": "They can pause or cancel",
-     "maxChars": 80,
+     "key": "subscription_terms",
+     "purpose": "Pause or cancel, plainly",
+     "maxChars": 90,
      "status": "PLACEHOLDER"
     }
    },
    "geometry": {
-    "description": "stacked under the hero"
+    "intent": null,
+    "box": {
+     "x": 20,
+     "y": 703,
+     "w": 350,
+     "h": 77
+    }
    },
-   "styleRefs": [],
+   "style": {
+    "fill": null,
+    "stroke": null,
+    "radius": null,
+    "opacity": 1
+   },
+   "text": {
+    "style": "body",
+    "colour": {
+     "token": "text"
+    },
+    "align": "left",
+    "size": null
+   },
    "assetRef": null,
    "componentRef": null,
    "interactionRefs": [],
-   "annotations": []
+   "locked": false,
+   "hidden": false
   }
  ],
+ "annotations": [],
  "components": [],
  "flows": [],
  "interactions": [],

@@ -1,5 +1,4 @@
-import { loadDraft, saveDraft } from "@/lib/design/draft-store";
-import type { SddDocument, SddView } from "@/lib/design/v4";
+import type { SddAnnotation, SddDocument, SddView } from "@/lib/design/v4";
 // Written by v4's own code from its territory-exploration golden seed (dev-playbook-v4 packages/design/src/territory-draft.ts), so the
 // demo's design document is v4's shape, not an imitation of it.
 import sddSample from "@/lib/design/sdd-sample.json";
@@ -126,7 +125,17 @@ const STATUS_LINE = (i: { status: string; questions: unknown[] }, planReady: boo
   : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
   : { kind: "PLANNING", line: "We're preparing your plan." };
 
-type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; sdd?: Record<string, SddView> };
+type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign> };
+
+/**
+ * A project's design document in the demo, as v4 keeps it: the approved versions, and the one revision being worked on (a draft, one
+ * sent for a decision, or one sent back for changes). Hashes are a counter: the demo only needs a stale save to be told apart.
+ */
+type DemoDesign = {
+  approved: Array<{ version: number; approvedAt: string; approvedById: string; document: SddDocument }>;
+  working: { proposalId: string; status: "DRAFT" | "SUBMITTED" | "REVISION_REQUESTED"; baseVersion: number | null; hash: string; document: SddDocument } | null;
+};
+class Refusal extends Error { constructor(readonly code: string, message: string) { super(message); } }
 
 /** A demo plan: enough to show every part of the page. */
 const demoPlan = (): PlanContent => ({
@@ -432,7 +441,7 @@ export function createFixturesDataSource(): DataSource {
 
   return {
     kind: "fixtures",
-    capabilities: { approvalNotes: true, timelineUpdates: true, designDocuments: true },
+    capabilities: { approvalNotes: true, timelineUpdates: true },
 
     auth: {
       async getSession() {
@@ -755,29 +764,118 @@ export function createFixturesDataSource(): DataSource {
       },
     },
 
-    design: {
-      async read(projectId) {
+    design: (() => {
+      const nextHash = (prev: string | null) => (parseInt(prev ?? "0", 16) + 1).toString(16).padStart(64, "0");
+      // The demo's design project starts with the three territories a run drew, waiting for a choice.
+      const seeded = (projectId: string): DemoDesign => ({
+        approved: [],
+        working: projectId === "p-1" ? { proposalId: "sdd-draft-p-1", status: "DRAFT", baseVersion: null, hash: nextHash(null), document: sddSample as unknown as SddDocument } : null,
+      });
+      const agency = (s: Store) => s.users.find((u) => u.id === sessionUserId())?.role === "owner";
+      /** Reads and changes one project's design under v4's rules, saying what was refused and why. */
+      const withDesign = <T,>(projectId: string, fn: (d: DemoDesign, s: Store) => T, write = true): Result<T> => {
         const s = load();
         if (!mayReach(s, projectId)) return fail("That couldn't be found.", "NOT_FOUND");
-        // The demo's design project starts with the three territories a run drew, waiting for a choice.
-        const seeded: SddView | undefined = projectId === "p-1" ? { approved: null, current: { proposalId: "sdd-draft-p-1", status: "DRAFT", baseVersion: null, documentHash: "0".repeat(64), document: sddSample as unknown as SddDocument } } : undefined;
-        return ok(structuredClone(s.sdd?.[projectId] ?? seeded ?? { approved: null, current: null }));
-      },
-      async selectTerritory(projectId, territoryId) {
-        const read = await this.read(projectId);
-        const doc = read.data?.current?.document;
-        if (!doc || doc.selectedTerritoryId !== null) return fail("This was already answered.", "ALREADY_RESOLVED");
-        if (!doc.territories.some((t) => t.id === territoryId)) return fail("Something needed for that answer is missing or not valid.", "INVALID_PARAMS");
-        const chosen: SddDocument = { ...doc, selectedTerritoryId: territoryId, territories: doc.territories.map((t) => ({ ...t, status: t.id === territoryId ? "SELECTED" : "SET_ASIDE" })) };
-        return mutate((s) => { s.sdd = { ...s.sdd, [projectId]: { ...read.data!, current: { ...read.data!.current!, document: chosen } } }; });
-      },
-      async load(projectId) { return ok(loadDraft(projectId)); },
-      async save(doc, baseRevision) {
-        const stored = loadDraft(doc.projectId);
-        if (stored && stored.revision !== baseRevision) return fail("Someone else saved a newer version. Reload to see it.", "REVISION_CONFLICT");
-        return saveDraft(doc) ? ok({ revision: doc.revision }) : fail("This browser could not keep the design. Export it to be safe.", "STORAGE_FULL");
-      },
-    },
+        const d = s.design?.[projectId] ?? seeded(projectId);
+        try {
+          const out = fn(d, s);
+          if (write) { s.design = { ...s.design, [projectId]: d }; save(s); }
+          return ok(structuredClone(out));
+        } catch (e) { return e instanceof Refusal ? fail(e.message, e.code) : fail((e as Error).message); }
+      };
+      const latestApproved = (d: DemoDesign) => d.approved[0] ?? null;
+      /** The revision feedback goes on: the one being worked on, else a new draft from the approved one. */
+      const workOn = (d: DemoDesign) => {
+        if (d.working?.status === "SUBMITTED") throw new Refusal("AWAITING_DECISION", "This revision is waiting for a decision.");
+        if (d.working?.status === "DRAFT") return d.working;
+        const from = d.working?.document ?? latestApproved(d)?.document;
+        if (!from) throw new Refusal("NOT_FOUND", "There is no design document to work on yet.");
+        d.working = { proposalId: `sdd-draft-${id()}`, status: "DRAFT", baseVersion: latestApproved(d)?.version ?? null, hash: nextHash(d.working?.hash ?? null), document: { ...from, revision: (latestApproved(d)?.version ?? 0) + 1, status: "DRAFT" } };
+        return d.working;
+      };
+      const written = (w: NonNullable<DemoDesign["working"]>, annotation: SddAnnotation) => { w.hash = nextHash(w.hash); return { annotation, documentHash: w.hash }; };
+      return {
+        read: async (projectId) => withDesign(projectId, (d, s): SddView => {
+          const w = d.working;
+          const choosingNow = !!w && w.document.territories.length > 0 && w.document.selectedTerritoryId === null;
+          // A client sees a draft only once it is sent for a decision, or while the choice of direction is theirs.
+          const visible = w && w.status !== "REVISION_REQUESTED" && (agency(s) || w.status === "SUBMITTED" || choosingNow) ? w : null;
+          const a = latestApproved(d);
+          return {
+            approved: a ? { version: a.version, revision: a.document.revision, approvedAt: a.approvedAt, document: a.document } : null,
+            current: visible ? { proposalId: visible.proposalId, status: visible.status === "SUBMITTED" ? "SUBMITTED" : "DRAFT", baseVersion: visible.baseVersion, documentHash: visible.hash, document: visible.document } : null,
+            annotations: (w ?? a)?.document.annotations ?? [],
+          };
+        }, false),
+        selectTerritory: async (projectId, territoryId) => {
+          const r = withDesign(projectId, (d) => {
+            const doc = d.working?.document;
+            if (!doc || doc.selectedTerritoryId !== null) throw new Refusal("ALREADY_RESOLVED", "This was already answered.");
+            if (!doc.territories.some((t) => t.id === territoryId)) throw new Refusal("INVALID_PARAMS", "Something needed for that answer is missing or not valid.");
+            d.working = { ...d.working!, hash: nextHash(d.working!.hash), document: { ...doc, selectedTerritoryId: territoryId, territories: doc.territories.map((t) => ({ ...t, status: t.id === territoryId ? "SELECTED" : "SET_ASIDE" })) } };
+          });
+          return r.error ? r : ok(undefined);
+        },
+        save: async (projectId, document, expectedHash) => withDesign(projectId, (d, s) => {
+          if (!agency(s)) throw new Refusal("FORBIDDEN", "You don't have access to do that.");
+          if (d.working?.status === "SUBMITTED") throw new Refusal("AWAITING_DECISION", "This revision is waiting for a decision.");
+          const open = d.working?.status === "DRAFT" ? d.working : null;
+          if ((open?.hash ?? null) !== expectedHash) throw new Refusal("DRAFT_CONFLICT", "The draft changed since this edit started.");
+          const held = (d.working?.document ?? latestApproved(d)?.document)?.annotations ?? [];
+          if (JSON.stringify(document.annotations) !== JSON.stringify(held)) throw new Refusal("ANNOTATIONS_ARE_APPENDED", "A save cannot change feedback.");
+          const w = open ?? workOn(d);
+          w.document = { ...document, projectId, revision: w.document.revision, status: "DRAFT" };
+          w.hash = nextHash(w.hash);
+          return { documentHash: w.hash };
+        }),
+        submit: async (projectId, documentHash) => {
+          const r = withDesign(projectId, (d, s) => {
+            if (!agency(s)) throw new Refusal("FORBIDDEN", "You don't have access to do that.");
+            if (d.working?.status !== "DRAFT") throw new Refusal("NOT_FOUND", "There is no draft to send.");
+            if (d.working.hash !== documentHash) throw new Refusal("DRAFT_CONFLICT", "The draft changed since you last saw it.");
+            d.working.status = "SUBMITTED";
+          });
+          return r.error ? r : ok(undefined);
+        },
+        versions: async (projectId) => withDesign(projectId, (d) => d.approved.map(({ version, approvedAt, approvedById }) => ({ version, approvedAt, approvedById })), false),
+        version: async (projectId, version) => {
+          const r = withDesign(projectId, (d) => d.approved.find((a) => a.version === version)?.document ?? null, false);
+          return r.data ? ok(r.data) : fail(r.error?.message ?? "That couldn't be found.", r.error?.code ?? "NOT_FOUND");
+        },
+        annotate: async (projectId, input) => withDesign(projectId, (d) => {
+          const w = workOn(d);
+          const annotation: SddAnnotation = { id: `annotation.${id()}`, target: { kind: input.target.kind, id: input.target.id ?? null }, kind: input.kind, text: input.text.trim(), by: sessionUserId() ?? "demo", at: new Date().toISOString(), status: "OPEN", addressedIn: null, reason: null, settledBy: null, settledAt: null };
+          w.document = { ...w.document, annotations: [...w.document.annotations, annotation] };
+          return written(w, annotation);
+        }),
+        settle: async (projectId, annotationId, input) => withDesign(projectId, (d, s) => {
+          if (!agency(s)) throw new Refusal("FORBIDDEN", "You don't have access to do that.");
+          if (input.status === "DECLINED" && !input.reason?.trim()) throw new Refusal("INVALID_PROPOSAL", "Declining feedback needs a reason the client will see.");
+          const w = workOn(d);
+          const i = w.document.annotations.findIndex((a) => a.id === annotationId);
+          const was = w.document.annotations[i];
+          if (!was) throw new Refusal("NOT_FOUND", "That feedback couldn't be found.");
+          if (was.status !== "OPEN") throw new Refusal("ILLEGAL_TRANSITION", `This feedback was already ${was.status.toLowerCase()}.`);
+          const annotation: SddAnnotation = { ...was, status: input.status, reason: input.reason?.trim() || null, addressedIn: input.status === "ADDRESSED" ? w.document.revision : null, settledBy: sessionUserId(), settledAt: new Date().toISOString() };
+          w.document = { ...w.document, annotations: w.document.annotations.map((a, j) => (j === i ? annotation : a)) };
+          return written(w, annotation);
+        }),
+        decide: async (proposalId, input) => {
+          const s = load();
+          const projectId = Object.entries(s.design ?? {}).find(([, d]) => d.working?.proposalId === proposalId)?.[0];
+          if (!projectId) return fail("That couldn't be found.", "NOT_FOUND");
+          const r = withDesign(projectId, (d) => {
+            const w = d.working;
+            if (!w || w.status !== "SUBMITTED") throw new Refusal("APPROVAL_ALREADY_RESOLVED", "This was already decided.");
+            if (input.action === "REQUEST_REVISION") { w.status = "REVISION_REQUESTED"; return; }
+            if (w.document.annotations.some((a) => a.kind === "CHANGE_REQUEST" && a.status === "OPEN")) throw new Refusal("OPEN_CHANGE_REQUEST", "A change asked for is still open.");
+            d.approved = [{ version: (latestApproved(d)?.version ?? 0) + 1, approvedAt: new Date().toISOString(), approvedById: sessionUserId() ?? "demo", document: { ...w.document, status: "APPROVED" } }, ...d.approved];
+            d.working = null;
+          });
+          return r.error ? r : ok(undefined);
+        },
+      };
+    })(),
 
     runs: {
       async list(projectId) {

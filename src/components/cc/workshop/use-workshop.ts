@@ -1,139 +1,185 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { applyOp, snapshotOf, type Op } from "@/lib/design/ops";
-import { makeSampleDocument } from "@/lib/design/sample";
-import type { DesignDocument } from "@/lib/design/sdd";
-import type { Result } from "@/lib/data/types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDataSource } from "@/lib/data";
+import { applyOp, type Op } from "@/lib/design/edit";
+import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddView } from "@/lib/design/v4";
 
-export type DesignStore = {
-  /** Where the design is kept, in words the person can read. */
-  where: "agency" | "device";
-  load(projectId: string): Promise<Result<DesignDocument | null>>;
-  save(doc: DesignDocument, baseRevision: number): Promise<Result<{ revision: number }>>;
-};
 export type SaveState = "saved" | "saving" | "unsaved" | "failed" | "conflict";
-type Hist = { past: DesignDocument[]; present: DesignDocument; future: DesignDocument[] };
+type Hist = { past: SddDocument[]; present: SddDocument; future: SddDocument[] };
 
 const LIMIT = 100;
-const entry = (d: DesignDocument, by: string, summary: string): DesignDocument["revisions"][number] => ({ n: d.revision + 1, at: new Date().toISOString(), by, summary });
+
+/** The design without its feedback, keys in one order, so two copies of the same design compare equal however they were built. */
+function designOf(d: SddDocument): string {
+  const sort = (v: unknown): unknown => (Array.isArray(v) ? v.map(sort) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, sort(x)])) : v);
+  return JSON.stringify(sort({ ...d, annotations: [], revision: 0, status: "" }));
+}
 
 /**
- * The Workshop's state: one design document, a history that undo and redo walk through (human and proposed changes alike),
- * and autosave. Autosave keeps the work; it is never an approval. Undo and redo are themselves revisions, so the record only
- * ever moves forward and says who stepped back.
+ * The Workshop's state over v4's design document (ADR-0051 decision 5): the revision being worked on, an undo stack of whole
+ * documents kept on this device, and autosave into v4's one draft. Autosave keeps the work; it is never an approval, and only the
+ * agency's saves are accepted. Feedback is not in the undo stack: it is v4's record, appended and answered through its own calls,
+ * so undoing an edit never takes feedback back and a save always carries the feedback as v4 last returned it.
  */
-export function useWorkshop(projectId: string, projectName: string, actor: string, store: DesignStore) {
+export function useWorkshop(projectId: string, agency: boolean) {
+  const ds = useDataSource();
+  const [view, setView] = useState<SddView | null>(null);
   const [hist, setHist] = useState<Hist | null>(null);
+  const [notes, setNotes] = useState<SddAnnotation[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("saved");
-  const [saveNote, setSaveNote] = useState<string>("");
-  const [created, setCreated] = useState(false);
+  const [saveNote, setSaveNote] = useState("");
   const histRef = useRef<Hist | null>(null);
-  const savedRev = useRef(0);
+  const notesRef = useRef<SddAnnotation[]>([]);
+  // The draft's hash as v4 last answered it (null: there is no draft, and the first save starts one), and what was saved under it.
+  const hashRef = useRef<string | null>(null);
+  const savedRef = useRef<SddDocument | null>(null);
   const timer = useRef(0);
+  const saving = useRef<Promise<void> | null>(null);
   const coalesce = useRef<{ key: string; at: number } | null>(null);
-  const storeRef = useRef(store);
-  useEffect(() => { storeRef.current = store; }, [store]);
 
   const put = (h: Hist | null) => { histRef.current = h; setHist(h); };
+  const putNotes = (a: SddAnnotation[]) => { notesRef.current = a; setNotes(a); };
 
-  const persist = useCallback(async () => {
-    const h = histRef.current;
-    if (!h) return;
-    setSaveState("saving");
-    const res = await storeRef.current.save(h.present, savedRev.current);
-    if (res.error) {
-      setSaveState(res.error.code === "REVISION_CONFLICT" ? "conflict" : "failed");
-      setSaveNote(res.error.message);
-      return;
-    }
-    savedRev.current = res.data?.revision ?? h.present.revision;
-    setSaveNote("");
-    setSaveState(histRef.current && histRef.current.present.revision !== h.present.revision ? "unsaved" : "saved");
+  const adopt = useCallback((v: SddView) => {
+    setView(v);
+    const doc = v.current?.document ?? v.approved?.document ?? null;
+    hashRef.current = v.current?.status === "DRAFT" ? v.current.documentHash : null;
+    savedRef.current = doc;
+    putNotes(v.annotations);
+    put(doc ? { past: [], present: doc, future: [] } : null);
+    setSaveState("saved"); setSaveNote("");
   }, []);
 
-  // Fetch only sets state after the reply arrives. Switching project remounts the editor, so a first load needs no reset.
-  const fetchDoc = useCallback(async () => {
-    const res = await storeRef.current.load(projectId);
-    if (res.error) { setLoadError(res.error.message); return; }
-    if (res.data) {
-      savedRev.current = res.data.revision;
-      put({ past: [], present: res.data, future: [] });
-      setCreated(false);
-      setSaveState("saved");
-      return;
-    }
-    // Nothing kept yet: the fixture provider supplies the three territories to start from.
-    const fresh = makeSampleDocument(projectId, projectName, actor);
-    savedRev.current = 0;
-    put({ past: [], present: fresh, future: [] });
-    setCreated(true);
-    setSaveState("unsaved");
-  }, [projectId, projectName, actor]);
-  const load = useCallback(() => { setLoadError(null); put(null); return fetchDoc(); }, [fetchDoc]);
+  const read = useCallback(async () => {
+    const r = await ds.design.read(projectId);
+    if (r.error || !r.data) { setLoadError(r.error?.message ?? "The design could not be read."); return null; }
+    return r.data;
+  }, [ds, projectId]);
 
-  useEffect(() => { void fetchDoc(); }, [fetchDoc]);
+  // State is set only once v4 answers. Switching project remounts the Workshop, so a first read needs no reset.
+  const fetchView = useCallback(async () => { const v = await read(); if (v) adopt(v); }, [read, adopt]);
+  const reload = useCallback(() => { setLoadError(null); return fetchView(); }, [fetchView]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- state is set after v4 answers, not synchronously: a read on mount
+  useEffect(() => { void fetchView(); }, [fetchView]);
+
+  // The agency edits the draft; a revision waiting for a decision is frozen; a client reads and leaves feedback.
+  const editable = agency && !!view && view.current?.status !== "SUBMITTED";
+  const dirty = () => !!histRef.current && histRef.current.present !== savedRef.current;
+
+  const persist = useCallback(async (): Promise<void> => {
+    if (saving.current) { await saving.current; if (!dirty()) return; }
+    const h = histRef.current;
+    if (!h || h.present === savedRef.current) return;
+    const run = (async () => {
+      setSaveState("saving");
+      const doc = { ...h.present, annotations: notesRef.current };
+      let r = await ds.design.save(projectId, doc, hashRef.current);
+      if (r.error?.code === "DRAFT_CONFLICT") {
+        // Someone added or answered feedback since the last save: when the design itself is as this editor last saved it, take the
+        // new hash and feedback and save again. A design someone else changed is theirs to reconcile, so that one is reported.
+        const v = await read();
+        const theirs = v?.current?.status === "DRAFT" ? v.current : null;
+        if (v && theirs && savedRef.current && designOf(theirs.document) === designOf(savedRef.current)) {
+          hashRef.current = theirs.documentHash; putNotes(v.annotations); setView(v);
+          r = await ds.design.save(projectId, { ...h.present, annotations: v.annotations }, hashRef.current);
+        }
+      }
+      if (r.error || !r.data) {
+        setSaveState(r.error?.code === "DRAFT_CONFLICT" || r.error?.code === "STALE_BASE" ? "conflict" : "failed");
+        setSaveNote(r.error?.message ?? "The design could not be saved.");
+        return;
+      }
+      hashRef.current = r.data.documentHash;
+      savedRef.current = h.present;
+      setSaveNote("");
+      setSaveState(histRef.current && histRef.current.present !== h.present ? "unsaved" : "saved");
+    })();
+    saving.current = run;
+    try { await run; } finally { saving.current = null; }
+  }, [ds, projectId, read]);
 
   // Autosave shortly after the last change, and once more when the Workshop closes.
-  const rev = hist?.present.revision;
+  const present = hist?.present;
   useEffect(() => {
-    if (rev === undefined || (rev === savedRev.current && !created)) return;
+    if (!present || present === savedRef.current) return;
     setSaveState((s) => (s === "conflict" ? s : "unsaved"));
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => { void persist(); }, 700);
     return () => window.clearTimeout(timer.current);
-  }, [rev, created, persist]);
-  useEffect(() => () => { window.clearTimeout(timer.current); const h = histRef.current; if (h && h.present.revision !== savedRev.current) void storeRef.current.save(h.present, savedRev.current); }, []);
+  }, [present, persist]);
+  useEffect(() => () => { window.clearTimeout(timer.current); if (dirty()) void persist(); }, [persist]);
 
-  /** Returns a message when the change was refused (for example a locked node), otherwise null. */
+  /** Returns a message when the change was refused (a locked element, say), otherwise null. */
   const commit = useCallback((op: Op, opts?: { coalesce?: string }): string | null => {
     const h = histRef.current;
-    if (!h) return null;
-    const res = applyOp(h.present, op, actor);
+    if (!h || !editable) return null;
+    const res = applyOp(h.present, op);
     if (res.error) return res.error;
     if (res.doc === h.present) return null;
     const now = Date.now();
+    // The same kind of edit made again straight away (a nudge, a slider) is one step in the history, not twenty.
     const merge = !!opts?.coalesce && coalesce.current?.key === opts.coalesce && now - coalesce.current.at < 900;
     coalesce.current = opts?.coalesce ? { key: opts.coalesce, at: now } : null;
-    let doc = res.doc;
-    if (merge) {
-      // The same kind of edit made again straight away is one step in the history, not twenty.
-      const last = doc.revisions[doc.revisions.length - 1]!;
-      doc = { ...doc, revision: h.present.revision, revisions: [...h.present.revisions.slice(0, -1), { ...last, n: h.present.revision }], decisionLog: doc.decisionLog.length > h.present.decisionLog.length ? [...h.present.decisionLog.slice(0, -1), doc.decisionLog[doc.decisionLog.length - 1]!] : doc.decisionLog };
-      put({ past: h.past, present: doc, future: [] });
-    } else {
-      put({ past: [...h.past, h.present].slice(-LIMIT), present: doc, future: [] });
-    }
+    put(merge ? { past: h.past, present: res.doc, future: [] } : { past: [...h.past, h.present].slice(-LIMIT), present: res.doc, future: [] });
     return null;
-  }, [actor]);
+  }, [editable]);
 
   const step = useCallback((dir: "undo" | "redo") => {
     const h = histRef.current;
-    if (!h) return;
+    if (!h || !editable) return;
     const from = dir === "undo" ? h.past : h.future;
     const target = from[from.length - 1];
     if (!target) return;
-    const label = h.present.revisions[h.present.revisions.length - 1]?.summary ?? "a change";
-    const next: DesignDocument = {
-      ...target,
-      revision: h.present.revision + 1,
-      revisions: [...h.present.revisions, entry(h.present, actor, `${dir === "undo" ? "Undid" : "Redid"}: ${label}`)].slice(-200),
-      decisionLog: h.present.decisionLog,
-      checkpoints: h.present.checkpoints,
-    };
     coalesce.current = null;
-    put(dir === "undo" ? { past: h.past.slice(0, -1), present: next, future: [...h.future, h.present] } : { past: [...h.past, h.present], present: next, future: h.future.slice(0, -1) });
-  }, [actor]);
+    put(dir === "undo" ? { past: h.past.slice(0, -1), present: target, future: [...h.future, h.present] } : { past: [...h.past, h.present], present: target, future: h.future.slice(0, -1) });
+  }, [editable]);
 
-  const checkpoint = useCallback((name: string) => {
-    const h = histRef.current;
-    if (!h) return;
-    const d = h.present;
-    const cp = { id: `cp-${Date.now().toString(36)}`, name: name.trim() || `Checkpoint at r${d.revision}`, at: new Date().toISOString(), by: actor, revision: d.revision, snapshot: snapshotOf(d) };
-    const next: DesignDocument = { ...d, revision: d.revision + 1, checkpoints: [...d.checkpoints, cp].slice(-8), revisions: [...d.revisions, entry(d, actor, `Checkpoint: ${cp.name}`)].slice(-200) };
-    put({ past: [...h.past, d].slice(-LIMIT), present: next, future: [] });
-  }, [actor]);
+  /** Feedback goes on the revision as saved, so what is on the screen is saved first; v4 then returns the draft's new hash. */
+  const annotate = useCallback(async (target: AnnotationTarget, kind: AnnotationKind, text: string) => {
+    await persist();
+    const hadDraft = hashRef.current !== null;
+    const r = await ds.design.annotate(projectId, { target, kind, text });
+    if (r.error || !r.data) return r.error?.message ?? "The feedback could not be added.";
+    // A first note starts a draft from the approved revision; read it, so the editor works on that draft from now on.
+    if (!hadDraft) { const v = await read(); if (v) adopt(v); return null; }
+    hashRef.current = r.data.documentHash;
+    putNotes([...notesRef.current, r.data.annotation]);
+    return null;
+  }, [ds, projectId, persist, read, adopt]);
 
-  return { doc: hist?.present ?? null, canUndo: !!hist?.past.length, canRedo: !!hist?.future.length, commit, undo: () => step("undo"), redo: () => step("redo"), checkpoint, saveState, saveNote, retrySave: persist, reload: load, loadError, created, where: store.where };
+  const settle = useCallback(async (annotationId: string, status: "ADDRESSED" | "DECLINED", reason?: string) => {
+    await persist();
+    const hadDraft = hashRef.current !== null;
+    const r = await ds.design.settle(projectId, annotationId, { status, ...(reason ? { reason } : {}) });
+    if (r.error || !r.data) return r.error?.message ?? "The feedback could not be answered.";
+    if (!hadDraft) { const v = await read(); if (v) adopt(v); return null; }
+    hashRef.current = r.data.documentHash;
+    putNotes(notesRef.current.map((a) => (a.id === annotationId ? r.data!.annotation : a)));
+    return null;
+  }, [ds, projectId, persist, read, adopt]);
+
+  /** Sends the draft, as saved, to the decision owner. */
+  const submit = useCallback(async () => {
+    await persist();
+    if (dirty() || !hashRef.current) return "Save the draft first.";
+    const r = await ds.design.submit(projectId, hashRef.current);
+    if (r.error) return r.error.message;
+    await reload();
+    return null;
+  }, [ds, projectId, persist, reload]);
+
+  /** An approved version as the design again: a change like any other, so undo takes it back and autosave keeps it. */
+  const restore = useCallback(async (version: number) => {
+    const r = await ds.design.version(projectId, version);
+    if (r.error || !r.data) return r.error?.message ?? "That version could not be read.";
+    return commit({ type: "RESTORE", doc: r.data, label: `Restored version ${version}` });
+  }, [ds, projectId, commit]);
+
+  const doc = useMemo(() => (hist ? { ...hist.present, annotations: notes } : null), [hist, notes]);
+  return {
+    view, doc, editable, loadError, reload, commit, undo: () => step("undo"), redo: () => step("redo"), canUndo: !!hist?.past.length, canRedo: !!hist?.future.length,
+    saveState, saveNote, retrySave: persist, annotate, settle, submit, restore,
+  };
 }

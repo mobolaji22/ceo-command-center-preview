@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Coffee, FileCheck2, FolderOpen, Keyboard, Lamp, LogOut, Monitor, NotebookPen, Library as LibraryIcon, Settings2, Sun, Table2 } from "lucide-react";
+import { Coffee, FileCheck2, FolderOpen, Keyboard, Lamp, LogOut, Monitor, NotebookPen, Library as LibraryIcon, PenTool, Settings2, Sun, Table2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { CLIENT_ART } from "@/components/cc/room-art";
 import { SceneFrame, ThresholdVeil, directionBetween, isOverlayMove, type SceneOrigin } from "@/components/cc/scene";
 import { DeskOverlay } from "@/components/cc/desk-overlay";
 import { DeskSkeleton } from "@/components/cc/desk-skeleton";
+import { ClientDesignDesk } from "@/components/cc/workshop/workshop";
 import { AccountMenu, TopBar } from "@/components/cc/top-bar";
 import { ClientSettingsView } from "@/components/cc/settings";
 import { RoomKeys, type KeyBinding, type PaletteCommand } from "@/components/cc/command-palette";
@@ -24,7 +25,8 @@ import { setLighting, useLighting } from "@/lib/lighting";
 import { label } from "@/lib/format";
 
 type Spot = "projects" | "decisions" | "requests" | "library" | "briefs" | "atmosphere";
-type View = "office" | Exclude<Spot, "atmosphere"> | "settings";
+/** The design has no object in the room: it is reached from a project, a link or ⌘K, and opens wide, as the CEO's Workshop does. */
+type View = "office" | Exclude<Spot, "atmosphere"> | "design" | "settings";
 
 const spotData: Record<Spot, { title: string; label: string; description: string; action: string; icon: typeof Coffee }> = {
   projects: { title: "THE WORK, ON THE TABLE", label: "Table", description: "Every project the agency is doing for you, and how it is going.", action: "Open projects", icon: Table2 },
@@ -35,11 +37,11 @@ const spotData: Record<Spot, { title: string; label: string; description: string
   atmosphere: { title: "A QUIETER ROOM", label: "Atmosphere", description: "Set the tone for a quieter, more deliberate session.", action: "Toggle focus lighting", icon: Coffee },
 };
 
-const DESKS: readonly View[] = ["projects", "decisions", "requests", "library", "briefs", "settings"];
+const DESKS: readonly View[] = ["projects", "decisions", "requests", "library", "briefs", "design", "settings"];
 /** The letter that opens each desk (lib/shortcuts), named for what is behind the object rather than the object. */
-const DESK_KEYS: Record<Exclude<View, "office">, string> = { projects: "p", decisions: "d", requests: "r", library: "l", briefs: "b", settings: "s" };
-const DESK_NAMES: Record<Exclude<View, "office">, string> = { projects: "Projects", decisions: "Decisions", requests: "Requests", library: "Library", briefs: "Briefs", settings: "Settings" };
-const DESK_ICONS: Record<Exclude<View, "office">, typeof Coffee> = { projects: Table2, decisions: Monitor, requests: NotebookPen, library: LibraryIcon, briefs: Lamp, settings: Settings2 };
+const DESK_KEYS: Record<Exclude<View, "office">, string> = { projects: "p", decisions: "d", requests: "r", library: "l", briefs: "b", design: "w", settings: "s" };
+const DESK_NAMES: Record<Exclude<View, "office">, string> = { projects: "Projects", decisions: "Decisions", requests: "Requests", library: "Library", briefs: "Briefs", design: "Design", settings: "Settings" };
+const DESK_ICONS: Record<Exclude<View, "office">, typeof Coffee> = { projects: Table2, decisions: Monitor, requests: NotebookPen, library: LibraryIcon, briefs: Lamp, design: PenTool, settings: Settings2 };
 
 /** Where each object sits on the room photograph, as the stage percentages the hotspots use (a desk opens out of it and folds back into it). */
 const OBJECT_AT: Partial<Record<View, SceneOrigin>> = { projects: { x: 60, y: 65 }, decisions: { x: 94, y: 26 }, requests: { x: 85, y: 37 }, library: { x: 27, y: 36 }, briefs: { x: 32, y: 47 } };
@@ -85,7 +87,7 @@ export default function ClientCenter() {
     refresh();
   };
 
-  const CLIENT_DESKS = ["projects", "decisions", "requests", "library", "briefs"];
+  const CLIENT_DESKS = ["projects", "decisions", "requests", "library", "briefs", "design"];
   const openView = (next: View, projectId?: string) => { setDir(isOverlayMove(view, next, CLIENT_DESKS, "office") || (view !== "office" && next !== "office") ? "none" : directionBetween(view, next)); setOrigin(OBJECT_AT[next === "office" ? view : next]); setFocusProject(projectId); setView(next); };
 
   // The address bar follows the open desk (lib/place); Back, Forward, a refresh or a link open it again.
@@ -117,7 +119,7 @@ export default function ClientCenter() {
   const commands: PaletteCommand[] = [
     // What is waiting on you comes first, so ⌘K then Enter opens it.
     ...(data?.approvals.filter((a) => a.status === "REQUESTED").map((a) => ({ id: `approval:${a.id}`, group: "Waiting on you", label: a.title, hint: "Needs your signature", keywords: ["approve", "sign"], icon: FileCheck2, run: go("decisions") })) ?? []),
-    ...desks.map((d) => ({ id: `desk:${d}`, group: "Desks", label: DESK_NAMES[d], hint: d === "decisions" && pending + outstanding ? `${pending} to sign · ${outstanding} to supply` : d === "settings" ? undefined : `The ${spotData[d].label.toLowerCase()}`, shortcut: DESK_KEYS[d], icon: DESK_ICONS[d], run: go(d) })),
+    ...desks.map((d) => ({ id: `desk:${d}`, group: "Desks", label: DESK_NAMES[d], hint: d === "decisions" && pending + outstanding ? `${pending} to sign · ${outstanding} to supply` : d === "settings" ? undefined : d === "design" ? "See the design, leave feedback, decide" : `The ${spotData[d].label.toLowerCase()}`, shortcut: DESK_KEYS[d], icon: DESK_ICONS[d], run: go(d) })),
     ...(data?.projects.map((p) => ({ id: `project:${p.id}`, group: "Projects", label: p.name, hint: label(p.status), keywords: [p.description ?? "", p.objective ?? ""], icon: FolderOpen, run: go("projects", p.id) })) ?? []),
     { id: "do:lighting", group: "Actions", label: day ? "Night lighting" : "Day lighting", icon: Sun, run: () => setLighting(day ? "night" : "day") },
     { id: "do:focus", group: "Actions", label: focus ? "Leave focus lighting" : "Focus lighting", hint: "A quieter room", icon: Coffee, run: () => setFocus((f) => !f) },
@@ -149,12 +151,13 @@ export default function ClientCenter() {
       />
     </SceneFrame>
 
-    {view !== "office" && <DeskOverlay account={account} label={view === "settings" ? "Settings" : `${spotData[view].label} desk`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; CLIENT &nbsp; / &nbsp; {view === "settings" ? "SETTINGS" : spotData[view].label.toUpperCase()}</>} surface={`client-${view}`} origin={origin} onBack={() => openView("office")}>
+    {view !== "office" && <DeskOverlay account={account} label={view === "settings" ? "Settings" : view === "design" ? "Design workshop" : `${spotData[view].label} desk`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; CLIENT &nbsp; / &nbsp; {view === "settings" || view === "design" ? view.toUpperCase() : spotData[view].label.toUpperCase()}</>} surface={`client-${view}`} wide={view === "design"} origin={origin} onBack={() => openView("office")}>
       {!data ? <DeskSkeleton error={q.isError ? (q.error as Error).message : undefined} /> : <div key={view} className="scene scene-side">
         {view === "projects" && <ProjectsDesk data={data} isOwner={isOwner} initialProjectId={focusProject} />}
         {view === "decisions" && <DecisionsDesk data={data} isOwner={isOwner} busy={busy} msg={msg} onDecide={decide} />}
         {view === "requests" && <RequestsDesk data={data} isOwner={isOwner} organizationId={membership?.organizationId} refresh={refresh} openQuestions={openQuestions} focusProject={focusProject} />}
         {view === "library" && <LibraryDesk data={data} isOwner={isOwner} organizationId={membership?.organizationId} canWrite={isOwner} tick={tick} />}
+        {view === "design" && <ClientDesignDesk data={data} initialProjectId={focusProject} />}
         {view === "briefs" && <BriefsDesk isOwner={isOwner} organizationId={membership?.organizationId} projectIds={data.projects.map((p) => p.id)} />}
         {view === "settings" && <ClientSettingsView isOwner={isOwner} organizationId={membership?.organizationId} projectIds={data.projects.map((p) => p.id)} />}
       </div>}

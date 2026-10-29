@@ -1,5 +1,4 @@
-import type { DesignDocument } from "@/lib/design/sdd";
-import type { SddView } from "@/lib/design/v4";
+import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 
 /**
@@ -35,8 +34,6 @@ export type Capabilities = {
   approvalNotes: boolean;
   /** Free-text timeline updates posted by hand. */
   timelineUpdates: boolean;
-  /** The agency's design service can keep a project's design document. Without it the Design Workshop keeps a working copy on this device and says so. */
-  designDocuments: boolean;
 };
 
 /** Something that arrives with a request. `scope` is where it should live: this request's project, or the client's library. */
@@ -132,20 +129,31 @@ export interface DataSource {
    * API decides who may do what and says so plainly. The budget is totals only; cost records stay with the agency.
    */
   /**
-   * The structured design document of a project (the Design Workshop's source of truth). `save` carries the revision the editor
-   * last saw, so a stale save is refused instead of overwriting a newer one. Approval authority is not decided here: the API's
-   * policy decides what an approval means.
+   * v4's design document of a project (ADR-0049, ADR-0051): read it, and for the agency, edit the one draft and send it for a decision.
+   * A save names the hash of the draft it was made on, so a stale save is refused instead of overwriting a newer one. Feedback is
+   * appended and answered through its own calls, which v4 stamps with who and when; a save never carries a change to it.
    */
   design: {
-    load(projectId: string): Promise<Result<DesignDocument | null>>;
-    save(doc: DesignDocument, baseRevision: number): Promise<Result<{ revision: number }>>;
-    /** v4's design document for the project (ADR-0049): the approved revision, and the one in progress if this person may see it. */
+    /** The approved revision, and the one in progress if this person may see it. */
     read(projectId: string): Promise<Result<SddView>>;
     /**
      * Choose a direction where the territories are drawn. It answers the question the work asked, the same one a numbered reply
      * answers, so v4 decides who may (the client's owner, or the CEO under their permission). `changes` is "select with changes".
      */
     selectTerritory(projectId: string, territoryId: string, changes?: string): Promise<Result>;
+    /** Autosave into the draft. `expectedHash` is the draft's hash when the edit began, or null to start one from the approved revision. */
+    save(projectId: string, document: SddDocument, expectedHash: string | null): Promise<Result<{ documentHash: string }>>;
+    /** Sends the draft as seen (its hash) to the decision owner. */
+    submit(projectId: string, documentHash: string): Promise<Result>;
+    /** The approved versions, newest first, and one of them in full to restore from. */
+    versions(projectId: string): Promise<Result<SddVersion[]>>;
+    version(projectId: string, version: number): Promise<Result<SddDocument>>;
+    /** Feedback from the agency or the client's owner, on the whole design or one part of it. */
+    annotate(projectId: string, input: { target: AnnotationTarget; kind: AnnotationKind; text: string }): Promise<Result<{ annotation: SddAnnotation; documentHash: string }>>;
+    /** The agency's answer: addressed in the revision being worked on, or declined with a reason the client reads. */
+    settle(projectId: string, annotationId: string, input: { status: "ADDRESSED" | "DECLINED"; reason?: string }): Promise<Result<{ annotation: SddAnnotation; documentHash: string }>>;
+    /** The decision owner's answer to a submitted revision. Approving needs a fresh proof of who is deciding. */
+    decide(proposalId: string, input: { action: "APPROVE" | "REQUEST_REVISION"; note?: string }): Promise<Result>;
   };
   runs: {
     /** Newest first. */

@@ -70,8 +70,8 @@ export default function Index() {
   const [arrival] = useState<Place>(() => (typeof window === "undefined" ? {} : readPlace()));
   useEffect(() => {
     if (auth.loading || !auth.user || auth.isOwner) return;
-    // A link to a project's Workshop (the question about a design direction carries one) is the client's own questions there.
-    router.replace(arrival.spot === "workshop" && arrival.project ? `/client?desk=requests&project=${encodeURIComponent(arrival.project)}` : "/client");
+    // A link to a project's Workshop (the question about a design direction carries one) opens the client's view of the same design.
+    router.replace(arrival.spot === "workshop" && arrival.project ? `/client?desk=design&project=${encodeURIComponent(arrival.project)}` : "/client");
   }, [auth, router, arrival]);
   const q = useQuery({ queryKey: ownerKey, queryFn: () => ds.queries.ownerData(), enabled: auth.isOwner });
   const refresh = () => qc.invalidateQueries({ queryKey: ownerKey });

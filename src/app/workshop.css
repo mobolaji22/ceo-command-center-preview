@@ -4,13 +4,13 @@
  * the canvas draws the design in the design's own colours, whatever the time of day. Selection, handles, guides and notes use
  * fixed, high-contrast marks (blue, magenta, red) so they stay visible on any design.
  */
-.desk-panel[data-surface="room-workshop"], .desk-panel[data-wide] { width: min(1560px, calc(100% - 3vw)); }
-.desk-panel[data-surface="room-workshop"] .desk-scroll { overflow: hidden; padding: 0; display: flex; }
-.desk-panel[data-surface="room-workshop"] .desk-scroll > .scene { flex: 1; min-height: 0; min-width: 0; display: flex; }
+.desk-panel[data-wide] { width: min(1560px, calc(100% - 3vw)); }
+.desk-panel[data-wide] .desk-scroll { overflow: hidden; padding: 0; display: flex; }
+.desk-panel[data-wide] .desk-scroll > .scene { flex: 1; min-height: 0; min-width: 0; display: flex; }
 /* On a wide screen the desk bar is one slim line here: a design tool's height belongs to the canvas. (The phone has its own bar.) */
 @media (min-width: 651px) {
-  .desk-overlay:has(> .desk-panel[data-surface="room-workshop"]) { padding: 0 0 10px; }
-  .desk-panel[data-surface="room-workshop"] .desk-bar.workspace-heading { height: 48px; margin-bottom: 6px; padding-block: 0; }
+  .desk-overlay:has(> .desk-panel[data-wide]) { padding: 0 0 10px; }
+  .desk-panel[data-wide] .desk-bar.workspace-heading { height: 48px; margin-bottom: 6px; padding-block: 0; }
 }
 
 .workshop { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; background: color-mix(in oklab, var(--background) 97%, transparent); box-shadow: 0 30px 70px oklch(0 0 0 / 55%); }
@@ -199,11 +199,11 @@ html:not([data-lighting="day"]) .ws-chip.bad { color: oklch(0.8 0.14 40); }
   .ws-center { min-height: 62vh; }
   .ws-compare { grid-template-columns: 1fr; }
 }
-@media (max-width: 650px) { .desk-panel[data-surface="room-workshop"] { width: 100%; } .ws-group { border-right: 0; } .ws-ba { grid-template-columns: 1fr; } }
+@media (max-width: 650px) { .desk-panel[data-wide] { width: 100%; } .ws-group { border-right: 0; } .ws-ba { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .ws-toast { animation: none; } }
 
-/* The directions from v4's design document (ADR-0049): three territories side by side, each drawn as structured wireframes. The
- * wireframes are deliberately grey: they show structure, not how a direction will look (Design §45.3), and they read in day and night. */
+/* The directions from v4's design document (ADR-0049): three territories side by side, each with its key frames as v4 placed them.
+ * A frame with nothing placed yet falls back to a grey structural wireframe, which reads in day and night. */
 .workshop-directions { overflow: hidden; }
 .directions-scroll { flex: 1; min-height: 0; overflow: auto; padding: 16px; }
 .directions { display: grid; gap: 14px; }
@@ -231,16 +231,33 @@ html:not([data-lighting="day"]) .ws-chip.bad { color: oklch(0.8 0.14 40); }
 .directions-for { display: grid; gap: 10px; margin: 8px 0; }
 .directions-for > button { justify-self: start; }
 
-.wireframe { margin: 0; display: grid; gap: 4px; }
-.wireframe figcaption { font-size: 11px; color: var(--muted-foreground); text-align: center; }
-.wf { display: grid; gap: 4px; padding: 6px; border: 1px solid color-mix(in oklab, var(--foreground) 35%, transparent); border-radius: 2px; background: color-mix(in oklab, var(--foreground) 4%, transparent); min-width: 0; }
-.wf-group { border-style: dashed; }
-.wf-control { justify-self: start; border-radius: 999px; padding: 4px 10px; background: color-mix(in oklab, var(--foreground) 12%, transparent); }
-.wf-media { min-height: 48px; background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in oklab, var(--foreground) 10%, transparent) 6px 7px); }
-.wf-text { border-color: transparent; background: none; padding: 2px 4px; }
-.wf-role { font: 600 9px "DM Sans", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); overflow-wrap: anywhere; }
-.wf-slot { font-size: 11px; font-style: italic; overflow-wrap: anywhere; }
-.wf-slot small { font-style: normal; color: var(--muted-foreground); }
+.wireframe, .keyframe { margin: 0; display: grid; gap: 4px; min-width: 0; }
+.keyframe-board { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 2px; }
+.wireframe figcaption, .keyframe figcaption { font-size: 11px; color: var(--muted-foreground); text-align: center; }
+.wire { display: grid; gap: 4px; padding: 6px; border: 1px solid color-mix(in oklab, var(--foreground) 35%, transparent); border-radius: 2px; background: color-mix(in oklab, var(--foreground) 4%, transparent); min-width: 0; }
+.wire-group { border-style: dashed; }
+.wire-control { justify-self: start; border-radius: 999px; padding: 4px 10px; background: color-mix(in oklab, var(--foreground) 12%, transparent); }
+.wire-media { min-height: 48px; background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in oklab, var(--foreground) 10%, transparent) 6px 7px); }
+.wire-text { border-color: transparent; background: none; padding: 2px 4px; }
+.wire-role { font: 600 9px "DM Sans", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.wire-slot { font-size: 11px; font-style: italic; overflow-wrap: anywhere; }
+.wire-slot small { font-style: normal; color: var(--muted-foreground); }
 @media (max-width: 650px) {
   .direction-frames { grid-template-columns: 1fr; }
 }
+
+/* E3: the editor on v4's design document */
+.ws-plain { margin: 0; padding: 0; border: 0; min-width: 0; }
+.ws-plain:disabled { opacity: 0.75; }
+.ws-placeholder { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; opacity: 0.75; }
+.ws-slot-words { display: block; width: 100%; font-style: italic; opacity: 0.9; overflow: hidden; }
+.ws-state { margin: 4px 0 0; font-size: 11px; color: var(--muted-foreground); }
+.ws-state.s-open { color: oklch(0.6 0.15 70); }
+.ws-state.s-addressed { color: oklch(0.55 0.13 155); }
+.ws-state.s-declined { color: var(--muted-foreground); font-style: italic; }
+.ws-kind.k-change_request { color: oklch(0.6 0.17 35); border-color: color-mix(in oklab, oklch(0.6 0.17 35) 50%, transparent); }
+.ws-kind.k-accessibility { color: oklch(0.55 0.14 260); border-color: color-mix(in oklab, oklch(0.55 0.14 260) 50%, transparent); }
+.ws-kind.k-engineering_question { color: oklch(0.55 0.12 200); border-color: color-mix(in oklab, oklch(0.55 0.12 200) 50%, transparent); }
+.ws-decline { margin-top: 6px; }
+.ws-decide { display: grid; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--border); background: color-mix(in oklab, var(--primary) 6%, var(--card)); }
+.ws-decide .wf { margin-bottom: 0; }

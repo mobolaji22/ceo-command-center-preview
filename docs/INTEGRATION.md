@@ -67,29 +67,40 @@ answers `PERMISSION_REQUIRED` and the UI says so. Decisions made that way are fl
 The read models (`src/lib/model.ts`) use the ten v4 project statuses; the API builds them (`apps/api/src/readmodels`).
 They are to be replaced by types generated from `packages/contracts`.
 
-## Design documents (v4's SDD; dev-playbook-v4 ADR-0049)
+## Design documents (v4's SDD; dev-playbook-v4 ADR-0049, ADR-0051)
 
-The Design Workshop shows the project's **structured design document** (SDD) as v4 holds it. A Design run's territory exploration
-writes the first draft (three territories, each with frames of typed nodes, tokens and the thinking behind it) and asks the client's
-owner to choose one; the question links to the project's Workshop. The browser reaches it only through `DataSource.design`.
+The Design Workshop is a light design tool over the project's **structured design document** (SDD) as v4 holds it. A Design run's
+territory exploration writes the first draft (three territories, each with key frames of placed nodes, tokens and the thinking behind
+it) and asks the client's owner to choose one; the question links to the project's Workshop. From then on the agency edits the chosen
+direction, the client's owner leaves typed feedback and decides, and v4 keeps every revision. The browser reaches all of it only through
+`DataSource.design`; every rule (who may see, edit, annotate, answer or approve) is v4's.
 
 | Call | Request | Success | Failure the UI handles |
 |---|---|---|---|
-| `design.read(projectId)` | `GET /v1/projects/:id/sdd` | `200 { approved, current }`: the approved document, and the current draft (`proposalId`, `status`, `baseVersion`, `documentHash`, `document`). The client's owner sees `current` only while the choice is open | any error is shown, with Try again |
-| `design.selectTerritory(projectId, territoryId, changes?)` | `POST /v1/projects/:id/sdd/territories/:territoryId/select` body `{ changes? }` | `200`: the open question is answered and the draft is marked with the choice | `409 ALREADY_RESOLVED` when no choice is waiting (already answered); `404 INTERVENTION_NOT_FOUND` when the question is not this person's; `400 INVALID_PARAMS` for a territory not among those asked about |
+| `design.read(projectId)` | `GET /v1/projects/:id/sdd` | `200 { approved, current, annotations }`: the approved revision, the one being edited or decided (`proposalId`, `status`, `baseVersion`, `documentHash`, `document`), and the feedback on the revision being worked on. A client sees `current` once it is submitted, or while a choice of direction is theirs; they always see `annotations` | any error is shown, with Try again |
+| `design.selectTerritory(projectId, territoryId, changes?)` | `POST /v1/projects/:id/sdd/territories/:territoryId/select` body `{ changes? }` | `200`: the open question is answered and the draft is marked with the choice | `409 ALREADY_RESOLVED`; `404 INTERVENTION_NOT_FOUND`; `400 INVALID_PARAMS` |
+| `design.save(projectId, document, expectedHash)` | `PUT /v1/projects/:id/sdd/draft` body `{ document, expectedHash }` (without `projectId`, `tenantId`, `revision`, `status`, which v4 stamps) | `200` proposal; the new hash is `content.documentHash` | `409 DRAFT_CONFLICT` (feedback was added since: re-read, and save again only if the design itself is unchanged); `409 STALE_BASE`; `409 AWAITING_DECISION`; `409 ANNOTATIONS_ARE_APPENDED` |
+| `design.submit(projectId, documentHash)` | `POST /v1/projects/:id/sdd/draft/submit` | `200`: the revision waits for the client's decision and cannot change | `409 DRAFT_CONFLICT`, `STALE_BASE`; `400 INVALID_PROPOSAL` with v4's reasons |
+| `design.annotate(projectId, { target, kind, text })` | `POST /v1/projects/:id/sdd/annotations` | `201 { annotation, proposalId, documentHash }`; the first note on an approved version starts the next draft | `409 AWAITING_DECISION`; `403 FORBIDDEN` (not the agency or the client's owner) |
+| `design.settle(projectId, annotationId, { status, reason? })` | `POST /v1/projects/:id/sdd/annotations/:annotationId/settle` | `200` as `annotate`; `ADDRESSED` records the revision, `DECLINED` needs a reason the client reads | `409 ILLEGAL_TRANSITION` (already settled) |
+| `design.versions(projectId)` · `design.version(projectId, n)` | `GET /v1/projects/:id/sdd/versions` · `GET .../sdd/versions/:version` | every approved version, newest first · one in full, which "Restore as the draft" applies as an ordinary edit | `404` |
+| `design.decide(proposalId, { action, note? })` | `POST /v1/proposals/:id/decision` | `200`: `APPROVE` makes it the next version; `REQUEST_REVISION` sends it back with the note | `403 STEP_UP_REQUIRED` (the code form opens and the decision is retried); `409 OPEN_CHANGE_REQUEST` |
 
 - **Types are generated, never hand-written.** `npm run sdd:types` reads v4's `packages/contracts/schemas/sdd-document.schema.json`
   (`V4_DIR`, default `../dev-playbook-v4`) and writes a copy of the schema and `src/lib/design/sdd.generated.ts`. `npm run lint` fails
-  when the types drift from the copy, or the copy from v4's schema when a v4 checkout is present; the e2e setup checks it too.
-- **Wireframes, not renders.** `src/components/cc/workshop/directions.tsx` draws each territory's frames from its node tree (roles and
-  layout descriptions) with content *slots* where copy is still to be written. Until v4's renderer (P6.33) fills `previewRefs`, each
-  direction says "Not rendered".
-- **Choosing is v4's.** "Choose" and "Choose with changes" call `selectTerritory`; who may choose, and what a choice changes, is decided
-  by v4. The answer to the run's question in the client's questions (by number) is the fallback path and resolves the same item.
-
-Editing in the Workshop still keeps a working copy in this browser (`src/lib/design/draft-store.ts`, schema `sdd/1-lite`) and is shown only
-with the demo data source; `capabilities.designDocuments` stays `false` in `api.ts`. Moving editing onto v4's document (typed annotations,
-revisioned saves) is the next slice (W4b), which retires `sdd/1-lite` and `/v1/projects/:id/design-document`, a route v4 never served.
+  when the types drift from the copy, or the copy from v4's schema when a v4 checkout is present; the e2e setup checks it too. The
+  annotation kinds the UI offers are read from that schema copy.
+- **The canvas is a view; every change is an operation.** `src/lib/design/edit.ts` holds the operations (move, resize, patch, delete,
+  duplicate, order, lock, align, distribute, tokens, restore). They keep v4's rules so a save is not refused for a reason the person
+  could not see: boxes stay on their frame, locked elements refuse edits, an element with feedback on it is hidden rather than deleted,
+  and no operation touches the feedback. Undo is a list of documents on this device; autosave writes v4's one draft 700 ms after the
+  last change.
+- **Words and images are placeholders.** The copy on a frame is the *slot* Content fills (its purpose), and images are marked; nothing
+  on the canvas is presented as final copy or art.
+- **Who does what.** The agency (`auth.isOwner`) edits, answers feedback and sends a revision for a decision. The client's owner opens
+  the same Workshop from their room (`/client?desk=design&project=<id>`, the key W, or ⌘K), points at an element to leave feedback, and
+  approves (with a fresh code) or asks for a change. A Workshop link (`/?room=DESIGN&spot=workshop&project=<id>`) opened by a client
+  goes to their design desk.
 
 ## Rooms (P6.10a)
 
@@ -108,7 +119,7 @@ are the app's; anything else in the address (the demo's `?as=`) is left alone.
 | `/?desk=contracts&project=<id>&item=<approval id>` | a CEO desk (`computer`, `phone`, `contracts`, `directive`, `brief`, `records`, `settings`), optionally on one project or authorization |
 | `/?at=corridor` | the corridor |
 | `/?room=DESIGN` · `/?room=DESIGN&spot=workshop` | a department room, or one of its objects (`wall`, `calendar`, `desk`, `workshop`); an unknown room goes to the corridor |
-| `/client?desk=decisions` · `/client?desk=projects&project=<id>` | a client desk (`projects`, `decisions`, `requests`, `library`, `briefs`, `settings`) |
+| `/client?desk=decisions` · `/client?desk=projects&project=<id>` | a client desk (`projects`, `decisions`, `requests`, `library`, `briefs`, `design`, `settings`) |
 
 ⌘K (Ctrl K) opens the palette in both rooms (`src/components/cc/command-palette.tsx`): what is waiting on you, the desks,
 the rooms, the projects and a few actions, built from data already on screen. Single letters open desks (`?` lists them);
