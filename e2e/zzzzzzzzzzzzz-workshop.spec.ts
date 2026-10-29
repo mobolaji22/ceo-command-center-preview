@@ -154,8 +154,11 @@ test("the CEO's Workshop opens the chosen direction to edit; an edit is saved in
   await expect(ws.getByRole("button", { name: "Undo" })).toHaveCount(0);
 });
 
-test("the client sees the revision waiting on them and approves it, with a fresh proof of who they are", async ({ page }) => {
+test("the client is told a revision waits on them, sees it, and approves it with a fresh proof of who they are", async ({ page }) => {
   await signIn(page, OWNER);
+  // v4 briefs the client's owner when a revision is sent for their decision: it is in their briefs, with the way to the Workshop.
+  await page.goto("/client?desk=briefs");
+  await expect(page.getByText("Your design is ready for a decision: revision 1").first()).toBeVisible();
   const ws = await openWorkshop(page, "client");
   await expect(ws.locator(".ws-banner")).toContainText("This revision is waiting for your decision");
   await expect(ws.getByLabel("lead headline, text")).toBeVisible();
