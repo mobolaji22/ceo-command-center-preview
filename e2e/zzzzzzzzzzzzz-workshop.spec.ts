@@ -65,8 +65,10 @@ test("a client asks for a design direction and approves a plan narrowed to it; t
   await expect(plan.getByRole("status").first()).toContainText("Approved. The work can begin.");
 
   const q = driveDesignRun(CEO);
-  expect(q.summary).toMatch(/^Choose the design direction to take forward: each is drawn in the Workshop \(/);
-  story.link = /\((http[^)]+)\)/.exec(q.summary)![1]!;
+  // Either wording v4 has used: the link in brackets after the question, or on a line of its own after the numbered directions.
+  expect(q.summary).toMatch(/^Choose the design direction to take forward\b/);
+  expect(q.summary).toMatch(/drawn in the Workshop/i);
+  story.link = /(https?:\/\/[^\s)]+)/.exec(q.summary)![1]!;
   story.projectName = q.projectName;
 });
 
