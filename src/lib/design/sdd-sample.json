@@ -1,0 +1,1021 @@
+{
+ "schemaVersion": "2",
+ "documentId": "sdd-p-1",
+ "projectId": "p-1",
+ "tenantId": "o-1",
+ "revision": 1,
+ "status": "DRAFT",
+ "mandate": {
+  "objectives": [],
+  "audience": "",
+  "context": "",
+  "successMeasures": [],
+  "scope": "",
+  "constraints": [],
+  "nonGoals": []
+ },
+ "evidence": [],
+ "meaningModel": null,
+ "basis": {
+  "directionSetting": true,
+  "reason": "The approved plan explores the design direction, so the concept is open and three territories are drawn (Design §48.2).",
+  "concept": {
+   "decisionId": "design.direction.concept",
+   "state": "OPEN"
+  },
+  "stageSkips": []
+ },
+ "territories": [
+  {
+   "id": "territory.conservative",
+   "concept": "Roastery Notice",
+   "thesis": "A clear subscription page with the week's roast date as its first fact",
+   "posture": "CONSERVATIVE",
+   "meaningInterpretation": "Freshness is the promise, and the roast date is its proof; the page must show the date before it asks for a subscription.",
+   "audienceExperience": "A home brewer who buys in shops sees the roast date first and feels they are buying from the roaster, not a reseller.",
+   "composition": "A single column from the roast date to the subscription and its terms.",
+   "typography": "A sturdy grotesque for headings, tabular figures for dates and prices.",
+   "artDirection": "Beans and bags photographed in the roastery, with the date stamp in frame.",
+   "colourAndMaterial": null,
+   "interactionAndMotion": null,
+   "signature": {
+    "noneBecause": "The roast date carries the page; a further device would compete with it"
+   },
+   "addressesBrief": "Puts the roast date and the pause or cancel terms where the trust requirements ask for them.",
+   "deliberatelyNot": "Does not lead with discounts, origin romance or a product grid.",
+   "strengths": [
+    "The proof is visible in the first screen"
+   ],
+   "weaknesses": [
+    "Relies on the roastery having a weekly date to show"
+   ],
+   "risks": [
+    "Reads as a shop page if the date is small"
+   ],
+   "tradeoffs": [
+    "Proof over atmosphere"
+   ],
+   "implementationImplications": [
+    "The roast date is data the site must read each week"
+   ],
+   "referenceLinks": [],
+   "technique": "conventional",
+   "techniqueMapping": "Deliberately familiar: subscription-site conventions keep ordering obvious, and the roast date is the one thing raised above them.",
+   "tokens": {
+    "colour": {
+     "surface.base": "unbleached kraft"
+    },
+    "type": {
+     "date": "tabular figures, large"
+    },
+    "space": {
+     "section": "generous"
+    }
+   },
+   "keyFrameIds": [
+    "territory.conservative.desktop",
+    "territory.conservative.phone"
+   ],
+   "studyFrameIds": [],
+   "rendered": false,
+   "previewRefs": [],
+   "status": "PROPOSED"
+  },
+  {
+   "id": "territory.distinctive",
+   "concept": "Batch Ticket",
+   "thesis": "Every page is a batch ticket: date, origin and roast written as the roaster writes them",
+   "posture": "DISTINCTIVE",
+   "meaningInterpretation": "Freshness is the promise, and the roast date is its proof; the page must show the date before it asks for a subscription.",
+   "audienceExperience": "A home brewer who buys in shops sees the roast date first and feels they are buying from the roaster, not a reseller.",
+   "composition": "A ticket-shaped panel anchors the first screen, with the subscription as its last line.",
+   "typography": "A sturdy grotesque for headings, tabular figures for dates and prices.",
+   "artDirection": "Beans and bags photographed in the roastery, with the date stamp in frame.",
+   "colourAndMaterial": null,
+   "interactionAndMotion": null,
+   "signature": {
+    "device": "The batch ticket, repeated on every page"
+   },
+   "addressesBrief": "Puts the roast date and the pause or cancel terms where the trust requirements ask for them.",
+   "deliberatelyNot": "Does not lead with discounts, origin romance or a product grid.",
+   "strengths": [
+    "The proof is visible in the first screen"
+   ],
+   "weaknesses": [
+    "Relies on the roastery having a weekly date to show"
+   ],
+   "risks": [
+    "Reads as a shop page if the date is small"
+   ],
+   "tradeoffs": [
+    "Proof over atmosphere"
+   ],
+   "implementationImplications": [
+    "The roast date is data the site must read each week"
+   ],
+   "referenceLinks": [],
+   "technique": "forced-collision",
+   "techniqueMapping": "Collides a roastery's batch ticket with a subscription checkout, so the proof and the order are one object.",
+   "tokens": {
+    "colour": {
+     "surface.base": "unbleached kraft"
+    },
+    "type": {
+     "date": "tabular figures, large"
+    },
+    "space": {
+     "section": "generous"
+    }
+   },
+   "keyFrameIds": [
+    "territory.distinctive.desktop",
+    "territory.distinctive.phone"
+   ],
+   "studyFrameIds": [],
+   "rendered": false,
+   "previewRefs": [],
+   "status": "PROPOSED"
+  },
+  {
+   "id": "territory.experimental",
+   "concept": "Roast Calendar",
+   "thesis": "The site is a calendar of roasts; subscribing is booking your place in the next one",
+   "posture": "EXPERIMENTAL",
+   "meaningInterpretation": "Freshness is the promise, and the roast date is its proof; the page must show the date before it asks for a subscription.",
+   "audienceExperience": "A home brewer who buys in shops sees the roast date first and feels they are buying from the roaster, not a reseller.",
+   "composition": "A week strip runs across the first screen and the subscription sits on the next roast day.",
+   "typography": "A sturdy grotesque for headings, tabular figures for dates and prices.",
+   "artDirection": "Beans and bags photographed in the roastery, with the date stamp in frame.",
+   "colourAndMaterial": null,
+   "interactionAndMotion": null,
+   "signature": {
+    "device": "The week strip with the next roast day marked"
+   },
+   "addressesBrief": "Puts the roast date and the pause or cancel terms where the trust requirements ask for them.",
+   "deliberatelyNot": "Does not lead with discounts, origin romance or a product grid.",
+   "strengths": [
+    "The proof is visible in the first screen"
+   ],
+   "weaknesses": [
+    "Relies on the roastery having a weekly date to show"
+   ],
+   "risks": [
+    "Reads as a shop page if the date is small"
+   ],
+   "tradeoffs": [
+    "Proof over atmosphere"
+   ],
+   "implementationImplications": [
+    "The roast date is data the site must read each week"
+   ],
+   "referenceLinks": [],
+   "technique": "cross-domain-metaphor-mapping",
+   "techniqueMapping": "Maps a booking calendar onto ordering coffee, so freshness becomes a date you choose rather than a claim you read.",
+   "tokens": {
+    "colour": {
+     "surface.base": "unbleached kraft"
+    },
+    "type": {
+     "date": "tabular figures, large"
+    },
+    "space": {
+     "section": "generous"
+    }
+   },
+   "keyFrameIds": [
+    "territory.experimental.desktop",
+    "territory.experimental.phone"
+   ],
+   "studyFrameIds": [],
+   "rendered": false,
+   "previewRefs": [],
+   "status": "PROPOSED"
+  }
+ ],
+ "selectedTerritoryId": null,
+ "decisionLog": [],
+ "designGenome": null,
+ "tokens": {},
+ "assets": [],
+ "pagesOrBoards": [],
+ "frames": [
+  {
+   "id": "territory.conservative.desktop",
+   "territoryId": "territory.conservative",
+   "viewport": "desktop",
+   "rootNodeId": "territory.conservative.desktop.page",
+   "nodeIds": [
+    "territory.conservative.desktop.page",
+    "territory.conservative.desktop.hero",
+    "territory.conservative.desktop.headline",
+    "territory.conservative.desktop.roast-date",
+    "territory.conservative.desktop.cta",
+    "territory.conservative.desktop.terms"
+   ]
+  },
+  {
+   "id": "territory.conservative.phone",
+   "territoryId": "territory.conservative",
+   "viewport": "phone",
+   "rootNodeId": "territory.conservative.phone.page",
+   "nodeIds": [
+    "territory.conservative.phone.page",
+    "territory.conservative.phone.hero",
+    "territory.conservative.phone.headline",
+    "territory.conservative.phone.roast-date",
+    "territory.conservative.phone.cta",
+    "territory.conservative.phone.terms"
+   ]
+  },
+  {
+   "id": "territory.distinctive.desktop",
+   "territoryId": "territory.distinctive",
+   "viewport": "desktop",
+   "rootNodeId": "territory.distinctive.desktop.page",
+   "nodeIds": [
+    "territory.distinctive.desktop.page",
+    "territory.distinctive.desktop.hero",
+    "territory.distinctive.desktop.headline",
+    "territory.distinctive.desktop.roast-date",
+    "territory.distinctive.desktop.cta",
+    "territory.distinctive.desktop.terms"
+   ]
+  },
+  {
+   "id": "territory.distinctive.phone",
+   "territoryId": "territory.distinctive",
+   "viewport": "phone",
+   "rootNodeId": "territory.distinctive.phone.page",
+   "nodeIds": [
+    "territory.distinctive.phone.page",
+    "territory.distinctive.phone.hero",
+    "territory.distinctive.phone.headline",
+    "territory.distinctive.phone.roast-date",
+    "territory.distinctive.phone.cta",
+    "territory.distinctive.phone.terms"
+   ]
+  },
+  {
+   "id": "territory.experimental.desktop",
+   "territoryId": "territory.experimental",
+   "viewport": "desktop",
+   "rootNodeId": "territory.experimental.desktop.page",
+   "nodeIds": [
+    "territory.experimental.desktop.page",
+    "territory.experimental.desktop.hero",
+    "territory.experimental.desktop.headline",
+    "territory.experimental.desktop.roast-date",
+    "territory.experimental.desktop.cta",
+    "territory.experimental.desktop.terms"
+   ]
+  },
+  {
+   "id": "territory.experimental.phone",
+   "territoryId": "territory.experimental",
+   "viewport": "phone",
+   "rootNodeId": "territory.experimental.phone.page",
+   "nodeIds": [
+    "territory.experimental.phone.page",
+    "territory.experimental.phone.hero",
+    "territory.experimental.phone.headline",
+    "territory.experimental.phone.roast-date",
+    "territory.experimental.phone.cta",
+    "territory.experimental.phone.terms"
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "id": "territory.conservative.desktop.page",
+   "role": "page",
+   "type": "frame",
+   "parentId": null,
+   "children": [
+    "territory.conservative.desktop.hero",
+    "territory.conservative.desktop.terms"
+   ],
+   "geometry": {
+    "description": "1440 wide, one column of 1040 centred"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.desktop.hero",
+   "role": "hero",
+   "type": "group",
+   "parentId": "territory.conservative.desktop.page",
+   "children": [
+    "territory.conservative.desktop.headline",
+    "territory.conservative.desktop.roast-date",
+    "territory.conservative.desktop.cta"
+   ],
+   "geometry": {
+    "description": "full width, first screen"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.desktop.headline",
+   "role": "headline",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "hero_headline",
+     "purpose": "Roasted weekly, so it arrives fresh",
+     "maxChars": 56,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.desktop.roast-date",
+   "role": "proof",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "roast_date_label",
+     "purpose": "When this week's batch was roasted",
+     "maxChars": 32,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.desktop.cta",
+   "role": "primary action",
+   "type": "control",
+   "parentId": "territory.conservative.desktop.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "subscribe_cta",
+     "purpose": "Start a subscription",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.desktop.terms",
+   "role": "reassurance",
+   "type": "text",
+   "parentId": "territory.conservative.desktop.page",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "pause_cancel_note",
+     "purpose": "They can pause or cancel",
+     "maxChars": 80,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "description": "a band under the hero"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.phone.page",
+   "role": "page",
+   "type": "frame",
+   "parentId": null,
+   "children": [
+    "territory.conservative.phone.hero",
+    "territory.conservative.phone.terms"
+   ],
+   "geometry": {
+    "description": "390 wide, one column"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.phone.hero",
+   "role": "hero",
+   "type": "group",
+   "parentId": "territory.conservative.phone.page",
+   "children": [
+    "territory.conservative.phone.headline",
+    "territory.conservative.phone.roast-date",
+    "territory.conservative.phone.cta"
+   ],
+   "geometry": {
+    "description": "full width, first screen"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.phone.headline",
+   "role": "headline",
+   "type": "text",
+   "parentId": "territory.conservative.phone.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "hero_headline",
+     "purpose": "Roasted weekly, so it arrives fresh",
+     "maxChars": 56,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.phone.roast-date",
+   "role": "proof",
+   "type": "text",
+   "parentId": "territory.conservative.phone.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "roast_date_label",
+     "purpose": "When this week's batch was roasted",
+     "maxChars": 32,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.phone.cta",
+   "role": "primary action",
+   "type": "control",
+   "parentId": "territory.conservative.phone.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "subscribe_cta",
+     "purpose": "Start a subscription",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.conservative.phone.terms",
+   "role": "reassurance",
+   "type": "text",
+   "parentId": "territory.conservative.phone.page",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "pause_cancel_note",
+     "purpose": "They can pause or cancel",
+     "maxChars": 80,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "description": "stacked under the hero"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.desktop.page",
+   "role": "page",
+   "type": "frame",
+   "parentId": null,
+   "children": [
+    "territory.distinctive.desktop.hero",
+    "territory.distinctive.desktop.terms"
+   ],
+   "geometry": {
+    "description": "1440 wide, one column of 1040 centred"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.desktop.hero",
+   "role": "hero",
+   "type": "group",
+   "parentId": "territory.distinctive.desktop.page",
+   "children": [
+    "territory.distinctive.desktop.headline",
+    "territory.distinctive.desktop.roast-date",
+    "territory.distinctive.desktop.cta"
+   ],
+   "geometry": {
+    "description": "full width, first screen"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.desktop.headline",
+   "role": "headline",
+   "type": "text",
+   "parentId": "territory.distinctive.desktop.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "hero_headline",
+     "purpose": "Roasted weekly, so it arrives fresh",
+     "maxChars": 56,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.desktop.roast-date",
+   "role": "proof",
+   "type": "text",
+   "parentId": "territory.distinctive.desktop.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "roast_date_label",
+     "purpose": "When this week's batch was roasted",
+     "maxChars": 32,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.desktop.cta",
+   "role": "primary action",
+   "type": "control",
+   "parentId": "territory.distinctive.desktop.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "subscribe_cta",
+     "purpose": "Start a subscription",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.desktop.terms",
+   "role": "reassurance",
+   "type": "text",
+   "parentId": "territory.distinctive.desktop.page",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "pause_cancel_note",
+     "purpose": "They can pause or cancel",
+     "maxChars": 80,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "description": "a band under the hero"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.phone.page",
+   "role": "page",
+   "type": "frame",
+   "parentId": null,
+   "children": [
+    "territory.distinctive.phone.hero",
+    "territory.distinctive.phone.terms"
+   ],
+   "geometry": {
+    "description": "390 wide, one column"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.phone.hero",
+   "role": "hero",
+   "type": "group",
+   "parentId": "territory.distinctive.phone.page",
+   "children": [
+    "territory.distinctive.phone.headline",
+    "territory.distinctive.phone.roast-date",
+    "territory.distinctive.phone.cta"
+   ],
+   "geometry": {
+    "description": "full width, first screen"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.phone.headline",
+   "role": "headline",
+   "type": "text",
+   "parentId": "territory.distinctive.phone.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "hero_headline",
+     "purpose": "Roasted weekly, so it arrives fresh",
+     "maxChars": 56,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.phone.roast-date",
+   "role": "proof",
+   "type": "text",
+   "parentId": "territory.distinctive.phone.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "roast_date_label",
+     "purpose": "When this week's batch was roasted",
+     "maxChars": 32,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.phone.cta",
+   "role": "primary action",
+   "type": "control",
+   "parentId": "territory.distinctive.phone.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "subscribe_cta",
+     "purpose": "Start a subscription",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.distinctive.phone.terms",
+   "role": "reassurance",
+   "type": "text",
+   "parentId": "territory.distinctive.phone.page",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "pause_cancel_note",
+     "purpose": "They can pause or cancel",
+     "maxChars": 80,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "description": "stacked under the hero"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.desktop.page",
+   "role": "page",
+   "type": "frame",
+   "parentId": null,
+   "children": [
+    "territory.experimental.desktop.hero",
+    "territory.experimental.desktop.terms"
+   ],
+   "geometry": {
+    "description": "1440 wide, one column of 1040 centred"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.desktop.hero",
+   "role": "hero",
+   "type": "group",
+   "parentId": "territory.experimental.desktop.page",
+   "children": [
+    "territory.experimental.desktop.headline",
+    "territory.experimental.desktop.roast-date",
+    "territory.experimental.desktop.cta"
+   ],
+   "geometry": {
+    "description": "full width, first screen"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.desktop.headline",
+   "role": "headline",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "hero_headline",
+     "purpose": "Roasted weekly, so it arrives fresh",
+     "maxChars": 56,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.desktop.roast-date",
+   "role": "proof",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "roast_date_label",
+     "purpose": "When this week's batch was roasted",
+     "maxChars": 32,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.desktop.cta",
+   "role": "primary action",
+   "type": "control",
+   "parentId": "territory.experimental.desktop.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "subscribe_cta",
+     "purpose": "Start a subscription",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.desktop.terms",
+   "role": "reassurance",
+   "type": "text",
+   "parentId": "territory.experimental.desktop.page",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "pause_cancel_note",
+     "purpose": "They can pause or cancel",
+     "maxChars": 80,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "description": "a band under the hero"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.phone.page",
+   "role": "page",
+   "type": "frame",
+   "parentId": null,
+   "children": [
+    "territory.experimental.phone.hero",
+    "territory.experimental.phone.terms"
+   ],
+   "geometry": {
+    "description": "390 wide, one column"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.phone.hero",
+   "role": "hero",
+   "type": "group",
+   "parentId": "territory.experimental.phone.page",
+   "children": [
+    "territory.experimental.phone.headline",
+    "territory.experimental.phone.roast-date",
+    "territory.experimental.phone.cta"
+   ],
+   "geometry": {
+    "description": "full width, first screen"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.phone.headline",
+   "role": "headline",
+   "type": "text",
+   "parentId": "territory.experimental.phone.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "hero_headline",
+     "purpose": "Roasted weekly, so it arrives fresh",
+     "maxChars": 56,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.phone.roast-date",
+   "role": "proof",
+   "type": "text",
+   "parentId": "territory.experimental.phone.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "roast_date_label",
+     "purpose": "When this week's batch was roasted",
+     "maxChars": 32,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.phone.cta",
+   "role": "primary action",
+   "type": "control",
+   "parentId": "territory.experimental.phone.hero",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "subscribe_cta",
+     "purpose": "Start a subscription",
+     "maxChars": 24,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  },
+  {
+   "id": "territory.experimental.phone.terms",
+   "role": "reassurance",
+   "type": "text",
+   "parentId": "territory.experimental.phone.page",
+   "children": [],
+   "content": {
+    "contentRef": {
+     "key": "pause_cancel_note",
+     "purpose": "They can pause or cancel",
+     "maxChars": 80,
+     "status": "PLACEHOLDER"
+    }
+   },
+   "geometry": {
+    "description": "stacked under the hero"
+   },
+   "styleRefs": [],
+   "assetRef": null,
+   "componentRef": null,
+   "interactionRefs": [],
+   "annotations": []
+  }
+ ],
+ "components": [],
+ "flows": [],
+ "interactions": [],
+ "responsiveRules": [],
+ "platformProfiles": [],
+ "accessibilitySpec": {},
+ "qualityFindings": [],
+ "waivers": [],
+ "approvals": [],
+ "handoff": {},
+ "provenance": {},
+ "extensions": {}
+}

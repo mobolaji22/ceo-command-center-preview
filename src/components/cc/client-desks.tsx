@@ -79,8 +79,9 @@ export function DecisionsDesk({ data, isOwner, busy, msg, onDecide }: Common & {
 }
 
 /** The pinboard: what the client has asked for, and what the work is asking back. */
-export function RequestsDesk({ data, isOwner, organizationId, refresh, openQuestions }: Common & { organizationId: string | undefined; refresh: () => void; openQuestions: number }) {
-  const [tab, setTab] = useState<"requests" | "questions">("requests");
+export function RequestsDesk({ data, isOwner, organizationId, refresh, openQuestions, focusProject }: Common & { organizationId: string | undefined; refresh: () => void; openQuestions: number; focusProject?: string | undefined }) {
+  // Opened for a project (a link from a question about it), the questions are what was asked for.
+  const [tab, setTab] = useState<"requests" | "questions">(focusProject ? "questions" : "requests");
   // What they must act on comes first (P6.21 P5): their requests and the questions in them. Writing a new one is a button that
   // opens the form, not a form that fills the first screen; with nothing asked yet, the form is open.
   const [writing, setWriting] = useState(data.intents.length === 0);

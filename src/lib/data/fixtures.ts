@@ -1,4 +1,8 @@
 import { loadDraft, saveDraft } from "@/lib/design/draft-store";
+import type { SddDocument, SddView } from "@/lib/design/v4";
+// Written by v4's own code from its territory-exploration golden seed (dev-playbook-v4 packages/design/src/territory-draft.ts), so the
+// demo's design document is v4's shape, not an imitation of it.
+import sddSample from "@/lib/design/sdd-sample.json";
 import type {
   Answer,
   ClientIntentView,
@@ -122,7 +126,7 @@ const STATUS_LINE = (i: { status: string; questions: unknown[] }, planReady: boo
   : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
   : { kind: "PLANNING", line: "We're preparing your plan." };
 
-type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView> };
+type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; sdd?: Record<string, SddView> };
 
 /** A demo plan: enough to show every part of the page. */
 const demoPlan = (): PlanContent => ({
@@ -752,6 +756,21 @@ export function createFixturesDataSource(): DataSource {
     },
 
     design: {
+      async read(projectId) {
+        const s = load();
+        if (!mayReach(s, projectId)) return fail("That couldn't be found.", "NOT_FOUND");
+        // The demo's design project starts with the three territories a run drew, waiting for a choice.
+        const seeded: SddView | undefined = projectId === "p-1" ? { approved: null, current: { proposalId: "sdd-draft-p-1", status: "DRAFT", baseVersion: null, documentHash: "0".repeat(64), document: sddSample as unknown as SddDocument } } : undefined;
+        return ok(structuredClone(s.sdd?.[projectId] ?? seeded ?? { approved: null, current: null }));
+      },
+      async selectTerritory(projectId, territoryId) {
+        const read = await this.read(projectId);
+        const doc = read.data?.current?.document;
+        if (!doc || doc.selectedTerritoryId !== null) return fail("This was already answered.", "ALREADY_RESOLVED");
+        if (!doc.territories.some((t) => t.id === territoryId)) return fail("Something needed for that answer is missing or not valid.", "INVALID_PARAMS");
+        const chosen: SddDocument = { ...doc, selectedTerritoryId: territoryId, territories: doc.territories.map((t) => ({ ...t, status: t.id === territoryId ? "SELECTED" : "SET_ASIDE" })) };
+        return mutate((s) => { s.sdd = { ...s.sdd, [projectId]: { ...read.data!, current: { ...read.data!.current!, document: chosen } } }; });
+      },
       async load(projectId) { return ok(loadDraft(projectId)); },
       async save(doc, baseRevision) {
         const stored = loadDraft(doc.projectId);

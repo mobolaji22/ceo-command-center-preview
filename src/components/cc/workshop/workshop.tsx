@@ -17,6 +17,7 @@ import { Empty } from "../views";
 import { projectsIn } from "../corridor";
 import { useDomains } from "@/lib/domains";
 import { Artboard } from "./canvas";
+import { Directions } from "./directions";
 import { Inspector, type InspectorTab } from "./inspector";
 import { LeftPanel, type LeftTab } from "./left-panel";
 import { useWorkshop, type DesignStore } from "./use-workshop";
@@ -41,6 +42,10 @@ export function WorkshopDesk({ data, dept }: { data: OwnerData; dept: string }) 
   );
   const project = projects.find((p) => p.id === pid) ?? projects[0];
   if (!project) return <div className="workshop-empty"><Empty title="No design project yet.">The Workshop opens a project that has design work. Issue a directive for one from the office.</Empty></div>;
+  const picker = projects.length > 1 ? <select className="ws-select" aria-label="Design project" value={project.id} onChange={(e) => setPid(e.target.value)}>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : <b className="ws-project">{project.name}</b>;
+  // Against the agency, the Workshop shows the project's own design document, v4's (ADR-0049): the directions the run drew and the
+  // choice between them. Editing that document here comes next (W4b); until then the sketching tools stay with the demo.
+  if (ds.kind === "api") return <div className="workshop workshop-directions"><div className="ws-toolbar">{picker}</div><div className="directions-scroll"><Directions key={project.id} projectId={project.id} /></div></div>;
   return (
     <WorkshopEditor key={project.id} projectId={project.id} projectName={project.name} actor={actor} store={store}
       picker={projects.length > 1 ? <select className="ws-select" aria-label="Design project" value={project.id} onChange={(e) => setPid(e.target.value)}>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : <b className="ws-project">{project.name}</b>} />

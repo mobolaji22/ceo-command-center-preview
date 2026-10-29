@@ -201,3 +201,46 @@ html:not([data-lighting="day"]) .ws-chip.bad { color: oklch(0.8 0.14 40); }
 }
 @media (max-width: 650px) { .desk-panel[data-surface="room-workshop"] { width: 100%; } .ws-group { border-right: 0; } .ws-ba { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .ws-toast { animation: none; } }
+
+/* The directions from v4's design document (ADR-0049): three territories side by side, each drawn as structured wireframes. The
+ * wireframes are deliberately grey: they show structure, not how a direction will look (Design §45.3), and they read in day and night. */
+.workshop-directions { overflow: hidden; }
+.directions-scroll { flex: 1; min-height: 0; overflow: auto; padding: 16px; }
+.directions { display: grid; gap: 14px; }
+.directions-head b { font: 600 15px "DM Sans", sans-serif; }
+.directions-head p { margin: 4px 0 0; color: var(--muted-foreground); font-size: 13px; max-width: 80ch; }
+.directions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.direction { display: grid; gap: 10px; align-content: start; padding: 14px; border: 1px solid var(--border); border-radius: 4px; background: color-mix(in oklab, var(--foreground) 3%, var(--background)); }
+.direction.is-chosen { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.direction.is-aside { opacity: 0.7; }
+.direction h3 { margin: 0; font: 600 18px "DM Sans", sans-serif; }
+.direction-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.direction-posture { font: 600 11px "DM Sans", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); }
+.direction-flag { margin-left: auto; font-size: 11px; padding: 2px 8px; border: 1px dashed var(--border); border-radius: 999px; color: var(--muted-foreground); }
+.direction-thesis { margin: 0; font-size: 13px; }
+.direction-frames { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: start; }
+.direction-detail summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.direction-detail dl { display: grid; gap: 6px; margin: 8px 0; }
+.direction-detail dt { font-size: 11px; font-weight: 600; color: var(--muted-foreground); }
+.direction-detail dd { margin: 0; font-size: 12px; }
+.direction-list b { font-size: 11px; color: var(--muted-foreground); }
+.direction-list ul { margin: 2px 0 8px; padding-left: 18px; font-size: 12px; }
+.direction-choose { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.direction-choose label { display: grid; gap: 4px; width: 100%; font-size: 12px; }
+.direction-choose textarea { min-height: 64px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 3px; background: var(--background); color: var(--foreground); font: inherit; }
+.directions-for { display: grid; gap: 10px; margin: 8px 0; }
+.directions-for > button { justify-self: start; }
+
+.wireframe { margin: 0; display: grid; gap: 4px; }
+.wireframe figcaption { font-size: 11px; color: var(--muted-foreground); text-align: center; }
+.wf { display: grid; gap: 4px; padding: 6px; border: 1px solid color-mix(in oklab, var(--foreground) 35%, transparent); border-radius: 2px; background: color-mix(in oklab, var(--foreground) 4%, transparent); min-width: 0; }
+.wf-group { border-style: dashed; }
+.wf-control { justify-self: start; border-radius: 999px; padding: 4px 10px; background: color-mix(in oklab, var(--foreground) 12%, transparent); }
+.wf-media { min-height: 48px; background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in oklab, var(--foreground) 10%, transparent) 6px 7px); }
+.wf-text { border-color: transparent; background: none; padding: 2px 4px; }
+.wf-role { font: 600 9px "DM Sans", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.wf-slot { font-size: 11px; font-style: italic; overflow-wrap: anywhere; }
+.wf-slot small { font-style: normal; color: var(--muted-foreground); }
+@media (max-width: 650px) {
+  .direction-frames { grid-template-columns: 1fr; }
+}
