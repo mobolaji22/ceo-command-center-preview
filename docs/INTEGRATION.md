@@ -86,8 +86,9 @@ direction, the client's owner leaves typed feedback and decides, and v4 keeps ev
 | `design.versions(projectId)` · `design.version(projectId, n)` | `GET /v1/projects/:id/sdd/versions` · `GET .../sdd/versions/:version` | every approved version, newest first · one in full, which "Restore as the draft" applies as an ordinary edit | `404` |
 | `design.decide(proposalId, { action, note? })` | `POST /v1/proposals/:id/decision` | `200`: `APPROVE` makes it the next version; `REQUEST_REVISION` sends it back with the note | `403 STEP_UP_REQUIRED` (the code form opens and the decision is retried); `409 OPEN_CHANGE_REQUEST` |
 
-- **Types are generated, never hand-written.** `npm run sdd:types` reads v4's `packages/contracts/schemas/sdd-document.schema.json`
-  (`V4_DIR`, default `../dev-playbook-v4`) and writes a copy of the schema and `src/lib/design/sdd.generated.ts`. `npm run lint` fails
+- **Types are generated, never hand-written.** `npm run v4:types` reads v4's `packages/contracts/schemas/sdd-document.schema.json`
+  (`V4_DIR`, default `../dev-playbook-v4`) and writes a copy of the schema and `src/lib/design/sdd.generated.ts`, and does the same
+  for the client's book (`deliverables.schema.json`, below). `npm run lint` fails
   when the types drift from the copy, or the copy from v4's schema when a v4 checkout is present; the e2e setup checks it too. The
   annotation kinds the UI offers are read from that schema copy.
 - **The canvas is a view; every change is an operation.** `src/lib/design/edit.ts` holds the operations (move, resize, patch, delete,
@@ -101,6 +102,26 @@ direction, the client's owner leaves typed feedback and decides, and v4 keeps ev
   the same Workshop from their room (`/client?desk=design&project=<id>`, the key W, or ⌘K), points at an element to leave feedback, and
   approves (with a fresh code) or asks for a change. A Workshop link (`/?room=DESIGN&spot=workshop&project=<id>`) opened by a client
   goes to their design desk.
+
+## The client's book (dev-playbook-v4 ADR-0053, ADR-0054)
+
+One book per project: the brand (Brand's direction, with Content's words to sell it) and the market (Market's research, with Business's
+chapter on what it means for the business). v4 writes every sentence and decides which part a reader may see; `src/components/cc/book.tsx`
+lays it out in chapters. The agency opens it from the Brand room's folio or the Market room's folders (`?room=BRAND&spot=book`); the
+client from their Library ("Your book").
+
+| `DataSource` call | v4 endpoint | Success | Errors handled |
+| --- | --- | --- | --- |
+| `deliverables.book(projectId)` | `GET /v1/projects/:id/book` | `200 ClientBookView`: `brand` and `market` (each `null` when this reader may not read it yet) and `toCome`, a sentence for each part planned but not released | `404 NOT_PRODUCED` is read as "no chapter yet" (`null`) |
+| `deliverables.keepBrand(projectId)` | `POST /v1/projects/:id/brand/keep` | `200 { proposalId, written }`: the brand is kept in the organization's library and the client's owner is asked to let it stand in for Brand | v4's `detail` is shown |
+| `deliverables.keptBrand(projectId)` | `GET /v1/projects/:id/proposals` | the newest submitted `SUBSTITUTION` for Brand, or `null` | any error is shown |
+| `deliverables.decideKeptBrand(proposalId, approve)` | `POST /v1/proposals/:id/decision` body `{ action: APPROVE \| REJECT }` | `200` | `403 STEP_UP_REQUIRED` (the code form opens and the decision is retried) |
+
+- **A chapter is shown when v4 releases it.** The brand part once a position is chosen and its checks are clean; the market part once
+  the research is complete and judged sufficient. Until then a client reads the reason in `toCome`. The agency also sees a drafted
+  market part, with v4's banner first.
+- **Types are generated** from `packages/contracts/schemas/deliverables.schema.json` into `src/lib/deliverables/deliverables.generated.ts`;
+  `src/lib/deliverables/v4.ts` only names the parts and words v4's codes for a reader.
 
 ## Rooms (P6.10a)
 
@@ -118,7 +139,7 @@ are the app's; anything else in the address (the demo's `?as=`) is left alone.
 | --- | --- |
 | `/?desk=contracts&project=<id>&item=<approval id>` | a CEO desk (`computer`, `phone`, `contracts`, `directive`, `brief`, `records`, `settings`), optionally on one project or authorization |
 | `/?at=corridor` | the corridor |
-| `/?room=DESIGN` · `/?room=DESIGN&spot=workshop` | a department room, or one of its objects (`wall`, `calendar`, `desk`, `workshop`); an unknown room goes to the corridor |
+| `/?room=DESIGN` · `/?room=DESIGN&spot=workshop` | a department room, or one of its objects (`wall`, `calendar`, `desk`, and `workshop` in Design or `book` in Brand and Market); an unknown room goes to the corridor |
 | `/client?desk=decisions` · `/client?desk=projects&project=<id>` | a client desk (`projects`, `decisions`, `requests`, `library`, `briefs`, `design`, `settings`) |
 
 ⌘K (Ctrl K) opens the palette in both rooms (`src/components/cc/command-palette.tsx`): what is waiting on you, the desks,

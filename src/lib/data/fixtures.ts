@@ -2,6 +2,8 @@ import type { SddAnnotation, SddDocument, SddView } from "@/lib/design/v4";
 // Written by v4's own code from its territory-exploration golden seed (dev-playbook-v4 packages/design/src/territory-draft.ts), so the
 // demo's design document is v4's shape, not an imitation of it.
 import sddSample from "@/lib/design/sdd-sample.json";
+import type { KeptBrand } from "@/lib/deliverables/v4";
+import { sampleBook } from "@/lib/deliverables/samples";
 import type {
   Answer,
   ClientIntentView,
@@ -125,7 +127,7 @@ const STATUS_LINE = (i: { status: string; questions: unknown[] }, planReady: boo
   : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
   : { kind: "PLANNING", line: "We're preparing your plan." };
 
-type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign> };
+type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand> };
 
 /**
  * A project's design document in the demo, as v4 keeps it: the approved versions, and the one revision being worked on (a draft, one
@@ -876,6 +878,49 @@ export function createFixturesDataSource(): DataSource {
         },
       };
     })(),
+
+    deliverables: {
+      // The demo's storefront project has a finished book; the others have none yet.
+      async book(projectId) {
+        const s = load();
+        if (!mayReach(s, projectId)) return fail("That couldn't be found.", "NOT_FOUND");
+        const project = s.data.projects.find((p) => p.id === projectId);
+        if (projectId !== "p-1" || !project?.started_at) return ok(null);
+        const agency = s.users.find((u) => u.id === currentUserId())?.role === "owner";
+        return ok(sampleBook(agency ? "AGENCY" : "CLIENT", project.started_at));
+      },
+      async keepBrand(projectId) {
+        const s = load();
+        if (s.users.find((u) => u.id === currentUserId())?.role !== "owner") return fail("Only the agency can propose keeping a brand.", "FORBIDDEN");
+        if (projectId !== "p-1") return fail("This project has no finished Brand direction to keep.", "SUBSTITUTE_INELIGIBLE");
+        const live = s.kept?.[projectId];
+        if (live && (live.status === "SUBMITTED" || live.status === "APPROVED")) return ok({ proposalId: live.proposalId, written: false });
+        const kept: KeptBrand = { proposalId: `kept-${id()}`, status: "SUBMITTED", version: (live?.version ?? 0) + 1, submittedAt: new Date().toISOString(), decidedAt: null,
+          fitness: "Kept from this project's Brand direction: \"The neighbourhood bakery that tells you when your bread came out of the oven.\" 1 item(s) are still to confirm." };
+        s.kept = { ...s.kept, [projectId]: kept };
+        save(s);
+        return ok({ proposalId: kept.proposalId, written: true });
+      },
+      async keptBrand(projectId) {
+        const s = load();
+        if (!mayReach(s, projectId)) return fail("That couldn't be found.", "NOT_FOUND");
+        return ok(structuredClone(s.kept?.[projectId] ?? null));
+      },
+      async decideKeptBrand(proposalId, approve) {
+        const s = load();
+        const [projectId, kept] = Object.entries(s.kept ?? {}).find(([, k]) => k.proposalId === proposalId) ?? [];
+        const project = s.data.projects.find((p) => p.id === projectId);
+        const me = s.users.find((u) => u.id === currentUserId());
+        if (!kept || !project || !me) return fail("That couldn't be found.", "NOT_FOUND");
+        if (!me.memberships.some((m) => m.organizationId === project.organization_id && m.role === "CLIENT_OWNER")) return fail("This is the client's owner's decision.", "FORBIDDEN");
+        if (approve && !steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        if (kept.status !== "SUBMITTED") return fail("This was already decided.", "ALREADY_DECIDED");
+        kept.status = approve ? "APPROVED" : "REJECTED";
+        kept.decidedAt = new Date().toISOString();
+        save(s);
+        return ok(undefined as void);
+      },
+    },
 
     runs: {
       async list(projectId) {

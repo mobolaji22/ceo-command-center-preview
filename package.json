@@ -8,8 +8,8 @@
     "build:dev": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --max-warnings 0 && node scripts/check-domain-lists.mjs && node scripts/sdd-types.mjs --check",
-    "sdd:types": "node scripts/sdd-types.mjs",
+    "lint": "eslint . --max-warnings 0 && node scripts/check-domain-lists.mjs && node scripts/v4-types.mjs --check",
+    "v4:types": "node scripts/v4-types.mjs",
     "format": "prettier --write .",
     "test:e2e": "playwright test",
     "test:unit": "playwright test -c playwright.unit.config.ts"

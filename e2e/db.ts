@@ -134,3 +134,14 @@ export function driveDesignRun(ceoEmail: string): { id: string; summary: string;
   });
   return JSON.parse(out.trim().split("\n").at(-1)!) as { id: string; summary: string; projectId: string; projectName: string };
 }
+
+/**
+ * A finished Brand run on the client's newest project (e2e/book-seed.mjs): a chosen position, Content's kit, and Market's research
+ * still drafted. Returns the project the book belongs to.
+ */
+export function seedFinishedBrandRun(ownerEmail: string): { projectId: string; projectName: string } {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const out = execFileSync("npx", ["tsx", resolve("e2e/book-seed.mjs"), ownerEmail], { cwd: V4_DIR, encoding: "utf8", env: { ...process.env, DATABASE_URL: u.toString() } });
+  return JSON.parse(out.trim().split("\n").at(-1)!) as { projectId: string; projectName: string };
+}

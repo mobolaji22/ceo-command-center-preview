@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Coffee, DoorOpen, FileCheck2, FolderOpen, Keyboard, LogOut, Monitor, PenLine, PenTool, Phone, Settings2, Sparkles, Sun, Waypoints } from "lucide-react";
+import { ArrowLeft, BookOpen, Coffee, DoorOpen, FileCheck2, FolderOpen, Keyboard, LogOut, Monitor, PenLine, PenTool, Phone, Settings2, Sparkles, Sun, Waypoints } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
@@ -39,7 +39,7 @@ type View = "office" | "computer" | "phone" | "contracts" | "directive" | "brief
 /** The letter that opens each desk (lib/shortcuts). The same letters label the palette's entries and the hotspots' previews. */
 const DESK_KEYS: Partial<Record<View, string>> = { computer: "o", phone: "p", contracts: "c", directive: "d", brief: "b", hallway: "h", manage: "r", settings: "s" };
 const DESK_NAMES: Partial<Record<View, string>> = { computer: "Operating system", phone: "Phone", contracts: "Contracts", directive: "Directive", brief: "Brief", hallway: "The corridor", manage: "Records explorer", settings: "Settings" };
-const ROOM_SPOTS: readonly RoomSpot[] = ["wall", "calendar", "desk", "workshop"];
+const ROOM_SPOTS: readonly RoomSpot[] = ["wall", "calendar", "desk", "workshop", "book"];
 
 /** Where you are, as the address bar says it (lib/place). The records explorer is "records" there; the code calls it manage. */
 function placeOf(view: View, dept: string, spot: RoomSpot, project: string | undefined, item: string | undefined): Place {
@@ -144,6 +144,7 @@ export default function Index() {
     ...deskViews.map((v) => ({ id: `desk:${v}`, group: "Desks", label: DESK_NAMES[v]!, hint: v === "contracts" && pending ? `${pending} awaiting your signature` : v === "hallway" ? "Every room of the agency" : undefined, shortcut: DESK_KEYS[v], icon: deskIcon[v], run: go(v) })),
     ...rooms.map((code) => ({ id: `room:${code}`, group: "Rooms", label: domains.nameOf(code), hint: domains.list.find((d) => d.code === code)?.department.name, keywords: ["room", code], icon: Waypoints, run: () => enterRoom(code) })),
     ...rooms.filter((code) => spotsFor(code).includes("workshop")).map((code) => ({ id: `workshop:${code}`, group: "Rooms", label: `${domains.nameOf(code)} workshop`, hint: "Work on the chosen design", keywords: ["canvas", "frame"], icon: PenTool, run: () => enterRoom(code, "workshop") })),
+    ...rooms.filter((code) => spotsFor(code).includes("book")).map((code) => ({ id: `book:${code}`, group: "Rooms", label: `The client's book (${domains.nameOf(code)})`, hint: "Brand, market and how to sell it, per project", keywords: ["book", "brand book", "market report"], icon: BookOpen, run: () => enterRoom(code, "book") })),
     ...(data?.projects.map((p) => ({ id: `project:${p.id}`, group: "Projects", label: p.name, hint: `${label(p.status)} · ${p.domains.map(domains.nameOf).join(", ")}`, keywords: [p.description ?? "", p.objective ?? ""], icon: FolderOpen, run: () => openView("manage", p.id) })) ?? []),
     { id: "do:lighting", group: "Actions", label: day ? "Night lighting" : "Day lighting", icon: Sun, run: () => setLighting(day ? "night" : "day") },
     { id: "do:focus", group: "Actions", label: focus ? "Leave focus lighting" : "Focus lighting", hint: "A quieter office", icon: Coffee, run: () => setFocus((f) => !f) },
