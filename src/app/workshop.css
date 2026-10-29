@@ -70,7 +70,9 @@
 
 /* the canvas */
 .ws-artboard-wrap { position: relative; flex: 0 0 auto; box-shadow: 0 14px 44px oklch(0 0 0 / 38%); }
-.ws-artboard { position: relative; transform-origin: 0 0; overflow: hidden; outline: none; user-select: none; -webkit-user-select: none; touch-action: none; }
+.ws-artboard { position: relative; transform-origin: 0 0; overflow: hidden; outline: none; user-select: none; -webkit-user-select: none; touch-action: pan-x pan-y; }
+/* A finger scrolls over a design; only a resize handle takes the touch for itself (a move starts after a short press). */
+.ws-handles span { touch-action: none; }
 .ws-artboard:focus-visible { box-shadow: 0 0 0 3px #2f7bff; }
 .ws-artboard.is-commenting { cursor: crosshair; }
 .ws-grid { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(to right, oklch(0.5 0.1 250 / 22%) 1px, transparent 1px), linear-gradient(to bottom, oklch(0.5 0.1 250 / 22%) 1px, transparent 1px); }

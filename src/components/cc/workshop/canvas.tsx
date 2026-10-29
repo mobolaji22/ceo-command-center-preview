@@ -94,13 +94,20 @@ export function Artboard({ doc, frameId, scale, selection, onSelect, onOp, tool,
       }
       setD({ kind: "move", ids, carried, dx, dy, guides: { x: gx, y: gy } });
     };
+    // While a finger drags an element the page must not scroll under it; the canvas otherwise pans as usual (touch-action in CSS).
+    const block = (ev: TouchEvent) => ev.preventDefault();
     const up = () => {
-      window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
+      window.removeEventListener("touchmove", block);
       const d = dragRef.current;
       setD(null);
       if (d?.kind === "move" && (Math.abs(d.dx) >= 1 || Math.abs(d.dy) >= 1)) { const m = onOp?.({ type: "MOVE", ids: d.ids, dx: Math.round(d.dx), dy: Math.round(d.dy) }); if (m) onRefuse?.(m); }
     };
-    const begin = () => { setD({ kind: "move", ids, carried, dx: 0, dy: 0, guides: { x: null, y: null } }); window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up); };
+    const begin = () => {
+      setD({ kind: "move", ids, carried, dx: 0, dy: 0, guides: { x: null, y: null } });
+      window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+      if (e.pointerType === "touch") window.addEventListener("touchmove", block, { passive: false });
+    };
     if (e.pointerType !== "touch") { begin(); return; }
     // A finger moves an element only after a short press (P6.21 P6), so scrolling the canvas never drags what it starts on.
     const hold = window.setTimeout(() => { stop(); begin(); }, 300);
@@ -126,8 +133,11 @@ export function Artboard({ doc, frameId, scale, selection, onSelect, onOp, tool,
       if (h < 8) { if (handle.includes("n")) y -= 8 - h; h = 8; }
       setD({ kind: "resize", id: n.id, rect, next: { x, y, w, h } });
     };
+    // While a finger drags an element the page must not scroll under it; the canvas otherwise pans as usual (touch-action in CSS).
+    const block = (ev: TouchEvent) => ev.preventDefault();
     const up = () => {
-      window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
+      window.removeEventListener("touchmove", block);
       const d = dragRef.current; setD(null);
       if (d?.kind === "resize" && (d.next.x !== d.rect.x || d.next.y !== d.rect.y || d.next.w !== d.rect.w || d.next.h !== d.rect.h)) { const m = onOp?.({ type: "BOX", id: d.id, box: d.next }); if (m) onRefuse?.(m); }
     };

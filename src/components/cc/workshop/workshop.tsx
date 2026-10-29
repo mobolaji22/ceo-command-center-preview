@@ -130,12 +130,14 @@ export function DesignWorkshop({ projectId, projectName, picker }: { projectId: 
     if (e.key === "Escape" && valid.length) { e.stopPropagation(); setSelection([]); }
   };
 
-  if (w.loadError) return <div className="workshop-empty"><Empty title="The design could not be opened."><p>{w.loadError}</p><Button variant="ghost" className="ws-btn" onClick={() => void w.reload()}>Try again</Button></Empty></div>;
-  if (!w.view) return <div className="workshop-empty"><span className="pulse-dot" /> Opening the design…</div>;
-  if (!doc) return <div className="workshop-empty"><Empty title="No design to show yet.">{agency ? "The design document appears here once the design work has drawn its directions." : "The design appears here once the agency sends it to you for a decision."}</Empty></div>;
+  // Every state keeps the project picker, so a project with nothing to show is never a dead end.
+  const shell = (body: React.ReactNode, cls = "") => <div className={`workshop${cls}`}><div className="ws-toolbar">{picker}</div>{body}</div>;
+  if (w.loadError) return shell(<div className="workshop-empty"><Empty title="The design could not be opened."><p>{w.loadError}</p><Button variant="ghost" className="ws-btn" onClick={() => void w.reload()}>Try again</Button></Empty></div>);
+  if (!w.view) return shell(<div className="workshop-empty"><span className="pulse-dot" /> Opening the design…</div>);
+  if (!doc) return shell(<div className="workshop-empty"><Empty title="No design to show yet.">{agency ? "The design document appears here once the design work has drawn its directions." : "The design appears here once the agency sends it to you for a decision."}</Empty></div>);
   // While a direction is still to be chosen, the Workshop is where the choice is made: the directions side by side.
-  if (choosing(doc)) return <div className="workshop workshop-directions"><div className="ws-toolbar">{picker}</div><div className="directions-scroll"><Directions projectId={projectId} onChosen={agency ? () => void w.reload() : undefined} /></div></div>;
-  if (!frame) return <div className="workshop-empty"><Empty title="Nothing laid out yet.">This direction has no frame with a size yet, so there is nothing to draw.</Empty></div>;
+  if (choosing(doc)) return shell(<div className="directions-scroll"><Directions projectId={projectId} onChosen={agency ? () => void w.reload() : undefined} /></div>, " workshop-directions");
+  if (!frame) return shell(<div className="workshop-empty"><Empty title="Nothing laid out yet.">This direction has no frame with a size yet, so there is nothing to draw.</Empty></div>);
 
   const v = w.view;
   const submitted = v.current?.status === "SUBMITTED";
