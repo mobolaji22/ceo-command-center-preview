@@ -1,5 +1,5 @@
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, openSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -34,7 +34,27 @@ async function waitFor(url: string, what: string) {
   throw new Error(`${what} did not come up at ${url}`);
 }
 
+/**
+ * The suite drops and recreates its own database. It runs only against a Postgres on this machine (a CI service container or a
+ * developer's local server), never one reached over the network, so it cannot touch shared, production or anyone else's data.
+ */
+function assertLocalScratchServer() {
+  const u = new URL(ADMIN);
+  const socket = u.searchParams.get("host");
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || (socket !== null && socket.startsWith("/"));
+  if (!local) throw new Error(`E2E_PG_ADMIN must name a Postgres on this machine (localhost or a socket); got ${u.hostname}. The suite drops and recreates the ${DB} database.`);
+}
+
+/** Where the API's and the app's own output goes, so a failure can be read afterwards (CI uploads the folder). Discarded when unset. */
+function logTo(name: string): "ignore" | number {
+  const dir = process.env["E2E_LOG_DIR"];
+  if (!dir) return "ignore";
+  mkdirSync(dir, { recursive: true });
+  return openSync(join(dir, `${name}.log`), "a");
+}
+
 export default async function globalSetup() {
+  assertLocalScratchServer();
   const work = mkdtempSync(join(tmpdir(), "cc-e2e-"));
   const outbox = join(work, "outbox");
   process.env["E2E_OUTBOX"] = join(outbox, "emails.jsonl");
@@ -49,8 +69,9 @@ export default async function globalSetup() {
   run(["tsx", "scripts/db-roles.ts"]);
   run(["tsx", "scripts/bootstrap-ceo.ts", "--email", CEO_EMAIL, "--agency", "Agency", "--name", "Ola"]);
 
+  const apiLog = logTo("v4-api");
   const api = spawn("npx", ["tsx", "apps/api/src/server.ts"], {
-    cwd: V4_DIR, stdio: "ignore", detached: true,
+    cwd: V4_DIR, stdio: ["ignore", apiLog, apiLog], detached: true,
     env: {
       ...v4Env, PORT: "4100", NODE_ENV: "development", AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-0000", APP_URL: "http://localhost:3100",
       EMAIL_TRANSPORT: "console", DEV_OUTBOX_DIR: outbox, STORAGE_DIR: join(work, "files"), API_PUBLIC_URL: "http://localhost:4100",
@@ -62,7 +83,8 @@ export default async function globalSetup() {
 
   const appEnv = { ...process.env, NEXT_PUBLIC_DATA_SOURCE: "api", V4_API_URL: "http://localhost:4100", APP_ORIGIN: "http://localhost:3100" };
   if (!process.env["E2E_SKIP_BUILD"]) execFileSync("npx", ["next", "build"], { env: appEnv, stdio: "pipe" });
-  children.push(spawn("npx", ["next", "start", "-p", "3100"], { env: appEnv, stdio: "ignore", detached: true }));
+  const appLog = logTo("command-center");
+  children.push(spawn("npx", ["next", "start", "-p", "3100"], { env: appEnv, stdio: ["ignore", appLog, appLog], detached: true }));
   await waitFor("http://localhost:3100/auth", "the Command Center");
 
   return async () => {
