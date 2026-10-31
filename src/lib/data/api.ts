@@ -1,4 +1,5 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
+import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
 import type { ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
@@ -344,6 +345,32 @@ export function createApiDataSource(): DataSource {
       annotate: (projectId, input) => call("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/annotations`, { target: { kind: input.target.kind, id: input.target.id }, kind: input.kind, text: input.text }),
       settle: (projectId, annotationId, input) => call("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/annotations/${encodeURIComponent(annotationId)}/settle`, input),
       decide: async (proposalId, input) => voidResult(await call("POST", `/v1/proposals/${encodeURIComponent(proposalId)}/decision`, input)),
+    },
+
+    deliverables: {
+      async book(projectId) {
+        const r = await call<ClientBookView>("GET", `/v1/projects/${encodeURIComponent(projectId)}/book`);
+        // "Not produced" is an answer, not a failure: there is no part this reader may read yet.
+        return r.error?.code === "NOT_PRODUCED" ? ok(null) : r;
+      },
+      async keepBrand(projectId) {
+        const r = await call<{ proposalId: string; written: boolean }>("POST", `/v1/projects/${encodeURIComponent(projectId)}/brand/keep`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ proposalId: r.data.proposalId, written: r.data.written });
+      },
+      async keptBrand(projectId) {
+        type ApiProposal = { id: string; type: string; status: KeptBrand["status"] | "DRAFT"; content: unknown; submittedAt: string | null; decidedAt: string | null; createdAt: string };
+        const r = await call<ApiProposal[]>("GET", `/v1/projects/${encodeURIComponent(projectId)}/proposals`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        // The proposals to let a kept Brand book stand in for Brand (ADR-0026), newest first.
+        const kept = r.data.flatMap((p) => {
+          const c = p.content as { kind?: unknown; domain?: unknown; fitness?: unknown; version?: unknown } | null;
+          return p.type === "SUBSTITUTION" && p.status !== "DRAFT" && c?.kind === "ASSET_STANDS_IN" && c.domain === "BRAND"
+            ? [{ at: p.createdAt, view: { proposalId: p.id, status: p.status, fitness: String(c.fitness ?? ""), version: Number(c.version ?? 0), submittedAt: p.submittedAt, decidedAt: p.decidedAt } }]
+            : [];
+        }).sort((a, b) => b.at.localeCompare(a.at));
+        return ok(kept[0]?.view ?? null);
+      },
+      decideKeptBrand: async (proposalId, approve) => voidResult(await call("POST", `/v1/proposals/${encodeURIComponent(proposalId)}/decision`, { action: approve ? "APPROVE" : "REJECT" })),
     },
 
     runs: {

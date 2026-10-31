@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, DoorOpen, ListChecks, PanelTop, PenTool } from "lucide-react";
+import { ArrowLeft, BookOpen, CalendarDays, ChevronLeft, ChevronRight, DoorOpen, ListChecks, PanelTop, PenTool } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { fmtDate, label, pad, statusTone } from "@/lib/format";
@@ -12,6 +12,7 @@ import { OfficeStage, type Spot } from "./office-stage";
 import { CORRIDOR_ART, roomArt } from "./room-art";
 import { Empty } from "./views";
 import { WorkshopDesk } from "./workshop/workshop";
+import { BookDesk } from "./book";
 import { FindBar, Marked, TextFind } from "./find-bar";
 import { useProjectFind, useRemembered, type FindOption } from "@/lib/find";
 
@@ -20,17 +21,22 @@ import { useProjectFind, useRemembered, type FindOption } from "@/lib/find";
  * The wall holds the projects pinned to the department, the calendar its dated history, the desk the work in motion, waiting and
  * done. Where the objects sit is in the stylesheet by room (.room-<dept> .hotspot-<spot>) because every room's photograph differs.
  */
-export type RoomSpot = "wall" | "calendar" | "desk" | "workshop";
+export type RoomSpot = "wall" | "calendar" | "desk" | "workshop" | "book";
 
 const spotData: Record<RoomSpot, Omit<Spot<RoomSpot>, "id">> = {
   wall: { title: "PINNED TO THE WALL", label: "Wall", description: "The projects pinned to this department.", action: "Open pinned projects", icon: PanelTop },
   calendar: { title: "WORK CALENDAR", label: "Calendar", description: "What was tasked, started and finished here, month by month.", action: "Open work calendar", icon: CalendarDays },
   workshop: { title: "DESIGN WORKSHOP", label: "Workshop", description: "Adjust the direction that was chosen: tokens, type, layout, copy and notes, with every change recorded.", action: "Open the workshop", icon: PenTool },
+  book: { title: "THE CLIENT'S BOOK", label: "Book", description: "The brand, the words to sell it, the market and what it means for the business, in one book per project.", action: "Open the book", icon: BookOpen },
   desk: { title: "ON THE DESKS", label: "Desk", description: "Work in motion, work waiting, and work done in this room.", action: "Open the desks", icon: ListChecks },
 };
 const SPOTS: RoomSpot[] = ["wall", "calendar", "desk"];
-/** The Design room has a fourth object: the monitors, where the design is worked on. */
-export const spotsFor = (dept: string): RoomSpot[] => (dept === "DESIGN" ? [...SPOTS, "workshop"] : SPOTS);
+/**
+ * Some rooms have a fourth object: the Design room's monitors, where the design is worked on, and the client's book (v4 ADR-0054)
+ * in the two rooms that start it, Brand's folio and Market's folders.
+ */
+const FOURTH: Partial<Record<string, RoomSpot>> = { DESIGN: "workshop", BRAND: "book", MARKET: "book" };
+export const spotsFor = (dept: string): RoomSpot[] => { const fourth = FOURTH[dept]; return fourth ? [...SPOTS, fourth] : SPOTS; };
 
 const tasksOf = (data: OwnerData, dept: string, list: DomainList) => data.tasks.filter((t) => taskIn(t, dept, list));
 const counts = (data: OwnerData, dept: string, list: DomainList) => {
@@ -66,7 +72,7 @@ export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: O
       line={<><span aria-label="On the desks">{desk.moving} in motion · {desk.waiting} waiting · {desk.done} done in this room.</span>{projects.length === 0 && <span className="wall-empty stage-note">No projects pinned on the walls.</span>}</>}
       sideLabel={[`ROOM / ${pad(depts.indexOf(dept) + 1)}`, name.toUpperCase()]}
       spots={spotsFor(dept).map((id) => ({ id, ...spotData[id], count: id === "desk" ? desk.waiting : 0, countNote: id === "desk" ? `${desk.waiting} waiting` : "" }))}
-      statusList={dept === "DESIGN" ? "Wall · Calendar · Desk · Workshop" : "Wall · Calendar · Desk"}
+      statusList={spotsFor(dept).map((id) => spotData[id].label).join(" · ")}
       coordinate={<>40° 43′ N &nbsp; / &nbsp; 73° 59′ W</>}
       nav={<>
         <div className="stage-nav-links">
@@ -84,6 +90,7 @@ const projectName = (data: OwnerData, pid: string | null | undefined) => data.pr
 
 export function RoomDesk({ data, dept, spot, openManage }: { data: OwnerData; dept: string; spot: RoomSpot; openManage: (projectId?: string) => void }) {
   if (spot === "workshop") return <WorkshopDesk data={data} dept={dept} />;
+  if (spot === "book") return <BookDesk data={data} dept={dept} />;
   if (spot === "wall") return <WallDesk data={data} dept={dept} openManage={openManage} />;
   if (spot === "calendar") return <CalendarDesk data={data} dept={dept} />;
   return <TasksDesk data={data} dept={dept} />;

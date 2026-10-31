@@ -1,4 +1,5 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
+import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
 import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 
 /**
@@ -154,6 +155,23 @@ export interface DataSource {
     settle(projectId: string, annotationId: string, input: { status: "ADDRESSED" | "DECLINED"; reason?: string }): Promise<Result<{ annotation: SddAnnotation; documentHash: string }>>;
     /** The decision owner's answer to a submitted revision. Approving needs a fresh proof of who is deciding. */
     decide(proposalId: string, input: { action: "APPROVE" | "REQUEST_REVISION"; note?: string }): Promise<Result>;
+  };
+  /**
+   * The client's book (v4 ADR-0053, ADR-0054): one document with a brand part and a market part, each read from the work its owners
+   * finished and checked. v4 decides who reads what: a client gets each part once it is fit to read, and the book is "not
+   * produced" (null here) while no part is, never an empty book.
+   */
+  deliverables: {
+    book(projectId: string): Promise<Result<ClientBookView | null>>;
+    /**
+     * The agency proposes keeping this project's brand for the client's next projects. It writes a new version of the
+     * organization's kept Brand book and asks the client's owner; keeping an unchanged brand again asks nothing new.
+     */
+    keepBrand(projectId: string): Promise<Result<{ proposalId: string; written: boolean }>>;
+    /** The newest proposal to keep this project's brand, whatever became of it, or null if none was made. */
+    keptBrand(projectId: string): Promise<Result<KeptBrand | null>>;
+    /** The client's owner's answer. Approving needs a fresh proof of who is deciding. */
+    decideKeptBrand(proposalId: string, approve: boolean): Promise<Result>;
   };
   runs: {
     /** Newest first. */

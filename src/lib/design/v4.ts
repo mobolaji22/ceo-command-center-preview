@@ -3,7 +3,7 @@ import schema from "./sdd-document.schema.json";
 
 /**
  * v4's design document (dev-playbook-v4 ADR-0049 decision 5, ADR-0051), as the Workshop reads and draws it. The document's shape is
- * v4's: its types are generated from the schema v4 publishes (`npm run sdd:types`), and this file only names their parts and reads
+ * v4's: its types are generated from the schema v4 publishes (`npm run v4:types`), and this file only names their parts and reads
  * them. Nothing here decides anything: choosing a direction, saving, annotating and approving are calls to v4, which decides who may.
  */
 export type { SddDocument };
