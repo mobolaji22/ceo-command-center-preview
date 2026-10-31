@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocalLight } from "@/lib/local-light";
 import { useMedia, useReducedMotion } from "@/lib/motion";
+import { walkPath } from "@/lib/walk-path";
 import { LitImage } from "./lit-image";
+import { ARRIVAL_KEY } from "./lobby-arrival";
 import { LOBBY_ART } from "./room-art";
 
 /**
@@ -30,8 +32,10 @@ type LobbyApi = {
 const LobbyContext = createContext<LobbyApi>({ leave: () => {}, attend: () => {}, reduced: true });
 export const useLobby = () => useContext(LobbyContext);
 
-/** How long the walk across the lobby and into the passage takes. Matches lobby-walk in lobby.css. */
-const WALK_MS = 1500;
+/** How long the walk takes: the camera pans to the passage and zooms into it (src/lib/walk-path.ts). */
+const WALK_MS = 1650;
+/** How far the camera has zoomed into the passage when it arrives. */
+const WALK_END_SCALE = 3.6;
 /** Where the passage to the rooms is in the photograph: beside the "Rooms 01-13" plaque, between the panel and the column. */
 const PASSAGE = { x: 0.108, y: 0.49 };
 /** The resting zoom of .lobby-cam and the reach of its parallax (lobby.css), needed to find the passage on screen. */
@@ -90,21 +94,32 @@ export function Lobby({ children }: { children: ReactNode }) {
     if (reduced) { router.replace(href); return; }
     router.prefetch(href);
     frozen.current = true;
-    // Find the passage where it is on screen now (the frame's crop, the camera's zoom and the pointer's parallax all move it), and
-    // aim the walk so it arrives there at the centre of the screen.
+    // Measure the passage and the photograph where they are on screen now (the frame's crop, the camera's zoom and the pointer's
+    // parallax all move them), and walk the camera there along a path that keeps the photograph covering the screen throughout.
     const el = root.current;
     const frame = el?.querySelector<HTMLElement>(".lobby-frame");
-    if (el && frame) {
+    const walk = el?.querySelector<HTMLElement>(".lobby-walk");
+    const photo = el?.querySelector<HTMLElement>(".lobby-photo");
+    if (el && frame && walk && photo) {
       const r = frame.getBoundingClientRect();
       const px = Number(el.style.getPropertyValue("--px") || 0);
       const py = Number(el.style.getPropertyValue("--py") || 0);
       const ox = r.width / 2 + (PASSAGE.x * r.width - r.width / 2) * CAM_SCALE - PARALLAX.x * r.width * px;
       const oy = r.height / 2 + (PASSAGE.y * r.height - r.height / 2) * CAM_SCALE - PARALLAX.y * r.height * py;
-      el.style.setProperty("--walk-ox", `${ox.toFixed(1)}px`);
-      el.style.setProperty("--walk-oy", `${oy.toFixed(1)}px`);
-      el.style.setProperty("--walk-dx", `${(window.innerWidth / 2 - (r.left + ox)).toFixed(1)}px`);
-      el.style.setProperty("--walk-dy", `${(window.innerHeight / 2 - (r.top + oy)).toFixed(1)}px`);
+      const img = photo.getBoundingClientRect();
+      walk.getAnimations().forEach((a) => a.cancel());
+      walk.style.transformOrigin = "0 0";
+      walk.animate(walkPath({
+        // The stage is what the photograph fills: the whole screen, or on a phone the band above the card.
+        viewport: { width: Math.min(window.innerWidth, img.right), height: Math.min(window.innerHeight, img.bottom) },
+        origin: { x: r.left, y: r.top },
+        passage: { x: r.left + ox, y: r.top + oy },
+        photo: { left: img.left, top: img.top, right: img.right, bottom: img.bottom },
+        endScale: WALK_END_SCALE,
+      }), { duration: WALK_MS, fill: "forwards" });
     }
+    // The room on the other side opens from the passage (LobbyArrival), so the walk carries on into it.
+    try { sessionStorage.setItem(ARRIVAL_KEY, "lobby"); } catch { /* storage blocked: the room simply appears */ }
     setPhase("leaving");
     // Opened only once the walk has arrived. Until the next page is ready, the lobby stays on screen at the end of the walk.
     window.setTimeout(() => { setPhase("entered"); router.replace(href); }, WALK_MS);
