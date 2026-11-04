@@ -55,6 +55,8 @@ function logTo(name: string): "ignore" | number {
 
 export default async function globalSetup() {
   assertLocalScratchServer();
+  // The design document's types are v4's (ADR-0049): fail first if the copy here has drifted from the v4 under test.
+  execFileSync("node", ["scripts/v4-types.mjs", "--check"], { env: { ...process.env, V4_DIR }, stdio: "pipe" });
   const work = mkdtempSync(join(tmpdir(), "cc-e2e-"));
   const outbox = join(work, "outbox");
   process.env["E2E_OUTBOX"] = join(outbox, "emails.jsonl");

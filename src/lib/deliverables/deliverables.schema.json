@@ -1,0 +1,1490 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dpb:deliverables/2",
+  "title": "Deliverable",
+  "anyOf": [
+    {
+      "title": "ClientBookView",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "BOOK"
+        },
+        "audience": {
+          "type": "string",
+          "enum": [
+            "AGENCY",
+            "CLIENT"
+          ]
+        },
+        "brand": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "BRAND_BOOK"
+                },
+                "audience": {
+                  "type": "string",
+                  "enum": [
+                    "AGENCY",
+                    "CLIENT"
+                  ]
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "runId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "taskId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "schemaId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "runId",
+                    "taskId",
+                    "schemaId",
+                    "completedAt"
+                  ],
+                  "additionalProperties": false
+                },
+                "position": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "difference": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "reasonToBelieve": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "signatureDevice": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "FACT",
+                        "INFERRED",
+                        "ASSUMPTION",
+                        "UNKNOWN",
+                        "CONFLICT"
+                      ]
+                    },
+                    "epistemicClass": {
+                      "type": "string",
+                      "enum": [
+                        "OBSERVED",
+                        "VERIFIED",
+                        "ASKED",
+                        "DERIVED",
+                        "ESTIMATED",
+                        "FORECAST",
+                        "SCENARIO",
+                        "ASSUMPTION",
+                        "HYPOTHESIS",
+                        "UNKNOWN",
+                        "CONTRADICTED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "statement",
+                    "difference",
+                    "reasonToBelieve",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                },
+                "alternatives": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "difference": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "statement",
+                      "difference"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "audienceStatement": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1200
+                },
+                "foundation": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "statements": {
+                          "maxItems": 3,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "purpose",
+                                  "vision",
+                                  "mission"
+                                ]
+                              },
+                              "articulation": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "source": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "articulation",
+                              "source"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "values": {
+                          "maxItems": 8,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "behavior": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "behavior"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "notSourced": {
+                          "maxItems": 4,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "purpose",
+                                  "vision",
+                                  "mission",
+                                  "values"
+                                ]
+                              },
+                              "reason": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "reason"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "statements",
+                        "values",
+                        "notSourced"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "story": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "world": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "tension": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "belief": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "solution": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "proof": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "future": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        }
+                      },
+                      "required": [
+                        "world",
+                        "tension",
+                        "belief",
+                        "solution",
+                        "proof",
+                        "future"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "promise": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "statement": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "expectedOutcome": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "scope": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        }
+                      },
+                      "required": [
+                        "statement",
+                        "expectedOutcome",
+                        "scope"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "personality": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "traits": {
+                          "maxItems": 12,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "dimension": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "position": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "behavior": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "dimension",
+                              "position",
+                              "behavior"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "refuses": {
+                          "maxItems": 60,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          }
+                        }
+                      },
+                      "required": [
+                        "traits",
+                        "refuses"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "voice": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "why": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "wordsWeUse": {
+                          "maxItems": 60,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          }
+                        },
+                        "wordsWeAvoid": {
+                          "maxItems": 60,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          }
+                        },
+                        "sampleLines": {
+                          "maxItems": 40,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "line": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "type": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "line",
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "why",
+                        "wordsWeUse",
+                        "wordsWeAvoid",
+                        "sampleLines"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "look": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "personality": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "principles": {
+                          "maxItems": 60,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          }
+                        },
+                        "typographyCharacter": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "colorRole": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "shapeLanguage": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "antiPatterns": {
+                          "maxItems": 60,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          }
+                        },
+                        "distinctiveAssets": {
+                          "maxItems": 20,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "asset": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "type": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "observableAs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "asset",
+                              "type",
+                              "observableAs"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "personality",
+                        "principles",
+                        "typographyCharacter",
+                        "colorRole",
+                        "shapeLanguage",
+                        "antiPatterns",
+                        "distinctiveAssets"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "heldFiles": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "noneHeld": {
+                          "type": "boolean"
+                        },
+                        "entries": {
+                          "maxItems": 40,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "heldRef": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "brandItem": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "compatible": {
+                                "type": "string",
+                                "enum": [
+                                  "yes",
+                                  "no",
+                                  "negotiate"
+                                ]
+                              },
+                              "note": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "heldRef",
+                              "brandItem",
+                              "compatible",
+                              "note"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "noneHeld",
+                        "entries"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "kit": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "pitch": {
+                          "type": "object",
+                          "properties": {
+                            "oneSentence": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            },
+                            "threeSentences": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            }
+                          },
+                          "required": [
+                            "oneSentence",
+                            "threeSentences"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "boilerplate": {
+                          "type": "object",
+                          "properties": {
+                            "short": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            },
+                            "long": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            }
+                          },
+                          "required": [
+                            "short",
+                            "long"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "taglines": {
+                          "maxItems": 5,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "line": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "rationale": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "line",
+                              "rationale"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "bios": {
+                          "maxItems": 8,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "channel",
+                              "text"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "adHeadlines": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "angle": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "text",
+                              "angle"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "keyMessages": {
+                          "maxItems": 6,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "audience": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "message": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "proof": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "audience",
+                              "message",
+                              "proof"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "source": {
+                          "type": "object",
+                          "properties": {
+                            "runId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "taskId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "schemaId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "completedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                            }
+                          },
+                          "required": [
+                            "runId",
+                            "taskId",
+                            "schemaId",
+                            "completedAt"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "pitch",
+                        "boilerplate",
+                        "taglines",
+                        "bios",
+                        "adHeadlines",
+                        "keyMessages",
+                        "source"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "checks": {
+                  "maxItems": 60,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1200
+                  }
+                },
+                "stillToConfirm": {
+                  "maxItems": 60,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1200
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "audience",
+                "source",
+                "position",
+                "alternatives",
+                "audienceStatement",
+                "foundation",
+                "story",
+                "promise",
+                "personality",
+                "voice",
+                "look",
+                "heldFiles",
+                "kit",
+                "checks",
+                "stillToConfirm"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "market": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "MARKET_REPORT"
+                },
+                "audience": {
+                  "type": "string",
+                  "enum": [
+                    "AGENCY",
+                    "CLIENT"
+                  ]
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "runId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "taskId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "schemaId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "runId",
+                    "taskId",
+                    "schemaId",
+                    "completedAt"
+                  ],
+                  "additionalProperties": false
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "DRAFTED",
+                    "FILLED"
+                  ]
+                },
+                "banner": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "question": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1200
+                },
+                "decision": {
+                  "type": "object",
+                  "properties": {
+                    "decision": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "decider": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "ifAnswerChanges": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    }
+                  },
+                  "required": [
+                    "decision",
+                    "decider",
+                    "ifAnswerChanges"
+                  ],
+                  "additionalProperties": false
+                },
+                "field": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "audience": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "audience"
+                  ],
+                  "additionalProperties": false
+                },
+                "scope": {
+                  "type": "object",
+                  "properties": {
+                    "geography": {
+                      "maxItems": 60,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      }
+                    },
+                    "segment": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "category": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "window": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    }
+                  },
+                  "required": [
+                    "geography"
+                  ],
+                  "additionalProperties": false
+                },
+                "summaries": {
+                  "maxItems": 9,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "area": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "findingIds": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "required": [
+                      "area",
+                      "summary",
+                      "findingIds"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "findings": {
+                  "maxItems": 400,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "area": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "claim": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "FACT",
+                          "INFERRED",
+                          "ASSUMPTION",
+                          "UNKNOWN",
+                          "CONFLICT"
+                        ]
+                      },
+                      "epistemicClass": {
+                        "type": "string",
+                        "enum": [
+                          "OBSERVED",
+                          "VERIFIED",
+                          "ASKED",
+                          "DERIVED",
+                          "ESTIMATED",
+                          "FORECAST",
+                          "SCENARIO",
+                          "ASSUMPTION",
+                          "HYPOTHESIS",
+                          "UNKNOWN",
+                          "CONTRADICTED"
+                        ]
+                      },
+                      "confidence": {
+                        "type": "object",
+                        "properties": {
+                          "level": {
+                            "type": "string",
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high"
+                            ]
+                          },
+                          "basis": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          }
+                        },
+                        "required": [
+                          "level",
+                          "basis"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "asOf": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "sources": {
+                        "maxItems": 40,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "locator": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            },
+                            "capturedAt": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            },
+                            "dataAsOf": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            }
+                          },
+                          "required": [
+                            "locator",
+                            "capturedAt",
+                            "dataAsOf"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "area",
+                      "claim",
+                      "status",
+                      "confidence",
+                      "asOf",
+                      "sources"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "competitors": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "class": {
+                        "type": "string",
+                        "enum": [
+                          "direct",
+                          "indirect",
+                          "substitute",
+                          "status_quo"
+                        ]
+                      },
+                      "findingIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "class",
+                      "findingIds"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "gaps": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "section": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "missing": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "wouldFill": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "couldChange": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      }
+                    },
+                    "required": [
+                      "section",
+                      "missing",
+                      "reason",
+                      "wouldFill",
+                      "couldChange"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "contradictions": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "findingIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "note": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      }
+                    },
+                    "required": [
+                      "findingIds",
+                      "note"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "coverage": {
+                  "maxItems": 60,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "section": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "searched": {
+                        "type": "boolean"
+                      },
+                      "depth": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      }
+                    },
+                    "required": [
+                      "section",
+                      "searched",
+                      "depth"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "forYourBusiness": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "summary": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "implications": {
+                          "maxItems": 12,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "opportunity",
+                                  "risk",
+                                  "question_to_decide"
+                                ]
+                              },
+                              "lens": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "statement": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "findingIds": {
+                                "minItems": 1,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "FACT",
+                                  "INFERRED",
+                                  "ASSUMPTION",
+                                  "UNKNOWN",
+                                  "CONFLICT"
+                                ]
+                              },
+                              "epistemicClass": {
+                                "type": "string",
+                                "enum": [
+                                  "OBSERVED",
+                                  "VERIFIED",
+                                  "ASKED",
+                                  "DERIVED",
+                                  "ESTIMATED",
+                                  "FORECAST",
+                                  "SCENARIO",
+                                  "ASSUMPTION",
+                                  "HYPOTHESIS",
+                                  "UNKNOWN",
+                                  "CONTRADICTED"
+                                ]
+                              },
+                              "wouldChangeIt": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "lens",
+                              "statement",
+                              "findingIds",
+                              "status",
+                              "wouldChangeIt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "source": {
+                          "type": "object",
+                          "properties": {
+                            "runId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "taskId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "schemaId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "completedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                            }
+                          },
+                          "required": [
+                            "runId",
+                            "taskId",
+                            "schemaId",
+                            "completedAt"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "summary",
+                        "implications",
+                        "source"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "checks": {
+                  "maxItems": 60,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1200
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "audience",
+                "source",
+                "state",
+                "banner",
+                "question",
+                "decision",
+                "field",
+                "scope",
+                "summaries",
+                "findings",
+                "competitors",
+                "gaps",
+                "contradictions",
+                "coverage",
+                "forYourBusiness",
+                "checks"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toCome": {
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "part": {
+                "type": "string",
+                "enum": [
+                  "BRAND",
+                  "MARKET"
+                ]
+              },
+              "why": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              }
+            },
+            "required": [
+              "part",
+              "why"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "audience",
+        "brand",
+        "market",
+        "toCome"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

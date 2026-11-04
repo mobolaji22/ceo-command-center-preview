@@ -9,6 +9,7 @@ import { useDataSource } from "@/lib/data";
 import { fmtDate, label, statusTone } from "@/lib/format";
 import type { OwnerData, Question, RunStatus, RunTask } from "@/lib/model";
 import { PlanPanel } from "./plans";
+import { DirectionsFor } from "./workshop/directions";
 import { useStepUp } from "./step-up";
 
 /**
@@ -190,6 +191,7 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
   return <article className="question" aria-label={x.title}>
     <div className="question-head"><b>{x.title}</b><small>{audience === "agency" ? `${label(x.reason)} · ` : ""}{x.deadline && x.reason !== "PAUSED_BY_OWNER" ? `answer by ${fmtDate(x.deadline)}` : x.status === "EXPIRED" ? (held ? "overdue · the work stays on hold until it is answered" : "overdue") : ""}</small></div>
     <p className="question-summary">{x.summary}</p>
+    <DirectionsFor projectId={x.project_id} onChosen={onChanged} />
     {audience === "agency" && x.detail && <p className="question-detail">{x.detail}</p>}
     {askedOf && <small className="question-asked">{askedOf}</small>}
     <div className="question-options" role="group" aria-label="Answers">

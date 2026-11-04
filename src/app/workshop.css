@@ -4,13 +4,13 @@
  * the canvas draws the design in the design's own colours, whatever the time of day. Selection, handles, guides and notes use
  * fixed, high-contrast marks (blue, magenta, red) so they stay visible on any design.
  */
-.desk-panel[data-surface="room-workshop"], .desk-panel[data-wide] { width: min(1560px, calc(100% - 3vw)); }
-.desk-panel[data-surface="room-workshop"] .desk-scroll { overflow: hidden; padding: 0; display: flex; }
-.desk-panel[data-surface="room-workshop"] .desk-scroll > .scene { flex: 1; min-height: 0; min-width: 0; display: flex; }
+.desk-panel[data-wide] { width: min(1560px, calc(100% - 3vw)); }
+.desk-panel[data-wide] .desk-scroll { overflow: hidden; padding: 0; display: flex; }
+.desk-panel[data-wide] .desk-scroll > .scene { flex: 1; min-height: 0; min-width: 0; display: flex; }
 /* On a wide screen the desk bar is one slim line here: a design tool's height belongs to the canvas. (The phone has its own bar.) */
 @media (min-width: 651px) {
-  .desk-overlay:has(> .desk-panel[data-surface="room-workshop"]) { padding: 0 0 10px; }
-  .desk-panel[data-surface="room-workshop"] .desk-bar.workspace-heading { height: 48px; margin-bottom: 6px; padding-block: 0; }
+  .desk-overlay:has(> .desk-panel[data-wide]) { padding: 0 0 10px; }
+  .desk-panel[data-wide] .desk-bar.workspace-heading { height: 48px; margin-bottom: 6px; padding-block: 0; }
 }
 
 .workshop { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; background: color-mix(in oklab, var(--background) 97%, transparent); box-shadow: 0 30px 70px oklch(0 0 0 / 55%); }
@@ -70,7 +70,9 @@
 
 /* the canvas */
 .ws-artboard-wrap { position: relative; flex: 0 0 auto; box-shadow: 0 14px 44px oklch(0 0 0 / 38%); }
-.ws-artboard { position: relative; transform-origin: 0 0; overflow: hidden; outline: none; user-select: none; -webkit-user-select: none; touch-action: none; }
+.ws-artboard { position: relative; transform-origin: 0 0; overflow: hidden; outline: none; user-select: none; -webkit-user-select: none; touch-action: pan-x pan-y; }
+/* A finger scrolls over a design; only a resize handle takes the touch for itself (a move starts after a short press). */
+.ws-handles span { touch-action: none; }
 .ws-artboard:focus-visible { box-shadow: 0 0 0 3px #2f7bff; }
 .ws-artboard.is-commenting { cursor: crosshair; }
 .ws-grid { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(to right, oklch(0.5 0.1 250 / 22%) 1px, transparent 1px), linear-gradient(to bottom, oklch(0.5 0.1 250 / 22%) 1px, transparent 1px); }
@@ -199,5 +201,65 @@ html:not([data-lighting="day"]) .ws-chip.bad { color: oklch(0.8 0.14 40); }
   .ws-center { min-height: 62vh; }
   .ws-compare { grid-template-columns: 1fr; }
 }
-@media (max-width: 650px) { .desk-panel[data-surface="room-workshop"] { width: 100%; } .ws-group { border-right: 0; } .ws-ba { grid-template-columns: 1fr; } }
+@media (max-width: 650px) { .desk-panel[data-wide] { width: 100%; } .ws-group { border-right: 0; } .ws-ba { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .ws-toast { animation: none; } }
+
+/* The directions from v4's design document (ADR-0049): three territories side by side, each with its key frames as v4 placed them.
+ * A frame with nothing placed yet falls back to a grey structural wireframe, which reads in day and night. */
+.workshop-directions { overflow: hidden; }
+.directions-scroll { flex: 1; min-height: 0; overflow: auto; padding: 16px; }
+.directions { display: grid; gap: 14px; }
+.directions-head b { font: 600 15px "DM Sans", sans-serif; }
+.directions-head p { margin: 4px 0 0; color: var(--muted-foreground); font-size: 13px; max-width: 80ch; }
+.directions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.direction { display: grid; gap: 10px; align-content: start; padding: 14px; border: 1px solid var(--border); border-radius: 4px; background: color-mix(in oklab, var(--foreground) 3%, var(--background)); }
+.direction.is-chosen { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.direction.is-aside { opacity: 0.7; }
+.direction h3 { margin: 0; font: 600 18px "DM Sans", sans-serif; }
+.direction-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.direction-posture { font: 600 11px "DM Sans", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); }
+.direction-flag { margin-left: auto; font-size: 11px; padding: 2px 8px; border: 1px dashed var(--border); border-radius: 999px; color: var(--muted-foreground); }
+.direction-thesis { margin: 0; font-size: 13px; }
+.direction-frames { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: start; }
+.direction-detail summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.direction-detail dl { display: grid; gap: 6px; margin: 8px 0; }
+.direction-detail dt { font-size: 11px; font-weight: 600; color: var(--muted-foreground); }
+.direction-detail dd { margin: 0; font-size: 12px; }
+.direction-list b { font-size: 11px; color: var(--muted-foreground); }
+.direction-list ul { margin: 2px 0 8px; padding-left: 18px; font-size: 12px; }
+.direction-choose { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.direction-choose label { display: grid; gap: 4px; width: 100%; font-size: 12px; }
+.direction-choose textarea { min-height: 64px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 3px; background: var(--background); color: var(--foreground); font: inherit; }
+.directions-for { display: grid; gap: 10px; margin: 8px 0; }
+.directions-for > button { justify-self: start; }
+
+.wireframe, .keyframe { margin: 0; display: grid; gap: 4px; min-width: 0; }
+.keyframe-board { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 2px; }
+.wireframe figcaption, .keyframe figcaption { font-size: 11px; color: var(--muted-foreground); text-align: center; }
+.wire { display: grid; gap: 4px; padding: 6px; border: 1px solid color-mix(in oklab, var(--foreground) 35%, transparent); border-radius: 2px; background: color-mix(in oklab, var(--foreground) 4%, transparent); min-width: 0; }
+.wire-group { border-style: dashed; }
+.wire-control { justify-self: start; border-radius: 999px; padding: 4px 10px; background: color-mix(in oklab, var(--foreground) 12%, transparent); }
+.wire-media { min-height: 48px; background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in oklab, var(--foreground) 10%, transparent) 6px 7px); }
+.wire-text { border-color: transparent; background: none; padding: 2px 4px; }
+.wire-role { font: 600 9px "DM Sans", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.wire-slot { font-size: 11px; font-style: italic; overflow-wrap: anywhere; }
+.wire-slot small { font-style: normal; color: var(--muted-foreground); }
+@media (max-width: 650px) {
+  .direction-frames { grid-template-columns: 1fr; }
+}
+
+/* E3: the editor on v4's design document */
+.ws-plain { margin: 0; padding: 0; border: 0; min-width: 0; }
+.ws-plain:disabled { opacity: 0.75; }
+.ws-placeholder { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; opacity: 0.75; }
+.ws-slot-words { display: block; width: 100%; font-style: italic; opacity: 0.9; overflow: hidden; }
+.ws-state { margin: 4px 0 0; font-size: 11px; color: var(--muted-foreground); }
+.ws-state.s-open { color: oklch(0.6 0.15 70); }
+.ws-state.s-addressed { color: oklch(0.55 0.13 155); }
+.ws-state.s-declined { color: var(--muted-foreground); font-style: italic; }
+.ws-kind.k-change_request { color: oklch(0.6 0.17 35); border-color: color-mix(in oklab, oklch(0.6 0.17 35) 50%, transparent); }
+.ws-kind.k-accessibility { color: oklch(0.55 0.14 260); border-color: color-mix(in oklab, oklch(0.55 0.14 260) 50%, transparent); }
+.ws-kind.k-engineering_question { color: oklch(0.55 0.12 200); border-color: color-mix(in oklab, oklch(0.55 0.12 200) 50%, transparent); }
+.ws-decline { margin-top: 6px; }
+.ws-decide { display: grid; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--border); background: color-mix(in oklab, var(--primary) 6%, var(--card)); }
+.ws-decide .wf { margin-bottom: 0; }

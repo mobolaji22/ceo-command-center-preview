@@ -6,8 +6,10 @@ import { expect, type Page } from "@playwright/test";
  */
 export async function newDirective(page: Page) {
   const open = page.getByRole("button", { name: "New directive", exact: true });
-  if (await open.isVisible()) await open.click();
   const composer = page.getByLabel("New request");
+  // The desk may still be opening: wait for either the button or the form before deciding which it is.
+  await expect(open.or(composer)).toBeVisible();
+  if (await open.isVisible()) await open.click();
   await expect(composer).toBeVisible();
   return composer;
 }

@@ -271,6 +271,8 @@
 .room-stage .hotspot-desk { left: 75%; top: 55%; }
 .room-stage .hotspot-workshop { left: 87%; top: 52%; }
 .room-stage.room-design .hotspot-workshop { left: 87.3%; top: 50%; }
+.room-stage .hotspot-book { left: 68%; top: 63%; }
+.room-stage.room-market .hotspot-book { left: 36.5%; top: 63%; }
 .room-stage.room-business .hotspot-wall { left: 29.2%; top: 40%; } .room-stage.room-business .hotspot-calendar { left: 62.4%; top: 67%; } .room-stage.room-business .hotspot-desk { left: 31.3%; top: 58%; }
 .room-stage.room-market .hotspot-wall { left: 11.6%; top: 40%; } .room-stage.room-market .hotspot-calendar { left: 82.1%; top: 53%; } .room-stage.room-market .hotspot-desk { left: 55.2%; top: 68%; }
 .room-stage.room-brand .hotspot-wall { left: 28.2%; top: 40%; } .room-stage.room-brand .hotspot-calendar { left: 20.9%; top: 72%; } .room-stage.room-brand .hotspot-desk { left: 51%; top: 81%; }
@@ -285,6 +287,7 @@
   .office-stage.room-stage .hotspot-calendar { left: 52%; top: 66%; }
   .office-stage.room-stage .hotspot-desk { left: 74%; top: 52%; }
   .office-stage.room-stage .hotspot-workshop { left: 62%; top: 48%; }
+  .office-stage.room-stage .hotspot-book { left: 50%; top: 46%; }
   .stage-nav { max-width: 94%; }
 }
 @media (max-width: 650px) {
@@ -297,6 +300,7 @@
   .office-stage.room-stage .hotspot-calendar { left: 50%; top: 71%; }
   .office-stage.room-stage .hotspot-desk { left: 76%; top: 63%; }
   .office-stage.room-stage .hotspot-workshop { left: 64%; top: 52%; }
+  .office-stage.room-stage .hotspot-book { left: 54%; top: 49%; }
 }
 
 /* ---- reduced motion: same places, same state, no travel --------------------------------------- */

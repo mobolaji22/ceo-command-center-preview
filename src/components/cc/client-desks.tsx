@@ -15,6 +15,7 @@ import { ClientIntentList, Composer } from "./intents";
 import { ProjectRoom, QuestionsList } from "./runs";
 import { BriefArchive, NotificationSettings } from "./briefs";
 import { StandingPermission } from "./standing";
+import { ProjectBook } from "./book";
 
 /**
  * The client room's desks. Each one sits behind an object in the room and opens on one layer of the information the client used to
@@ -79,8 +80,9 @@ export function DecisionsDesk({ data, isOwner, busy, msg, onDecide }: Common & {
 }
 
 /** The pinboard: what the client has asked for, and what the work is asking back. */
-export function RequestsDesk({ data, isOwner, organizationId, refresh, openQuestions }: Common & { organizationId: string | undefined; refresh: () => void; openQuestions: number }) {
-  const [tab, setTab] = useState<"requests" | "questions">("requests");
+export function RequestsDesk({ data, isOwner, organizationId, refresh, openQuestions, focusProject }: Common & { organizationId: string | undefined; refresh: () => void; openQuestions: number; focusProject?: string | undefined }) {
+  // Opened for a project (a link from a question about it), the questions are what was asked for.
+  const [tab, setTab] = useState<"requests" | "questions">(focusProject ? "questions" : "requests");
   // What they must act on comes first (P6.21 P5): their requests and the questions in them. Writing a new one is a button that
   // opens the form, not a form that fills the first screen; with nothing asked yet, the form is open.
   const [writing, setWriting] = useState(data.intents.length === 0);
@@ -99,10 +101,11 @@ export function RequestsDesk({ data, isOwner, organizationId, refresh, openQuest
 }
 
 /** The shelf: what the agency delivered, and what the client keeps on file. */
-export function LibraryDesk({ data, organizationId, canWrite, tick }: Common & { organizationId: string | undefined; canWrite: boolean; tick: number }) {
-  const [tab, setTab] = useState<"deliverables" | "library">("deliverables");
+export function LibraryDesk({ data, isOwner, organizationId, canWrite, tick }: Common & { organizationId: string | undefined; canWrite: boolean; tick: number }) {
+  const [tab, setTab] = useState<"book" | "deliverables" | "library">("book");
   return (
-    <DeskFrame kind="shelf" eyebrow="WHAT YOU HAVE, WHAT WE MADE" title="Library" line={`${data.artifacts.length} deliverable${data.artifacts.length === 1 ? "" : "s"} shared with you.`} tab={tab} onTab={setTab} tabs={[{ id: "deliverables", label: "Deliverables", count: data.artifacts.length }, { id: "library", label: "Your library" }]}>
+    <DeskFrame kind="shelf" eyebrow="WHAT YOU HAVE, WHAT WE MADE" title="Library" line={`${data.artifacts.length} deliverable${data.artifacts.length === 1 ? "" : "s"} shared with you.`} tab={tab} onTab={setTab} tabs={[{ id: "book", label: "Your book" }, { id: "deliverables", label: "Deliverables", count: data.artifacts.length }, { id: "library", label: "Your library" }]}>
+      {tab === "book" && <ProjectBook projects={data.projects} reader={isOwner ? "CLIENT_OWNER" : "CLIENT_MEMBER"} />}
       {tab === "deliverables" && (data.artifacts.length === 0
         ? <Empty title="No deliverables shared yet." />
         : data.artifacts.map((f) => <div key={f.id} className="resolved-row"><span>{f.name}<small>{projectName(data, f.project_id)} · {f.description ?? ""} · {fmtDate(f.created_at)}</small></span><span className={`pill ${statusTone(f.status)}`}>{label(f.status).toUpperCase()}</span></div>))}

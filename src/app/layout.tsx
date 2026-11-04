@@ -17,6 +17,7 @@ import "./motion.css";
 import "./desks.css";
 import "./day.css";
 import "./workshop.css";
+import "./book.css";
 import "./lobby.css";
 import "./phone.css";
 import { Providers } from "./providers";

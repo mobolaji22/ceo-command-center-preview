@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
-import { contrast, wcagLabel, type ColorRole, type Paint, type Tokens } from "@/lib/design/sdd";
+import { contrast, wcagLabel, type SddPaint, type SddTokens } from "@/lib/design/v4";
 
 /** Small form controls shared by the Workshop's panels. They are plain, labelled and keyboard friendly on purpose. */
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
@@ -17,27 +17,26 @@ export function Num({ label, value, onChange, min, max, step = 1, suffix }: { la
   );
 }
 
-export const ROLES: { id: ColorRole; label: string }[] = [
-  { id: "surface", label: "Surface" }, { id: "surfaceAlt", label: "Surface, alternate" }, { id: "text", label: "Text" }, { id: "textMuted", label: "Text, muted" },
-  { id: "accent", label: "Accent" }, { id: "accentText", label: "Text on accent" }, { id: "border", label: "Border" }, { id: "focus", label: "Focus ring" },
-];
+/** A token's name as a person reads it: `surface_alt` reads "Surface alt". */
+export const tokenWords = (name: string) => { const w = name.replace(/[_-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase(); return w.charAt(0).toUpperCase() + w.slice(1); };
 
-/** A colour that is either one of the design's own roles or a custom value. Roles are preferred: they keep the design coherent. */
-export function PaintField({ label, value, tokens, onChange, allowNone }: { label: string; value: Paint | undefined; tokens: Tokens; onChange: (p: Paint | undefined) => void; allowNone?: boolean }) {
+/** A colour that is either one of the direction's own colour tokens or a value of its own. Tokens are preferred: they keep the design coherent. */
+export function PaintField({ label, value, tokens, onChange, allowNone }: { label: string; value: SddPaint | null; tokens: SddTokens; onChange: (p: SddPaint | null) => void; allowNone?: boolean }) {
   const id = useId();
+  const names = Object.keys(tokens.colour);
   const mode = !value ? "none" : "token" in value ? value.token : "custom";
-  const hex = !value ? "#000000" : "token" in value ? tokens.color[value.token] : value.hex;
+  const hex = !value ? "#000000" : "token" in value ? (tokens.colour[value.token] ?? "#000000") : value.hex;
   return (
     <div className="wf wf-paint">
       <label htmlFor={id} className="wf-label">{label}</label>
       <div className="wf-row">
         <span className="wf-swatch" style={{ background: value ? hex : "transparent" }} aria-hidden="true" />
-        <select id={id} value={mode} onChange={(e) => { const v = e.target.value; onChange(v === "none" ? undefined : v === "custom" ? { hex } : { token: v as ColorRole }); }}>
+        <select id={id} value={mode} onChange={(e) => { const v = e.target.value; onChange(v === "none" ? null : v === "custom" ? { hex } : { token: v }); }}>
           {allowNone && <option value="none">None</option>}
-          {ROLES.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+          {names.map((n) => <option key={n} value={n}>{tokenWords(n)}</option>)}
           <option value="custom">Custom colour</option>
         </select>
-        {mode === "custom" && <input type="color" aria-label={`${label}, custom colour`} value={/^#[0-9a-f]{6}$/i.test(hex) ? hex : "#000000"} onChange={(e) => onChange({ hex: e.target.value })} />}
+        {mode === "custom" && <input type="color" aria-label={`${label}, custom colour`} value={/^#[0-9a-f]{6}$/i.test(hex) ? hex : "#000000"} onChange={(e) => onChange({ hex: e.target.value.toUpperCase() })} />}
       </div>
     </div>
   );

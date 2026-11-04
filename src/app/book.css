@@ -1,0 +1,55 @@
+/* ---- the client's book (components/cc/book.tsx): a document set like a printed book, one chapter at a time ------------------ */
+.book { display: grid; gap: 22px; color: var(--foreground); }
+.book-project { justify-self: start; }
+.book-to-come { margin: 0; padding: 12px 16px; list-style: none; border-left: 2px solid var(--primary); background: color-mix(in oklab, var(--primary) 7%, transparent); font-size: 13px; color: var(--muted-foreground); }
+.book-to-come li + li { margin-top: 4px; }
+.book-chapters { display: flex; flex-wrap: wrap; gap: 4px 18px; border-bottom: 1px solid var(--border); }
+.book-chapters .tab { gap: 8px; padding: 10px 2px !important; border-radius: 0; border-bottom: 2px solid transparent !important; font: 500 14px "DM Sans", sans-serif; color: var(--muted-foreground); }
+.book-chapters .tab.active { color: var(--foreground); border-bottom-color: var(--primary) !important; }
+.book-chapter-no { font: 600 11px "DM Sans", sans-serif; letter-spacing: 0.12em; color: var(--primary); }
+.book-chapter { display: grid; gap: 26px; max-width: 68ch; animation: book-turn 280ms var(--ease-out, ease-out); }
+@keyframes book-turn { from { opacity: 0; transform: translateY(6px); } }
+.book-written { margin: 0; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-foreground); }
+.book-lead { display: grid; gap: 10px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+.book-lead p { margin: 0; font-size: 15px; line-height: 1.65; }
+.book-lead small { color: var(--muted-foreground); font-size: 12px; }
+.book-statement { font: italic 500 clamp(24px, 3.2vw, 32px)/1.25 var(--font-display) !important; color: var(--foreground); text-wrap: balance; }
+.book-statement.long { font-size: clamp(20px, 2.4vw, 24px) !important; }
+.book-proof b { color: var(--primary); font-weight: 600; }
+.book-section { display: grid; gap: 10px; }
+.book-section h3 { margin: 0; font: 600 11px "DM Sans", sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--primary); }
+.book-section p { margin: 0; font-size: 15px; line-height: 1.65; }
+.book-section small { display: block; margin-top: 3px; font-size: 12px; line-height: 1.5; color: var(--muted-foreground); }
+.book-quote { padding-left: 14px; border-left: 2px solid color-mix(in oklab, var(--primary) 55%, transparent); font: italic 500 19px/1.4 var(--font-display) !important; }
+.book-quote small { font: 400 12px "DM Sans", sans-serif; }
+.book-story b { font-weight: 600; }
+.book-pairs { display: grid; gap: 14px; margin: 0; }
+.book-pairs > div { display: grid; grid-template-columns: minmax(120px, 30%) 1fr; gap: 16px; }
+.book-pairs dt { font-weight: 600; font-size: 14px; }
+.book-pairs dt small { font-weight: 400; }
+.book-pairs dd { margin: 0; font-size: 15px; line-height: 1.6; }
+.book-words { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.book-words b { display: block; margin-bottom: 4px; font-size: 12px; color: var(--muted-foreground); font-weight: 600; }
+.book-list { display: grid; gap: 10px; margin: 0; padding-left: 18px; font-size: 15px; line-height: 1.6; }
+.book-gap { color: var(--muted-foreground); font-size: 14px !important; }
+.book-known { display: inline-block; margin-left: 4px; padding: 1px 8px; border: 1px solid var(--border); border-radius: 999px; font: 600 10px "DM Sans", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: 2px; color: var(--muted-foreground); }
+.book-known.known-fact { border-color: color-mix(in oklab, var(--primary) 60%, transparent); color: var(--primary); }
+.book-known.known-conflict, .book-known.known-unknown { border-style: dashed; }
+.book-evidence summary { cursor: pointer; font-size: 12px; color: var(--muted-foreground); }
+.book-evidence ul { display: grid; gap: 8px; margin: 8px 0 0; padding-left: 18px; font-size: 14px; }
+.book-implication { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border); }
+.book-implication:first-of-type { border-top: 0; padding-top: 0; }
+.book-banner { margin: 0; padding: 12px 16px; border: 1px dashed var(--primary); font-size: 14px; }
+.book-checks { padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
+.book-checks ul { margin: 6px 0 0; padding-left: 18px; }
+.book-keep { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid color-mix(in oklab, var(--primary) 35%, transparent); background: color-mix(in oklab, var(--primary) 5%, transparent); }
+.book-keep h3 { display: flex; align-items: center; gap: 8px; margin: 0; font: 600 14px "DM Sans", sans-serif; }
+.book-keep p { margin: 0; font-size: 14px; line-height: 1.55; }
+.book-keep > .approve-btn { justify-self: start; }
+.book-keep-status { color: var(--primary); }
+.book-keep-actions { display: flex; gap: 10px; }
+@media (max-width: 650px) {
+  .book-pairs > div, .book-words { grid-template-columns: 1fr; gap: 4px; }
+  .book-statement { font-size: 23px !important; }
+}
+@media (prefers-reduced-motion: reduce) { .book-chapter { animation: none; } }
