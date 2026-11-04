@@ -25,6 +25,8 @@ export function attentionCounts(data: OwnerData, questions: readonly Question[])
 export const awaitsSignature = (i: OwnerData["intents"][number]) => i.status === "PLANNED" && i.project_id !== null && i.plan_status === "SUBMITTED";
 
 /** A directive waits on the CEO when it is theirs and asks something of them. */
-export const directiveNeedsYou = (i: OwnerData["intents"][number]) => i.source === "CEO_DIRECTIVE" && (i.questions.length > 0 || i.materials.length > 0) && i.status !== "REJECTED" && i.status !== "SUPERSEDED";
+// A request the agency cannot deliver yet, or will not, waits on the CEO's answer whoever asked (v4 ADR-0057 Decision 9).
+export const directiveNeedsYou = (i: OwnerData["intents"][number]) => i.status !== "REJECTED" && i.status !== "SUPERSEDED"
+  && ((i.source === "CEO_DIRECTIVE" && (i.questions.length > 0 || i.materials.length > 0)) || i.delivery?.needs_answer === true);
 
 export const needYou = (n: number) => `${n} ${n === 1 ? "needs" : "need"} you`;

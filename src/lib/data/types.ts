@@ -117,6 +117,11 @@ export interface DataSource {
     submit(input: IntentInput): Promise<Result<{ intentId: string; status: string; projectId: string | null }>>;
     answer(intentId: string, clarificationId: string, answer: { optionId?: string; text?: string; useDefault?: boolean }): Promise<Result>;
     respond(requirementId: string, answer: MaterialAnswer, organizationId: string): Promise<Result>;
+    /**
+     * The CEO's answer to a request the agency cannot deliver yet, or will not (v4 ADR-0057 Decision 9): decline it, and the client
+     * reads why, or take it on, and it is planned with people standing in for what no pack builds. v4 lets only the CEO.
+     */
+    answerDelivery(intentId: string, answer: "DECLINE" | "TAKE_ON", note?: string): Promise<Result>;
     /** What the client reads about one request, ordered and trimmed by v4 (P6.20). */
     clientView(intentId: string): Promise<Result<ClientIntentView>>;
   };
@@ -153,6 +158,11 @@ export interface DataSource {
     annotate(projectId: string, input: { target: AnnotationTarget; kind: AnnotationKind; text: string }): Promise<Result<{ annotation: SddAnnotation; documentHash: string }>>;
     /** The agency's answer: addressed in the revision being worked on, or declined with a reason the client reads. */
     settle(projectId: string, annotationId: string, input: { status: "ADDRESSED" | "DECLINED"; reason?: string }): Promise<Result<{ annotation: SddAnnotation; documentHash: string }>>;
+    /**
+     * Where a territory study (v4 ADR-0060) is seen: the picture of one key frame, named in the territory's `previewRefs`. The
+     * browser loads it as an image through the same door as every other read; v4 decides who may see it.
+     */
+    studyUrl(projectId: string, file: string): string;
     /** The decision owner's answer to a submitted revision. Approving needs a fresh proof of who is deciding. */
     decide(proposalId: string, input: { action: "APPROVE" | "REQUEST_REVISION"; note?: string }): Promise<Result>;
   };

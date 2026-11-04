@@ -123,14 +123,14 @@ export function priceTheAgency(ceoEmail: string) {
 /**
  * Stands in for the worker driving a Design project's run with a model (ADR-0049): has v4 drive the newest live run with a
  * territory-exploration step, its model a script (e2e/design-run.mjs), until it stops on the question of which direction to take.
- * Returns that question, with the project it belongs to.
+ * As the worker does, it draws each direction's key frames in Chromium into the API's storage (v4 ADR-0060). Returns that question, with the project it belongs to.
  */
 export function driveDesignRun(ceoEmail: string): { id: string; summary: string; projectId: string; projectName: string } {
   const u = new URL(ADMIN);
   u.pathname = "/cc_e2e";
   const out = execFileSync("npx", ["tsx", resolve("e2e/design-run.mjs"), ceoEmail], {
     cwd: V4_DIR, encoding: "utf8",
-    env: { ...process.env, DATABASE_URL: u.toString(), AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-0000", APP_URL: "http://localhost:3100" },
+    env: { ...process.env, DATABASE_URL: u.toString(), AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-0000", APP_URL: "http://localhost:3100", STORAGE_DIR: process.env["E2E_STORAGE_DIR"] },
   });
   return JSON.parse(out.trim().split("\n").at(-1)!) as { id: string; summary: string; projectId: string; projectName: string };
 }

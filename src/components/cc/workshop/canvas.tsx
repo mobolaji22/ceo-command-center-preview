@@ -3,35 +3,50 @@
 import { Lock } from "lucide-react";
 import { useRef, useState, type CSSProperties, type KeyboardEvent as RKeyboardEvent, type PointerEvent as RPointerEvent } from "react";
 import { drawn, feedbackOn, type Op } from "@/lib/design/edit";
-import { FONT_STACK, paintHex, radiusPx, slotOf, tokensOf, typeStyleOf, type SddBox, type SddDocument, type SddNode, type SddTokens } from "@/lib/design/v4";
+import { FONT_STACK, effectsCss, fillCss, fontOf, mediaLine, mediaOf, paintHex, radiusPx, slotOf, tokensOf, typeStyleOf, type SddBox, type SddDocument, type SddNode, type SddTokens } from "@/lib/design/v4";
 
 /**
  * Draws one frame of v4's design document from each node's box, style and text (ADR-0051). The drawing is only a view: every change
  * goes back through `onOp` as an operation on the document. The words on it are the slots Content fills, never copy of the canvas's
  * own. The same component draws the small, read-only previews used to compare directions.
  */
-const isImage = (n: SddNode) => n.type === "image" || n.type === "media" || n.assetRef !== null;
+const isImage = (n: SddNode) => n.type === "image" || n.type === "media" || n.assetRef !== null || n.mediaSlotRef !== null || (!!n.style.fill && "image" in n.style.fill);
 
+// Version 4's form is drawn as v4's renderer draws it (dev-playbook-v4 ADR-0060): gradients, shadows, blur, blend, rotation and
+// scale as CSS, a node's layer as its stacking order, its typeface before its class. Motion is shown at rest, as a study shows it.
 function nodeStyle(n: SddNode, box: SddBox, t: SddTokens): CSSProperties {
   const s = n.style;
   const base: CSSProperties = {
     position: "absolute", left: box.x, top: box.y, width: box.w, height: box.h, opacity: s.opacity, boxSizing: "border-box", overflow: "hidden",
-    background: paintHex(s.fill, t), borderRadius: radiusPx(s.radius, t, box), border: s.stroke ? `1px solid ${paintHex(s.stroke, t)}` : undefined,
+    background: fillCss(s.fill, t), borderRadius: radiusPx(s.radius, t, box), border: s.stroke ? `1px solid ${paintHex(s.stroke, t)}` : undefined,
+    ...effectsCss(s, t), ...(n.layout.layer.z ? { zIndex: n.layout.layer.z } : {}),
   };
   const type = n.text ? typeStyleOf(t, n.text.style) : null;
   if (!n.text || !type) return base;
   return {
-    ...base, fontFamily: FONT_STACK[type.family], fontSize: n.text.size ?? type.size, fontWeight: type.weight, letterSpacing: `${type.tracking}em`, lineHeight: type.lineHeight,
+    ...base, fontFamily: fontOf(type), fontSize: n.text.size ?? type.size, fontWeight: type.weight, letterSpacing: `${type.tracking}em`, lineHeight: type.lineHeight,
     color: paintHex(n.text.colour, t, t.colour.text), textAlign: n.text.align, whiteSpace: "pre-wrap",
     ...(n.type === "control" ? { display: "flex", alignItems: "center", justifyContent: n.text.align === "left" ? "flex-start" : n.text.align === "right" ? "flex-end" : "center", padding: "0 12px" } : {}),
   };
 }
 
-function NodeBody({ n, t }: { n: SddNode; t: SddTokens }) {
-  if (isImage(n)) {
+function NodeBody({ n, t, doc }: { n: SddNode; t: SddTokens; doc: SddDocument }) {
+  // A scene is shown as its still, as it is for anyone without WebGL or who asked for less motion; the study shows it drawn.
+  if (n.scene) {
+    const still = n.scene.fallback;
+    const slot = "slot" in still ? doc.mediaSlots.find((m) => m.id === still.slot) : null;
     return (
-      <div className="ws-placeholder" style={{ background: `repeating-linear-gradient(135deg, transparent 0 14px, ${t.colour.text}22 14px 15px)`, color: t.colour.text, fontFamily: FONT_STACK.sans }}>
-        <span>IMAGE<br />{n.role}</span>
+      <div className="ws-placeholder" style={{ background: "fill" in still ? fillCss(still.fill, t) : fillCss({ image: { slot: still.slot, fit: "cover" } }, t), color: t.colour.text, fontFamily: FONT_STACK.sans }}>
+        <span>3D scene, {n.scene.primitives.length} shapes{slot ? <><br />{mediaLine(slot)}</> : null}</span>
+      </div>
+    );
+  }
+  if (isImage(n)) {
+    // Material no Asset fills is a labelled placeholder that says what it is and how it is to be had, never an invented image.
+    const media = mediaOf(doc, n);
+    return (
+      <div className="ws-placeholder" style={{ background: `repeating-linear-gradient(135deg, transparent 0 14px, ${t.colour.text}22 14px 15px)`, color: t.colour.text, fontFamily: FONT_STACK.sans }} data-media-slot={media?.id}>
+        <span>{media ? mediaLine(media) : <>IMAGE<br />{n.role}</>}</span>
       </div>
     );
   }
@@ -180,7 +195,7 @@ export function Artboard({ doc, frameId, scale, selection, onSelect, onOp, tool,
               role={interactive ? "button" : undefined} tabIndex={!interactive || !isSel ? -1 : 0} aria-pressed={interactive ? isSel : undefined}
               aria-label={interactive ? `${n.role}, ${n.type}${n.locked ? ", locked" : ""}` : undefined}
               onKeyDown={interactive ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (tool === "comment") onPin?.(n.id); else onSelect?.(e.shiftKey ? (isSel ? sel.filter((i) => i !== n.id) : [...sel, n.id]) : [n.id]); } } : undefined}>
-              <NodeBody n={n} t={t} />
+              <NodeBody n={n} t={t} doc={doc} />
             </div>
           );
         })}

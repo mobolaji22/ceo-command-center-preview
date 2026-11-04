@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -304,20 +304,25 @@ export function createApiDataSource(): DataSource {
         return voidResult(await call("POST", `/v1/requirements/${requirementId}/respond`, answer));
       },
       async clientView(intentId) {
-        type Need = { id: string; name: string; why: string; ifMissing: string; ways: MaterialWay[]; sourcing: boolean };
+        type Need = { id: string; name: string; why: string; ifMissing: string; ways: MaterialWay[]; sourcing: boolean; items?: string[] };
         const r = await call<{
           id: string; text: string; createdAt: string; status: ClientIntentView["status"];
           questions: Array<{ id: string; position: number; of: number; question: string; why: string; options: Array<{ id: string; label: string; tradeoff: string }>; defaultOptionId: string | null }>;
           needs: { required: Need[]; optional: Need[] }; assumed: Array<{ id: string; question: string; answer: string }>; plan: ClientIntentView["plan"];
+          delivery: { outcome: Feasibility; takenOn: boolean; items: Array<{ description: string; now: boolean; reason: string | null }> } | null;
         }>("GET", `/v1/intents/${intentId}/client-view`);
         if (r.error || !r.data) return { data: null, error: r.error };
-        const need = (n: Need) => ({ requirement_id: n.id, name: n.name, why: n.why, if_missing: n.ifMissing, ways: n.ways, sourcing: n.sourcing });
+        const need = (n: Need) => ({ requirement_id: n.id, name: n.name, why: n.why, if_missing: n.ifMissing, ways: n.ways, sourcing: n.sourcing, items: n.items ?? [] });
         const v = r.data;
         return ok({
           id: v.id, text: v.text, created_at: v.createdAt, status: v.status,
           questions: v.questions.map((q) => ({ id: q.id, position: q.position, of: q.of, question: q.question, why: q.why, options: q.options, default_option_id: q.defaultOptionId })),
           needs: { required: v.needs.required.map(need), optional: v.needs.optional.map(need) }, assumed: v.assumed, plan: v.plan,
+          delivery: v.delivery ? { outcome: v.delivery.outcome, taken_on: v.delivery.takenOn, items: v.delivery.items } : null,
         });
+      },
+      async answerDelivery(intentId, answer, note) {
+        return voidResult(await call("POST", `/v1/intents/${encodeURIComponent(intentId)}/delivery`, note?.trim() ? { answer, note: note.trim() } : { answer }));
       },
     },
 
@@ -342,6 +347,7 @@ export function createApiDataSource(): DataSource {
         return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map((v) => ({ version: v.version, approvedAt: v.approvedAt, approvedById: v.approvedById })));
       },
       version: (projectId, version) => call<SddDocument>("GET", `/v1/projects/${encodeURIComponent(projectId)}/sdd/versions/${version}`),
+      studyUrl: (projectId, file) => `${PROXY}/v1/projects/${encodeURIComponent(projectId)}/sdd/studies/${encodeURIComponent(file)}`,
       annotate: (projectId, input) => call("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/annotations`, { target: { kind: input.target.kind, id: input.target.id }, kind: input.kind, text: input.text }),
       settle: (projectId, annotationId, input) => call("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/annotations/${encodeURIComponent(annotationId)}/settle`, input),
       decide: async (proposalId, input) => voidResult(await call("POST", `/v1/proposals/${encodeURIComponent(proposalId)}/decision`, input)),

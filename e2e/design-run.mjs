@@ -1,7 +1,8 @@
 // Runs inside the v4 checkout (cwd = V4_DIR) so it can use v4's own code. Stands in for the worker driving a Design project's run
 // with a model: the model is a script (the roastery's meaning model and v4's territory-exploration golden seed; fixtures for the
 // rest), and everything after it is v4's own (the gateway, the engine, the draft it writes). Drives the project's live run until it
-// stops, and prints the question it stopped on.
+// stops, and prints the question it stopped on. Like the worker, it photographs each direction's key frames into the API's storage
+// (STORAGE_DIR), so the Workshop shows v4's studies (ADR-0060).
 // Usage: tsx design-run.mjs <CEO email>. The run is the newest live one with a territory-exploration step.
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
@@ -13,6 +14,8 @@ const { loadRoleTable } = await import(`${root}/packages/models/src/roles.ts`);
 const { FixtureProvider } = await import(`${root}/packages/models/src/fixture-provider.ts`);
 const { packRegistry } = await import(`${root}/packages/packs/src/index.ts`);
 const { PrismaSpendGate, setSpendPolicy, usdToMicros } = await import(`${root}/packages/state/src/spend.ts`);
+const { objectStorageFromEnv } = await import(`${root}/packages/assets/src/storage-config.ts`);
+const { chromiumStudyCamera } = await import(`${root}/packages/rendering/src/study-camera.ts`);
 
 const [ceoEmail] = process.argv.slice(2);
 const db = new PrismaClient();
@@ -42,7 +45,9 @@ try {
     },
   });
   const gateway = new ModelGateway({ table: loadRoleTable(), gate: new PrismaSpendGate(db), env: { OPENROUTER_API_KEY: "e2e" }, build: (route) => scripted(route.model) });
-  await driveRun(db, new ExecutorRegistry([new DemoExecutor(), new ModelExecutor(db, gateway, packRegistry())]), run.id);
+  // Only storing and reading a study is needed here, not signing a link, so the storage's signing key is a placeholder.
+  const storage = objectStorageFromEnv(process.env, { secret: "e2e", port: "4100" });
+  await driveRun(db, new ExecutorRegistry([new DemoExecutor(), new ModelExecutor(db, gateway, packRegistry())]), run.id, { storage, studies: chromiumStudyCamera({ idleMs: 0 }) });
   const q = await db.intervention.findFirstOrThrow({ where: { runId: run.id, status: "OPEN" } });
   console.log(JSON.stringify({ id: q.id, summary: q.summary, projectId: project.id, projectName: project.name }));
 } finally { await db.$disconnect(); }

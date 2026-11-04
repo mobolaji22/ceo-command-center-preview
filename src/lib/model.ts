@@ -150,6 +150,20 @@ export type V4Event = {
 
 export type IntentStatus = "PROPOSED" | "RECEIVED" | "CLARIFYING" | "AWAITING_REASONING" | "UNDERSTOOD" | "PLANNED" | "SUPERSEDED" | "REJECTED";
 export type MaterialWay = "UPLOAD" | "LINK" | "CONNECT" | "NONE" | "SOURCE";
+/** What the agency can deliver of a request (v4 ADR-0057 Decision 9): all of it, part of it, not yet, or nothing it will do. */
+export type Feasibility = "CAN" | "CAN_PART" | "NOT_YET" | "WILL_NOT";
+/**
+ * The agency's answer to "can we deliver this?", as the agency reads it: each thing asked for, whether it can be built now and why,
+ * and whether the CEO must answer before the client reads anything. Absent when everything can be done.
+ */
+export type AgencyDelivery = {
+  outcome: Feasibility
+  needs_answer: boolean
+  answer: { answer: "DECLINE" | "TAKE_ON"; note: string | null; at: string } | null
+  items: Array<{ kind: string; description: string; outcome: "CAN" | "NOT_YET" | "WILL_NOT"; reason: string; capabilities: string[] }>
+};
+/** The same answer as the client reads it, once the CEO has answered: what can be done now, and why the rest cannot. */
+export type ClientDelivery = { outcome: Feasibility; taken_on: boolean; items: Array<{ description: string; now: boolean; reason: string | null }> };
 
 /** What someone asked for, where it stands, and what we are asking back (at most three questions and one materials list). */
 export type Intent = {
@@ -176,7 +190,10 @@ export type Intent = {
   /** Things we settled by assuming instead of asking. */
   assumptions: Array<{ id: string; question: string; assumed: string; forced: boolean }>
   answers: Array<{ id: string; question: string; answer: string }>
-  materials: Array<{ requirement_id: string; name: string; why: string; if_missing: string; required: boolean; ways: MaterialWay[]; sourcing: boolean }>
+  /** A materials request lists what it asks for, one item each (v4 ADR-0057 Decision 6); others have none. */
+  materials: Array<{ requirement_id: string; name: string; why: string; if_missing: string; required: boolean; ways: MaterialWay[]; sourcing: boolean; items?: string[] | undefined }>
+  /** What the agency can deliver of it, unless everything (v4 sends it once a request is understood). */
+  delivery?: AgencyDelivery | null | undefined
 };
 
 export type PlanStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REVISION_REQUESTED" | "REJECTED" | "SUPERSEDED";
@@ -229,7 +246,7 @@ export type PlanVersion = {
 export type UsdRange = { low: number; high: number };
 
 /** A material still needed from the client (the client views list required ones first). */
-export type ClientNeed = { requirement_id: string; name: string; why: string; if_missing: string; ways: MaterialWay[]; sourcing: boolean };
+export type ClientNeed = { requirement_id: string; name: string; why: string; if_missing: string; ways: MaterialWay[]; sourcing: boolean; items?: string[] | undefined };
 
 /**
  * What a client reads about one request (P6.20): one status line, the open questions in order with their place, what is still
@@ -239,11 +256,13 @@ export type ClientIntentView = {
   id: string
   text: string
   created_at: string
-  status: { kind: "READING" | "QUESTIONS" | "PLANNING" | "PLAN_READY" | "CLOSED"; line: string }
+  status: { kind: "READING" | "QUESTIONS" | "PLANNING" | "PLAN_READY" | "DECLINED" | "CLOSED"; line: string }
   questions: Array<{ id: string; position: number; of: number; question: string; why: string; options: Array<{ id: string; label: string; tradeoff: string }>; default_option_id: string | null }>
   needs: { required: ClientNeed[]; optional: ClientNeed[] }
   assumed: Array<{ id: string; question: string; answer: string }>
   plan: { id: string; version: number; status: PlanStatus } | null
+  /** What can and cannot be delivered, once the CEO has answered a request that cannot all be done; null otherwise. */
+  delivery: ClientDelivery | null
 };
 
 /**
@@ -262,7 +281,8 @@ export type ClientPlanView = {
     milestones: Array<{ name: string; target: string | null }>
   }
   phases: Array<{ phase: number | null; deliverables: Array<{ name: string; due: string | null }> }>
-  needs: { required: Array<{ name: string; why: string }>; optional: Array<{ name: string; why: string }> }
+  /** `items` lists what a materials request asks for, one photograph or clip each (v4 ADR-0057 Decision 6). */
+  needs: { required: Array<{ name: string; why: string; items?: string[] | undefined }>; optional: Array<{ name: string; why: string; items?: string[] | undefined }> }
   assumed: string[]
   decisions: Array<{ description: string; decided_by: "YOU" | "YOU_OR_AGENCY" }>
   delegation: { in_force: boolean; always_yours: string[] }

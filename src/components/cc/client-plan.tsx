@@ -42,9 +42,9 @@ export function ClientPlanDoc({ view, actions }: { view: ClientPlanView; actions
 
     {(view.needs.required.length > 0 || view.needs.optional.length > 0) && <>
       <h4>What we need from you</h4>
-      <ul>{view.needs.required.map((n) => <li key={n.name}>{n.name}{n.why && <span className="cv-sub"> · {n.why}</span>}</li>)}</ul>
+      <ul>{view.needs.required.map((n) => <li key={n.name}>{n.name}{n.why && <span className="cv-sub"> · {n.why}</span>}{n.items && n.items.length > 0 && <ul className="material-items">{n.items.map((x) => <li key={x}>{x}</li>)}</ul>}</li>)}</ul>
       {view.needs.optional.length > 0 && <details className="cv-more"><summary>Helpful if you have them ({view.needs.optional.length})</summary>
-        <ul>{view.needs.optional.map((n) => <li key={n.name}>{n.name}{n.why && <span className="cv-sub"> · {n.why}</span>}</li>)}</ul></details>}
+        <ul>{view.needs.optional.map((n) => <li key={n.name}>{n.name}{n.why && <span className="cv-sub"> · {n.why}</span>}{n.items && n.items.length > 0 && <ul className="material-items">{n.items.map((x) => <li key={x}>{x}</li>)}</ul>}</li>)}</ul></details>}
     </>}
 
     {view.assumed.length > 0 && <><h4>What we assumed</h4><ul>{view.assumed.map((a) => <li key={a}>{a}</li>)}</ul>

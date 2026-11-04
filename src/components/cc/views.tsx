@@ -249,8 +249,8 @@ export function DirectiveView({ data, refresh, close }: Common & { close: () => 
   const forName = (id: string) => (org(id)?.kind === "INTERNAL" ? "The agency's own work" : org(id)?.name ?? "A client");
   const shown = data.intents.filter((i) => (tab === "all" || directiveTab(data, i) === tab) && (forOrg === "*" || (forOrg === "INTERNAL" ? org(i.organization_id)?.kind === "INTERNAL" : i.organization_id === forOrg)));
   const opened = openId ? data.intents.find((i) => i.id === openId) ?? null : null;
-  const openRequest = (i: OwnerData["intents"][number]) => { setOpenId(i.id); setPart(i.questions.length || i.materials.length || !i.project_id ? "asks" : "plan"); };
-  const asksCount = (i: OwnerData["intents"][number]) => i.questions.length + i.materials.length;
+  const openRequest = (i: OwnerData["intents"][number]) => { setOpenId(i.id); setPart(i.questions.length || i.materials.length || i.delivery?.needs_answer || !i.project_id ? "asks" : "plan"); };
+  const asksCount = (i: OwnerData["intents"][number]) => i.questions.length + i.materials.length + (i.delivery?.needs_answer ? 1 : 0);
   const clients = data.organizations.filter((o) => o.kind !== "INTERNAL");
 
   return <div className="directive-wrap">

@@ -5,7 +5,8 @@ import { Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import type { NewAttachment } from "@/lib/data/types";
-import type { Asset, ClientIntentView, Intent, MaterialWay } from "@/lib/model";
+import type { AgencyDelivery, Asset, ClientDelivery, ClientIntentView, Intent, MaterialWay } from "@/lib/model";
+import { useAuth } from "@/lib/auth";
 import { fmtAgo, label, statusTone } from "@/lib/format";
 import { Empty } from "./views";
 import { PlanPanel } from "./plans";
@@ -99,6 +100,7 @@ export function IntentCard({ intent, canAnswer, refresh, part }: { intent: Inten
   const asks = part !== "plan";
 
   return <div className="intent-card" data-status={intent.status} data-part={part}>
+    {asks && intent.delivery && <AgencyDeliveryBlock intent={intent} delivery={intent.delivery} onDone={(m) => { setMsg(m); refresh(); }} onError={setMsg} />}
     {!part && <div className="resolved-row intent-head"><span>{intent.text}<small>{fmtAgo(intent.created_at)}{intent.source === "CEO_DIRECTIVE" ? " · from the agency" : ""}</small></span><span className={`pill ${tone(intent.status)}`}>{(STATUS_WORDS[intent.status] ?? label(intent.status)).toUpperCase()}</span></div>}
     {msg && <p className="mmsg" role="status">{msg}</p>}
 
@@ -118,7 +120,7 @@ export function IntentCard({ intent, canAnswer, refresh, part }: { intent: Inten
     {asks && open && intent.assumptions.length > 0 && <div className="ask-block"><div className="section-label"><span>WE ASSUMED</span><span>{intent.assumptions.length}</span></div>
       {intent.assumptions.map((a) => <div key={a.id} className="resolved-row"><span>{a.question}<small>We are going with: {a.assumed}{a.forced ? " (we ran out of questions on this one, so please check it)" : ""}</small></span></div>)}</div>}
 
-    {asks && (intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && intent.questions.length === 0 && intent.materials.length === 0 && <p className="mmsg">Nothing more is needed from you right now.</p>}
+    {asks && (intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && intent.questions.length === 0 && intent.materials.length === 0 && !intent.delivery?.needs_answer && <p className="mmsg">Nothing more is needed from you right now.</p>}
 
     {asks && part && intent.questions.length === 0 && intent.materials.length === 0 && intent.assumptions.length === 0 && !(intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && <p className="mmsg">Nothing is being asked on this request.</p>}
 
@@ -172,6 +174,8 @@ export function ClientIntentCard({ intent, canAnswer, refresh }: { intent: Inten
       </> : <p className="cv-sub">{intent.source === "CEO_DIRECTIVE" ? "The agency asked for this, so the agency answers it." : "Waiting for the account owner to answer."}</p>}
     </div>}
 
+    {view.delivery && <ClientDeliveryBlock delivery={view.delivery} />}
+
     {view.needs.required.length > 0 && <div className="cv-block"><h4>What we need from you</h4>
       {view.needs.required.map((m) => <Material key={m.requirement_id} item={{ ...m, required: true }} organizationId={intent.organization_id} canAnswer={canAnswer} onDone={(done) => { setMsg(done); reload(); }} onError={setMsg} />)}</div>}
     {view.needs.optional.length > 0 && <details className="cv-more"><summary>Helpful if you have them ({view.needs.optional.length})</summary>
@@ -208,7 +212,8 @@ function Material({ item, organizationId, canAnswer, onDone, onError }: { item: 
   };
 
   return <div className="material" aria-label={item.name}>
-    <span><b>{item.name}</b>{item.required && <em className="req"> required</em>}<small>{item.why} Without it: {item.if_missing}</small>{item.sourcing && <small>We are sourcing this for you.</small>}</span>
+    <span><b>{item.name}</b>{item.required && <em className="req"> required</em>}<small>{item.why} Without it: {item.if_missing}</small>{item.sourcing && <small>We are sourcing this for you.</small>}
+      {item.items && item.items.length > 0 && <ul className="material-items">{item.items.map((x) => <li key={x}>{x}</li>)}</ul>}</span>
     {canAnswer && <div className="material-actions">
       {can("UPLOAD") && <label className="attach">Upload<input type="file" aria-label={`Upload for ${item.name}`} onChange={(e) => { const f = e.target.files?.[0]; if (f) void go({ action: "UPLOAD", file: f }, `Thanks, we have ${item.name.toLowerCase()}.`); e.target.value = ""; }} /></label>}
       {can("LINK") && <span className="free"><input aria-label={`Link for ${item.name}`} placeholder="Paste a link…" value={url} onChange={(e) => setUrl(e.target.value)} /><Button variant="ghost" disabled={!url.trim()} onClick={() => void go({ action: "LINK", url: url.trim() }, "Link received.")}>Add</Button></span>}
@@ -218,6 +223,53 @@ function Material({ item, organizationId, canAnswer, onDone, onError }: { item: 
       {can("NONE") && <Button variant="ghost" onClick={() => void go({ action: "NONE" }, "Noted: we will proceed without it.")}>I don&apos;t have this</Button>}
       {can("SOURCE") && !item.sourcing && <Button variant="ghost" onClick={() => void go({ action: "SOURCE" }, "We will source it.")}>Please source it</Button>}
     </div>}
+  </div>;
+}
+
+const ITEM_WORDS: Record<AgencyDelivery["items"][number]["outcome"], string> = { CAN: "Can do", NOT_YET: "Not yet", WILL_NOT: "Won't" };
+const OUTCOME_LINE: Record<AgencyDelivery["outcome"], string> = {
+  CAN: "We can deliver all of it.", CAN_PART: "We can deliver part of it; people stand in for the rest.",
+  NOT_YET: "We can't build this yet.", WILL_NOT: "This is something we won't do.",
+};
+
+/**
+ * What the agency can deliver of a request, as the agency reads it (v4 ADR-0057 Decision 9). When nothing can be built yet, or
+ * something will not be, the CEO answers before the client reads anything: decline, and the client reads why, or take it on, and
+ * it is planned with people standing in. v4 decides who may answer; the buttons are offered to the CEO.
+ */
+function AgencyDeliveryBlock({ intent, delivery: d, onDone, onError }: { intent: Intent; delivery: AgencyDelivery; onDone: (m: string) => void; onError: (m: string) => void }) {
+  const ds = useDataSource();
+  const auth = useAuth();
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const go = async (answer: "DECLINE" | "TAKE_ON") => {
+    setBusy(true);
+    const r = await ds.intents.answerDelivery(intent.id, answer, note);
+    setBusy(false);
+    if (r.error) onError(r.error.message);
+    else onDone(answer === "DECLINE" ? "Declined. The client reads why." : "Taken on. It is planned with people standing in for what we can't build yet.");
+  };
+  return <div className={`ask-block delivery${d.needs_answer ? " is-waiting" : ""}`} aria-label="What we can deliver">
+    <div className="section-label"><span>WHAT WE CAN DELIVER</span><span>{d.outcome === "CAN_PART" ? "PART" : ITEM_WORDS[d.outcome === "NOT_YET" ? "NOT_YET" : d.outcome === "WILL_NOT" ? "WILL_NOT" : "CAN"].toUpperCase()}</span></div>
+    <p className="mmsg">{OUTCOME_LINE[d.outcome]}{d.answer ? ` You ${d.answer.answer === "DECLINE" ? "declined it" : "took it on"} ${fmtAgo(d.answer.at)}${d.answer.note ? `: “${d.answer.note}”` : "."}` : ""}</p>
+    <ul className="delivery-items">{d.items.map((x, n) => <li key={n} data-outcome={x.outcome}><span className={`pill ${x.outcome === "CAN" ? "green" : x.outcome === "NOT_YET" ? "amber" : "red"}`}>{ITEM_WORDS[x.outcome].toUpperCase()}</span> <b>{x.description}</b><small>{x.reason}</small></li>)}</ul>
+    {d.needs_answer && (auth.isOwner
+      ? <div className="delivery-answer">
+          <small className="delivery-wait">Nothing is planned, and the client reads nothing, until you answer.</small>
+          <input aria-label="A note for the client" placeholder="A note for the client (optional)" maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
+          <Button variant="outline" disabled={busy} onClick={() => void go("DECLINE")}>Decline, and tell the client why</Button>
+          <Button className="approve-btn" disabled={busy} onClick={() => void go("TAKE_ON")}>Take it on</Button>
+        </div>
+      : <small>Waiting for the CEO to answer.</small>)}
+  </div>;
+}
+
+/** What can and cannot be delivered, as the client reads it once the CEO has answered: plainly, item by item, with the reason. */
+function ClientDeliveryBlock({ delivery: d }: { delivery: ClientDelivery }) {
+  return <div className="cv-block delivery" aria-label="What we can deliver">
+    <h4>What we can deliver</h4>
+    {d.taken_on && <p className="cv-sub">We are taking this on: our people do the parts we can't build ourselves yet.</p>}
+    <ul className="delivery-items">{d.items.map((x, n) => <li key={n} data-now={x.now}><b>{x.description}</b><small>{x.now ? "We can do this." : x.reason}</small></li>)}</ul>
   </div>;
 }
 
