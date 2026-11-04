@@ -70,6 +70,22 @@ test("the client's owner reads the brand chapters, is told the market is still t
   await expect(chapter(book, /The market/)).toHaveCount(0);
   await expect(chapter(book, /Selling it/)).toBeVisible();
 
+  // Saving it as a PDF prints every released chapter from this same view, and nothing else on the page.
+  await page.evaluate(() => { const w = window as Window & { printed?: number }; w.print = () => { w.printed = (w.printed ?? 0) + 1; }; });
+  await book.getByRole("button", { name: "Save as PDF" }).click();
+  // On screen the printed book is laid out but not shown, so it is found among hidden elements until the page is printed.
+  const printed = page.getByRole("article", { name: "The book, for printing", includeHidden: true });
+  await expect(printed.getByRole("heading", { name: /The brand/, includeHidden: true })).toBeAttached();
+  await expect(printed.getByRole("heading", { name: /Selling it/, includeHidden: true })).toBeAttached();
+  await expect.poll(() => page.evaluate(() => (window as Window & { printed?: number }).printed)).toBe(1);
+  await expect(page).toHaveTitle(`${story.projectName} - the book`);
+  await page.emulateMedia({ media: "print" });
+  await expect(printed).toBeVisible();
+  await expect(desk).toBeHidden();
+  await page.emulateMedia({ media: null });
+  await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+  await expect(printed).toHaveCount(0);
+
   const keep = book.getByRole("complementary", { name: "Keep this brand" });
   const before = mailCount();
   await keep.getByRole("button", { name: "Keep it" }).click();
