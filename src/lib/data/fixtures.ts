@@ -120,10 +120,11 @@ function demoChanges(from: PlanContent, to: PlanContent, a: DemoPrice | null, b:
   return lines;
 }
 /** The same order v4's client views use: what is asked, by impact, as it was stored. */
-const STATUS_LINE = (i: { status: string; questions: unknown[] }, planReady: boolean): ClientIntentView["status"] =>
+const STATUS_LINE = (i: { status: string; questions: unknown[]; delivery?: { outcome: string; answer: { answer: string } | null } | null | undefined }, planReady: boolean): ClientIntentView["status"] =>
   i.questions.length ? { kind: "QUESTIONS", line: i.questions.length === 1 ? "One question for you." : `${i.questions.length} questions for you.` }
   : i.status === "RECEIVED" || i.status === "AWAITING_REASONING" ? { kind: "READING", line: "We're reading your request." }
   : planReady ? { kind: "PLAN_READY", line: "Your plan is ready." }
+  : i.status === "REJECTED" && i.delivery?.answer?.answer === "DECLINE" ? { kind: "DECLINED", line: i.delivery.outcome === "WILL_NOT" ? "We can't take this request on." : "We can't build this yet. Here is why." }
   : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
   : { kind: "PLANNING", line: "We're preparing your plan." };
 
@@ -232,7 +233,12 @@ function seed(): Store {
       { id: "ev-11", project_id: "p-3", type: "PROJECT_CREATED", summary: "Project opened: Portfolio v2", actor_id: "u-ceo", client_visible: false, created_at: ago(24 * 5) },
     ],
     intents: [
-      { id: "in-1", organization_id: "o-1", project_id: "p-1", source: "CLIENT_INTENT", status: "UNDERSTOOD", text: "Clarify our Q4 priorities and drop anything that does not move online orders.", initiator_id: "u-amara", rejection_reason: null, created_at: ago(24 * 20), understood_at: ago(24 * 20), plan_status: null, questions: [], assumptions: [{ id: "as-1", question: "Is there a spending limit we should respect?", assumed: "Use the usual range for this kind of work", forced: false }], answers: [], materials: [] },
+      { id: "in-1", organization_id: "o-1", project_id: "p-1", source: "CLIENT_INTENT", status: "UNDERSTOOD", text: "Clarify our Q4 priorities and drop anything that does not move online orders.", initiator_id: "u-amara", rejection_reason: null, created_at: ago(24 * 20), understood_at: ago(24 * 20), plan_status: null, questions: [], assumptions: [{ id: "as-1", question: "Is there a spending limit we should respect?", assumed: "Use the usual range for this kind of work", forced: false }], answers: [],
+        materials: [{ requirement_id: "m-photos", name: "Photographs and other media for your design", why: "The chosen design direction is built around them.", if_missing: "We build with labelled placeholders until they arrive, and nothing is released with a placeholder in it.", required: false, ways: ["UPLOAD", "LINK", "NONE", "SOURCE"], sourcing: false,
+          items: ["Photograph: The roaster at the drum (21:9), for the desktop and phone pages. Shows who roasts.", "Photograph: A bag of this week's beans, four of them, for the desktop and phone pages. Shows the range."] }] },
+      // A request the agency cannot build yet (v4 ADR-0057 Decision 9): the CEO answers before the client reads anything.
+      { id: "in-3", organization_id: "o-1", project_id: null, source: "CLIENT_INTENT", status: "UNDERSTOOD", text: "We'd also like a phone app so regulars can order ahead and skip the queue.", initiator_id: "u-amara", rejection_reason: null, created_at: ago(3), understood_at: ago(2), plan_status: null, questions: [], assumptions: [], answers: [], materials: [],
+        delivery: { outcome: "NOT_YET", needs_answer: true, answer: null, items: [{ kind: "MOBILE_APP_EXPO", description: "A phone app for ordering ahead", outcome: "NOT_YET", reason: "Our mobile app build is staged and not ready yet. We can design the app with you now and build it once it is.", capabilities: ["expo-build"] }] } },
       { id: "in-2", organization_id: "o-2", project_id: null, source: "CLIENT_INTENT", status: "CLARIFYING", text: "Make the patient intake feel calm.", initiator_id: "u-tunde", rejection_reason: null, created_at: ago(5), understood_at: null, plan_status: null,
         questions: [{ id: "q-1", question: "What result would tell you this worked?", why: "Without a result to aim at we cannot tell a good plan from a merely busy one.", decision: "Which approach we propose, and how we measure success.", options: [{ id: "revenue", label: "More completed intakes", tradeoff: "We design around completion; extras that do not help it are left out." }, { id: "trust", label: "Patients who feel at ease", tradeoff: "We invest in tone and content; it is slower to measure." }], default_option_id: null }],
         assumptions: [], answers: [],
@@ -641,13 +647,27 @@ export function createFixturesDataSource(): DataSource {
         const i = s.data.intents.find((x) => x.id === intentId);
         if (!i) return fail("That request couldn't be found.", "NOT_FOUND");
         const plan = i.project_id ? [...s.plans].filter((p) => p.project_id === i.project_id && p.status !== "DRAFT").sort((a, b) => b.version - a.version)[0] : undefined;
-        const need = (m: (typeof i.materials)[number]) => ({ requirement_id: m.requirement_id, name: m.name, why: m.why, if_missing: m.if_missing, ways: m.ways, sourcing: m.sourcing });
+        const need = (m: (typeof i.materials)[number]) => ({ requirement_id: m.requirement_id, name: m.name, why: m.why, if_missing: m.if_missing, ways: m.ways, sourcing: m.sourcing, items: m.items ?? [] });
         return ok({
           id: i.id, text: i.text, created_at: i.created_at, status: STATUS_LINE(i, Boolean(plan)),
           questions: i.questions.map((q, n) => ({ id: q.id, position: n + 1, of: i.questions.length, question: q.question, why: q.why, options: q.options, default_option_id: q.default_option_id })),
           needs: { required: i.materials.filter((m) => m.required).map(need), optional: i.materials.filter((m) => !m.required).map(need) },
           assumed: i.assumptions.map((a) => ({ id: a.id, question: a.question, answer: a.assumed })),
           plan: plan ? { id: plan.id, version: plan.version, status: plan.status } : null,
+          // As v4 does: nothing until the CEO has answered, nothing when everything can be done.
+          delivery: i.delivery && i.delivery.outcome !== "CAN" && !i.delivery.needs_answer
+            ? { outcome: i.delivery.outcome, taken_on: i.delivery.answer?.answer === "TAKE_ON", items: i.delivery.items.map((x) => ({ description: x.description, now: x.outcome === "CAN", reason: x.outcome === "CAN" ? null : x.reason })) }
+            : null,
+        });
+      },
+      async answerDelivery(intentId, answer, note) {
+        if (load().users.find((u) => u.id === currentUserId())?.role !== "owner") return fail("Only the CEO answers what the agency can deliver.", "FORBIDDEN");
+        return mutate((st) => {
+          const i = st.data.intents.find((x) => x.id === intentId);
+          if (!i?.delivery?.needs_answer) return;
+          i.delivery = { ...i.delivery, needs_answer: false, answer: { answer, note: note?.trim() || null, at: new Date().toISOString() } };
+          if (answer === "DECLINE") { i.status = "REJECTED"; i.rejection_reason = [...i.delivery.items.filter((x) => x.outcome !== "CAN").map((x) => x.reason), note?.trim() ?? ""].filter(Boolean).join(" "); }
+          else { i.status = "PLANNED"; openProject(st, i); }
         });
       },
     },
@@ -826,7 +846,12 @@ export function createFixturesDataSource(): DataSource {
           const held = (d.working?.document ?? latestApproved(d)?.document)?.annotations ?? [];
           if (JSON.stringify(document.annotations) !== JSON.stringify(held)) throw new Refusal("ANNOTATIONS_ARE_APPENDED", "A save cannot change feedback.");
           const w = open ?? workOn(d);
-          w.document = { ...document, projectId, revision: w.document.revision, status: "DRAFT" };
+          // As v4 does (ADR-0060): a direction whose key frames changed loses its studies until it is drawn again. v4 compares the
+          // drawn pages; the demo compares the frames' nodes, which is what a page is drawn from.
+          const framed = (doc: SddDocument, t: SddDocument["territories"][number]) => JSON.stringify(doc.nodes.filter((n) => doc.frames.some((f) => t.keyFrameIds.includes(f.id) && f.nodeIds.includes(n.id))));
+          const was = w.document;
+          const territories = document.territories.map((t) => { const before = was.territories.find((x) => x.id === t.id); return before && t.rendered && framed(was, before) === framed(document, t) ? t : { ...t, rendered: false, previewRefs: [] }; });
+          w.document = { ...document, territories, projectId, revision: w.document.revision, status: "DRAFT" };
           w.hash = nextHash(w.hash);
           return { documentHash: w.hash };
         }),
@@ -839,6 +864,8 @@ export function createFixturesDataSource(): DataSource {
           });
           return r.error ? r : ok(undefined);
         },
+        // The demo's studies were drawn by v4's renderer from the sample document and are served as static files.
+        studyUrl: (_projectId, file) => `/fixtures/studies/${encodeURIComponent(file)}`,
         versions: async (projectId) => withDesign(projectId, (d) => d.approved.map(({ version, approvedAt, approvedById }) => ({ version, approvedAt, approvedById })), false),
         version: async (projectId, version) => {
           const r = withDesign(projectId, (d) => d.approved.find((a) => a.version === version)?.document ?? null, false);

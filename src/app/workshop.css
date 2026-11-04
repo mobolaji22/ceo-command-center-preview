@@ -263,3 +263,10 @@ html:not([data-lighting="day"]) .ws-chip.bad { color: oklch(0.8 0.14 40); }
 .ws-decline { margin-top: 6px; }
 .ws-decide { display: grid; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--border); background: color-mix(in oklab, var(--primary) 6%, var(--card)); }
 .ws-decide .wf { margin-bottom: 0; }
+
+/* A territory study (v4 ADR-0060): the key frame as v4's renderer drew it, shown at the width it has. */
+/* A long page scrolls inside its frame, so a phone study does not stretch its direction far past the others. */
+.keyframe-study { max-height: 760px; overflow-y: auto; }
+.keyframe-study figcaption { position: sticky; bottom: 0; background: var(--card, var(--background)); padding-top: 4px; }
+.keyframe-study img { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: 2px; background: var(--muted); }
+.keyframe figcaption .linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--foreground); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }

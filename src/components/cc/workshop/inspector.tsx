@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { feedbackOn, targetWords, type Align, type NodePatch, type Op } from "@/lib/design/edit";
 import {
-  ANNOTATION_KINDS, FONT_STACK, KIND_WORDS, STATUS_WORDS, isLargeText, layoutOf, paintHex, slotOf, surfaceUnder, tokensOf, typeStyleOf,
+  ANNOTATION_KINDS, FONT_STACK, KIND_WORDS, STATUS_WORDS, fillCss, fillHex, isColourFill, isLargeText, layoutOf, mediaLine, mediaOf, motionLine, paintHex, slotOf, surfaceUnder, tokensOf, typeStyleOf,
   type AnnotationKind, type AnnotationTarget, type FontFamily, type SddAnnotation, type SddDocument, type SddNode, type SddTokens, type SddVersion,
 } from "@/lib/design/v4";
 import { fmtAgo } from "@/lib/format";
@@ -128,13 +128,25 @@ function ElementStyle({ node, patch, tokens: t, doc }: { node: SddNode; patch: (
   return (
     <>
       <Section title="Appearance">
-        <PaintField label="Fill" value={s.fill} tokens={t} allowNone onChange={(v) => patch(ids, { style: { fill: v } }, "Changed the fill", `fill:${node.id}`)} />
+        {isColourFill(s.fill)
+          ? <PaintField label="Fill" value={s.fill} tokens={t} allowNone onChange={(v) => patch(ids, { style: { fill: v } }, "Changed the fill", `fill:${node.id}`)} />
+          : (
+            <div className="wf">
+              <span className="wf-label">Fill</span>
+              <div className="wf-row">
+                <span className="wf-swatch" style={{ background: fillCss(s.fill, t) }} aria-hidden="true" />
+                <span className="ws-note">{"linear" in s.fill ? `A gradient at ${s.fill.linear.angle}°, ${s.fill.linear.stops.length} colours` : "radial" in s.fill ? `A radial gradient, ${s.fill.radial.stops.length} colours` : "An image"}</span>
+                <button type="button" className="ws-btn" onClick={() => patch(ids, { style: { fill: { hex: fillHex(s.fill, t, t.colour.surface ?? "#FFFFFF") } } }, "Changed the fill to a flat colour", `fill:${node.id}`)}>Use a flat colour</button>
+              </div>
+            </div>
+          )}
         <PaintField label="Border" value={s.stroke} tokens={t} allowNone onChange={(v) => patch(ids, { style: { stroke: v } }, "Changed the border", `stroke:${node.id}`)} />
         <div className="ws-grid2">
           <Field label="Corners"><select value={s.radius ?? ""} onChange={(e) => patch(ids, { style: { radius: e.target.value || null } }, "Changed the corners")}><option value="">Square</option>{radii.map((r) => <option key={r} value={r}>{tokenWords(r)} · {t.radius[r]}px</option>)}<option value="full">Round</option></select></Field>
           <Num label="Opacity" value={Math.round(s.opacity * 100)} min={0} max={100} suffix="%" onChange={(v) => patch(ids, { style: { opacity: Math.max(0, Math.min(100, v)) / 100 } }, "Changed the opacity", `op:${node.id}`)} />
         </div>
       </Section>
+      <ElementForm node={node} tokens={t} doc={doc} />
       {text && type && (
         <Section title="Text">
           {slot && <p className="ws-note">The words are Content&apos;s: <b>{slot.purpose || slot.key}</b>{slot.maxChars ? `, up to ${slot.maxChars} characters` : ""}. Here they are set, not written.</p>}
@@ -152,6 +164,25 @@ function ElementStyle({ node, patch, tokens: t, doc }: { node: SddNode; patch: (
       )}
     </>
   );
+}
+
+/**
+ * What version 4 of the document says about an element beyond its box and colour: its typeface, its motion and what a person who
+ * asked for less motion sees, the material it shows and how that is to be had, and a 3D scene. They are the direction's, read here;
+ * the study shows them drawn.
+ */
+function ElementForm({ node, tokens: t, doc }: { node: SddNode; tokens: SddTokens; doc: SddDocument }) {
+  const type = node.text ? typeStyleOf(t, node.text.style) : null;
+  const media = mediaOf(doc, node);
+  const lines = [
+    ...(type?.typeface ? [`Set in ${type.typeface}.`] : []),
+    ...node.motion.map((m) => motionLine(m, t)),
+    ...(media ? [`${mediaLine(media)}. ${media.purpose}`] : []),
+    ...(node.scene ? [`A 3D scene of ${node.scene.primitives.length} shapes, ${node.scene.interaction === "none" ? "still" : `moved by ${node.scene.interaction}`}; without WebGL or with reduced motion it shows its still.`] : []),
+    ...(node.style.shadows.length || node.style.blur || node.style.rotate || node.style.scale !== 1 || node.style.blend !== "normal" ? [[node.style.shadows.length ? `${node.style.shadows.length} shadow${node.style.shadows.length > 1 ? "s" : ""}` : "", node.style.blur ? `blurred ${node.style.blur}px` : "", node.style.rotate ? `turned ${node.style.rotate}°` : "", node.style.scale !== 1 ? `scaled ${node.style.scale}×` : "", node.style.blend !== "normal" ? `blended (${node.style.blend})` : ""].filter(Boolean).join(", ").replace(/^./, (c) => c.toUpperCase()) + "."] : []),
+  ];
+  if (!lines.length) return null;
+  return <Section title="Form">{lines.map((l) => <p key={l} className="ws-note">{l}</p>)}</Section>;
 }
 
 /* ---- Tokens: the named values every element refers to ---------------------------------------------------- */

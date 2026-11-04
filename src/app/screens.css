@@ -468,3 +468,16 @@ html[data-lighting="day"] .pill.slate { color: oklch(0.42 0.035 250); background
 }
 /* Inside a desk the contract is the page: no gap above it showing the desk's ground. */
 .desk-panel .contract-wrap { margin-top: 0; }
+
+/* What the agency can deliver of a request (v4 ADR-0057 Decision 9), and the items of a materials request. */
+.delivery-items, .material-items { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 8px; }
+.delivery-items li { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: baseline; }
+.delivery-items li > small { grid-column: 2; display: block; opacity: .7; }
+.cv-block.delivery .delivery-items li { grid-template-columns: 1fr; }
+.cv-block.delivery .delivery-items li[data-now="false"] b { text-decoration: none; }
+.delivery.is-waiting { border-left: 2px solid var(--primary); padding-left: 10px; }
+.delivery-answer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.delivery-answer input { flex: 1 1 220px; min-width: 0; }
+.delivery-answer .delivery-wait { flex-basis: 100%; opacity: .7; }
+.material-items li { font-size: 12px; opacity: .85; }
+.material-items li::before { content: "· "; }

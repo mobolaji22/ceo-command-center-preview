@@ -31,6 +31,7 @@ spends it, so a mail scanner that fetches the link cannot use it up. There are n
 | intents.submit                                | POST /v1/intents (attachments staged first via /v1/assets with `staged`) |
 | intents.answer                                | POST /v1/intents/:id/clarifications/:cid/answer |
 | intents.respond                               | GET /v1/intents/:id/ask, POST /v1/requirements/:id/respond |
+| intents.answerDelivery                        | POST /v1/intents/:id/delivery `{ answer: DECLINE \| TAKE_ON, note? }` (the CEO only; v4 ADR-0057 Decision 9). The assessment it answers is each intent's `delivery` in the console overview; the client reads its answer as `delivery` in the intent's client view |
 | plans.list                                    | GET /v1/projects/:id/proposals (PLAN only; drafts are hidden from clients) |
 | plans.changes                                 | GET /v1/proposals/:id/diff |
 | plans.decide                                  | POST /v1/proposals/:id/decision (`APPROVE` / `REQUEST_REVISION` / `REJECT`; a revision answers with the next version) |
@@ -84,6 +85,7 @@ direction, the client's owner leaves typed feedback and decides, and v4 keeps ev
 | `design.annotate(projectId, { target, kind, text })` | `POST /v1/projects/:id/sdd/annotations` | `201 { annotation, proposalId, documentHash }`; the first note on an approved version starts the next draft | `409 AWAITING_DECISION`; `403 FORBIDDEN` (not the agency or the client's owner) |
 | `design.settle(projectId, annotationId, { status, reason? })` | `POST /v1/projects/:id/sdd/annotations/:annotationId/settle` | `200` as `annotate`; `ADDRESSED` records the revision, `DECLINED` needs a reason the client reads | `409 ILLEGAL_TRANSITION` (already settled) |
 | `design.versions(projectId)` · `design.version(projectId, n)` | `GET /v1/projects/:id/sdd/versions` · `GET .../sdd/versions/:version` | every approved version, newest first · one in full, which "Restore as the draft" applies as an ordinary edit | `404` |
+| `design.studyUrl(projectId, file)` | `GET /v1/projects/:id/sdd/studies/:file` (an `<img>` through the proxy) | a territory study (v4 ADR-0060): the PNG of one key frame as v4's renderer drew it, named in the territory's `previewRefs` and there only while `rendered`; cached for good, since its name is the hash of the page it shows | `404`: the frame is shown as laid out instead |
 | `design.decide(proposalId, { action, note? })` | `POST /v1/proposals/:id/decision` | `200`: `APPROVE` makes it the next version; `REQUEST_REVISION` sends it back with the note | `403 STEP_UP_REQUIRED` (the code form opens and the decision is retried); `409 OPEN_CHANGE_REQUEST` |
 
 - **Types are generated, never hand-written.** `npm run v4:types` reads v4's `packages/contracts/schemas/sdd-document.schema.json`

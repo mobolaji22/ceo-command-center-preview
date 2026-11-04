@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { existsSync } from "node:fs";
 import sample from "../src/lib/design/sdd-sample.json";
-import { choosing, contrast, documentOf, framesOf, isLargeText, paintHex, slotOf, surfaceUnder, tokenLines, tokensOf, treeOf, typeStyleOf, wcagLabel, type NodeTree, type SddDocument } from "../src/lib/design/v4";
+import { effectsCss, fillCss, fontOf, mediaLine, mediaOf, motionLine, choosing, contrast, documentOf, framesOf, isLargeText, paintHex, slotOf, surfaceUnder, tokenLines, tokensOf, treeOf, typeStyleOf, wcagLabel, type NodeTree, type SddDocument } from "../src/lib/design/v4";
 
 /**
  * Reading v4's design document (dev-playbook-v4 ADR-0049), checked without a browser on a document v4 itself wrote: the sample is a
@@ -75,5 +76,37 @@ test("every word slot v4 drew reads at AA against the surface under it, with its
       const ratio = contrast(paintHex(n.text.colour, t), surfaceUnder(d, n, t));
       expect(wcagLabel(ratio, isLargeText(n.text.size ?? style.size, style.weight)), `${n.id} at ${ratio.toFixed(2)}`).not.toMatch(/Fails|Large text only/);
     }
+  }
+});
+
+/* Version 4 (dev-playbook-v4 ADR-0057 Decision 4), drawn as v4's renderer draws it (ADR-0060), on the sample v4 wrote. */
+const node = (d: SddDocument, id: string) => d.nodes.find((n) => n.id === id)!;
+const DESKTOP = "territory.distinctive.desktop";
+
+test("a gradient fill, a shadow and a turn are drawn as CSS from the direction's own tokens", () => {
+  const d = doc();
+  const ticket = node(d, `${DESKTOP}.ticket`);
+  const t = tokensOf(d, d.frames.find((f) => f.id === DESKTOP))!;
+  expect(fillCss(ticket.style.fill, t)).toMatch(/^linear-gradient\(135deg, #[0-9A-Fa-f]{6} 0%, #[0-9A-Fa-f]{6} 100%\)$/);
+  const fx = effectsCss(ticket.style, t);
+  expect(fx.boxShadow).toMatch(/^0px 12px 32px 0px #[0-9A-Fa-f]{6}59$/);
+  expect(fx.transform).toBe("rotate(-2deg)");
+  const headline = node(d, `${DESKTOP}.headline`);
+  expect(fontOf(typeStyleOf(t, headline.text!.style)!)).toMatch(/^"Space Grotesk", /);
+  expect(motionLine(headline.motion[0]!, t)).toBe("On load, it fades, moves over 600ms; with reduced motion, a short fade.");
+});
+
+test("material no Asset holds says what it is and how it is to be had, never an invented image", () => {
+  const d = doc();
+  const media = mediaOf(d, node(d, `${DESKTOP}.roastery`))!;
+  expect(mediaLine(media)).toBe("Photograph: The roaster at the drum (21:9), requested from the client");
+  expect(node(d, `${DESKTOP}.orb`).scene?.fallback).toBeTruthy();
+});
+
+test("each direction holds a study of every key frame, and the demo serves each one", () => {
+  for (const t of doc().territories) {
+    expect(t.rendered).toBe(true);
+    expect(t.previewRefs).toHaveLength(t.keyFrameIds.length);
+    for (const file of t.previewRefs) expect(existsSync(`public/fixtures/studies/${file}`), file).toBe(true);
   }
 });

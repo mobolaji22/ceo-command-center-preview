@@ -60,6 +60,8 @@ export default async function globalSetup() {
   const work = mkdtempSync(join(tmpdir(), "cc-e2e-"));
   const outbox = join(work, "outbox");
   process.env["E2E_OUTBOX"] = join(outbox, "emails.jsonl");
+  // The API's object storage, which the stand-in for the worker writes territory studies into (v4 ADR-0060), as the worker does.
+  process.env["E2E_STORAGE_DIR"] = join(work, "files");
 
   const psql = (sql: string) => execFileSync("psql", [ADMIN, "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio: "pipe" });
   psql(`DROP DATABASE IF EXISTS ${DB} WITH (FORCE)`);
@@ -76,7 +78,7 @@ export default async function globalSetup() {
     cwd: V4_DIR, stdio: ["ignore", apiLog, apiLog], detached: true,
     env: {
       ...v4Env, PORT: "4100", NODE_ENV: "development", AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-0000", APP_URL: "http://localhost:3100",
-      EMAIL_TRANSPORT: "console", DEV_OUTBOX_DIR: outbox, STORAGE_DIR: join(work, "files"), API_PUBLIC_URL: "http://localhost:4100",
+      EMAIL_TRANSPORT: "console", DEV_OUTBOX_DIR: outbox, STORAGE_DIR: process.env["E2E_STORAGE_DIR"], API_PUBLIC_URL: "http://localhost:4100",
       TRUST_PROXY: "true", REDIS_URL: process.env["REDIS_URL"] ?? "redis://localhost:6379",
     },
   });

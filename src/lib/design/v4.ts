@@ -12,8 +12,15 @@ export type SddNode = SddDocument["nodes"][number];
 export type SddFrame = SddDocument["frames"][number];
 export type SddAnnotation = SddDocument["annotations"][number];
 export type SddTokens = NonNullable<SddDocument["tokens"]>;
-export type SddPaint = NonNullable<SddNode["style"]["fill"]>;
 export type SddText = NonNullable<SddNode["text"]>;
+/** A colour: one of the direction's colour tokens, or a value of its own. */
+export type SddPaint = SddText["colour"];
+/** What fills a node in version 4: a colour, a gradient of colours, or a media slot's image (dev-playbook-v4 ADR-0057 Decision 4). */
+export type SddFill = NonNullable<SddNode["style"]["fill"]>;
+export type SddStyle = SddNode["style"];
+export type SddMotion = SddNode["motion"][number];
+export type SddMediaSlot = SddDocument["mediaSlots"][number];
+export type SddScene = NonNullable<SddNode["scene"]>;
 export type SddBox = NonNullable<SddNode["geometry"]["box"]>;
 export type SddTypeStyle = NonNullable<SddTokens["type"][string]>;
 export type FontFamily = SddTypeStyle["family"];
@@ -143,6 +150,57 @@ export const FONT_STACK: Record<FontFamily, string> = {
 
 export const paintHex = (p: SddPaint | null | undefined, t: SddTokens, fallback = "transparent"): string => (!p ? fallback : "token" in p ? (t.colour[p.token] ?? fallback) : p.hex);
 
+/** A fill as a colour, where one colour must stand for it (contrast, a swatch): a gradient's first stop; an image has none. */
+export const fillHex = (f: SddFill | null | undefined, t: SddTokens, fallback = "transparent"): string =>
+  !f ? fallback : "linear" in f ? paintHex(f.linear.stops[0].colour, t, fallback) : "radial" in f ? paintHex(f.radial.stops[0].colour, t, fallback) : "image" in f ? fallback : paintHex(f, t, fallback);
+
+/** Whether a fill is a plain colour, which the Workshop edits; a gradient or an image is the direction's, shown as it is. */
+export const isColourFill = (f: SddFill | null): f is SddPaint | null => !f || "token" in f || "hex" in f;
+
+/** A fill as CSS, drawn as v4's renderer draws it: gradients from their stops, an image slot as a labelled hatch until it is held. */
+export function fillCss(f: SddFill | null | undefined, t: SddTokens): string {
+  if (!f) return "transparent";
+  const stops = (ss: ReadonlyArray<{ colour: SddPaint; at: number }>) => ss.map((x) => `${paintHex(x.colour, t, "#000000")} ${Math.round(x.at * 100)}%`).join(", ");
+  if ("linear" in f) return `linear-gradient(${f.linear.angle}deg, ${stops(f.linear.stops)})`;
+  if ("radial" in f) return `radial-gradient(circle at ${Math.round(f.radial.x * 100)}% ${Math.round(f.radial.y * 100)}%, ${stops(f.radial.stops)})`;
+  if ("image" in f) return `repeating-linear-gradient(135deg, transparent 0 14px, ${t.colour.text ?? "#000000"}22 14px 15px)`;
+  return paintHex(f, t);
+}
+
+/** Shadows, blur, blend, rotation and scale as CSS. */
+export function effectsCss(s: SddStyle, t: SddTokens): { boxShadow?: string; filter?: string; mixBlendMode?: SddStyle["blend"]; transform?: string } {
+  const alpha = (o: number) => Math.round(Math.max(0, Math.min(1, o)) * 255).toString(16).padStart(2, "0");
+  const shadow = s.shadows.map((x) => `${x.x}px ${x.y}px ${x.blur}px ${x.spread}px ${paintHex(x.colour, t, "#000000")}${alpha(x.opacity)}`).join(", ");
+  const moves = [s.rotate ? `rotate(${s.rotate}deg)` : "", s.scale !== 1 ? `scale(${s.scale})` : ""].filter(Boolean).join(" ");
+  return { ...(shadow ? { boxShadow: shadow } : {}), ...(s.blur ? { filter: `blur(${s.blur}px)` } : {}), ...(s.blend !== "normal" ? { mixBlendMode: s.blend } : {}), ...(moves ? { transform: moves } : {}) };
+}
+
+/** The font a type token sets: its named typeface first, then its class, so a page shows the typeface where it is installed. */
+export const fontOf = (type: SddTypeStyle): string => (type.typeface ? `${JSON.stringify(type.typeface)}, ${FONT_STACK[type.family]}` : FONT_STACK[type.family]);
+
+/** How a media slot's material is to be had, as a person reads it. */
+export const SOURCE_WORDS: Record<SddMediaSlot["source"], string> = {
+  HELD: "held", CAPTURE: "to be captured", ASK: "requested from the client", DERIVE: "drawn by the agency", DRAFT: "drafted by the agency", SOURCE_EXTERNAL: "to be sourced",
+};
+export const MEDIA_WORDS: Record<SddMediaSlot["kind"], string> = { photograph: "Photograph", illustration: "Illustration", video: "Video", "model-3d": "3D model", icon: "Icon" };
+/** A media slot in one line: "Photograph: the roaster at the drum (21:9), requested from the client". */
+export const mediaLine = (m: SddMediaSlot): string => `${MEDIA_WORDS[m.kind]}: ${m.subject}${m.ratio ? ` (${m.ratio})` : ""}, ${m.assetRef ? "held" : SOURCE_WORDS[m.source]}`;
+/** The media slot a node shows, by its own reference or its image fill. */
+export function mediaOf(doc: SddDocument, n: SddNode): SddMediaSlot | null {
+  const id = n.mediaSlotRef ?? (n.style.fill && "image" in n.style.fill ? n.style.fill.image.slot : null);
+  return id ? (doc.mediaSlots.find((m) => m.id === id) ?? null) : null;
+}
+
+/** A motion in words: when it starts, what it does, how long, and what a person who asked for less motion sees instead. */
+export function motionLine(m: SddMotion, t: SddTokens): string {
+  const when = { load: "On load", "enter-view": "As it comes into view", scroll: "With the scroll", hover: "On hover", press: "On press" }[m.trigger];
+  const ms = "token" in m.timing ? (t.motion[m.timing.token]?.durationMs ?? null) : m.timing.durationMs;
+  const first = m.keyframes[0];
+  const does = [first.opacity !== undefined ? "fades" : "", first.y || first.x ? "moves" : "", first.scale !== undefined ? "scales" : "", first.rotate !== undefined ? "turns" : ""].filter(Boolean).join(", ") || "moves";
+  const reduced = { static: "nothing moves", fade: "a short fade", shorter: "a shorter version" }[m.reducedMotion];
+  return `${when}, it ${does}${ms ? ` over ${ms}ms` : ""}; with reduced motion, ${reduced}.`;
+}
+
 /** A radius token in pixels; `full` is a pill. */
 export function radiusPx(name: string | null, t: SddTokens, box: SddBox): number {
   if (!name) return 0;
@@ -156,7 +214,7 @@ export const typeStyleOf = (t: SddTokens, name: string): SddTypeStyle | null => 
 /** The colour a node's words sit on: its own fill, else the nearest filled ancestor's, else the frame's surface. */
 export function surfaceUnder(doc: SddDocument, node: SddNode, t: SddTokens): string {
   const byId = new Map(doc.nodes.map((n) => [n.id, n]));
-  for (let n: SddNode | undefined = node; n; n = n.parentId ? byId.get(n.parentId) : undefined) if (n.style.fill) return paintHex(n.style.fill, t, t.colour.surface);
+  for (let n: SddNode | undefined = node; n; n = n.parentId ? byId.get(n.parentId) : undefined) if (n.style.fill) return fillHex(n.style.fill, t, t.colour.surface);
   return t.colour.surface;
 }
 

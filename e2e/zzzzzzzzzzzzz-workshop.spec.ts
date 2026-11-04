@@ -114,14 +114,19 @@ test("the question's link opens the client's Workshop; the three directions are 
   await expect(directions.locator("article.direction")).toHaveCount(3);
   for (const name of ["Roastery Notice", "Batch Ticket", "Roast Calendar"]) {
     const t = directions.getByRole("article", { name });
-    // Each key frame is drawn as v4 placed it, in the direction's own colours and type: a section that carries the idea.
-    await expect(t.locator("figure.keyframe")).toHaveCount(2);
-    await expect(t.locator("figure.keyframe .ws-node").first()).toBeVisible();
+    // Each key frame is shown as v4's renderer drew it (ADR-0060): a study per key frame, served through the proxy to the client.
+    await expect(t.locator("figure.keyframe-study")).toHaveCount(2);
+    await expect.poll(() => t.locator("figure.keyframe-study img").first().evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBeGreaterThan(300);
     await expect(t.getByText("Placeholders")).toBeVisible();
-    // The words on a frame are slots for the copy still to be written, never the copy itself.
-    await expect(t.locator(".ws-slot-words").first()).toBeVisible();
   }
-  await shot(page, "The three directions the run drew, each key frame as v4 placed it, where the client's owner chooses");
+  await shot(page, "The three directions the run drew, each key frame as v4's renderer drew it, where the client's owner chooses");
+  // Asked for, a frame shows as v4 placed it, in the direction's own colours and type; the words are slots for copy still to be written.
+  const ticket = directions.getByRole("article", { name: "Batch Ticket" });
+  await ticket.getByRole("button", { name: "Show the layout" }).first().click();
+  await expect(ticket.locator("figure.keyframe .ws-node").first()).toBeVisible();
+  await expect(ticket.locator(".ws-slot-words").first()).toBeVisible();
+  await ticket.getByRole("button", { name: "Show the drawing" }).click();
+  await expect(ticket.locator("figure.keyframe-study")).toHaveCount(2);
 
   const chosen = directions.getByRole("article", { name: "Batch Ticket" });
   await chosen.getByRole("button", { name: "Choose with changes" }).click();

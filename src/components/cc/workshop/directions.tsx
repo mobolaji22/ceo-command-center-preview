@@ -46,19 +46,21 @@ export function Directions({ projectId, onChosen }: { projectId: string; onChose
       <p>{doc.basis.reason || "Three directions, each drawn as key frames for a desktop and a phone."} Each frame shows the part of a page that carries the idea, in that direction's colours and type. They are not finished designs: the words are placeholders for the copy that is written next, and images are marked.</p>
     </header>
     <div className="directions-grid">
-      {doc.territories.map((t) => <Territory key={t.id} doc={doc} territory={t} open={open} chosenHere={chosenHere} onChoose={choose} />)}
+      {doc.territories.map((t) => <Territory key={t.id} doc={doc} territory={t} open={open} chosenHere={chosenHere} onChoose={choose} studyUrl={(file) => ds.design.studyUrl(projectId, file)} />)}
     </div>
     {msg && <p className="mmsg" role="status">{msg}</p>}
   </section>;
 }
 
-function Territory({ doc, territory: t, open, chosenHere, onChoose }: { doc: SddDocument; territory: SddTerritory; open: boolean; chosenHere: string | null; onChoose: (t: SddTerritory, changes: string) => Promise<void> }) {
+function Territory({ doc, territory: t, open, chosenHere, onChoose, studyUrl }: { doc: SddDocument; territory: SddTerritory; open: boolean; chosenHere: string | null; onChoose: (t: SddTerritory, changes: string) => Promise<void>; studyUrl: (file: string) => string }) {
   const [withChanges, setWithChanges] = useState(false);
   const [changes, setChanges] = useState("");
   const [busy, setBusy] = useState(false);
   const status = chosenHere ? (chosenHere === t.id ? "Chosen" : "Set aside") : t.status === "SELECTED" ? "Chosen" : t.status === "SET_ASIDE" ? "Set aside" : null;
   const go = async (text: string) => { setBusy(true); await onChoose(t, text); setBusy(false); };
   const frames = framesOf(doc, t.id);
+  // A study is v4's picture of a key frame (ADR-0060), there only while the frame is drawn as it stands: one per key frame, in order.
+  const studyOf = (frameId: string) => { const file = t.rendered ? t.previewRefs[t.keyFrameIds.indexOf(frameId)] : undefined; return file ? studyUrl(file) : null; };
   return <article className={`direction ${status === "Chosen" ? "is-chosen" : status ? "is-aside" : ""}`} aria-label={t.concept}>
     <div className="direction-head">
       <span className="direction-posture">{t.posture ? POSTURE_WORDS[t.posture] ?? t.posture : "Direction"}</span>
@@ -68,7 +70,7 @@ function Territory({ doc, territory: t, open, chosenHere, onChoose }: { doc: Sdd
     <h3>{t.concept}</h3>
     {t.thesis && <p className="direction-thesis">{t.thesis}</p>}
     <div className="direction-frames">
-      {frames.length === 0 ? <small>No key frames were drawn for this direction.</small> : frames.map((f) => <KeyFrame key={f.id} doc={doc} frame={f} />)}
+      {frames.length === 0 ? <small>No key frames were drawn for this direction.</small> : frames.map((f) => <KeyFrame key={f.id} doc={doc} frame={f} study={studyOf(f.id)} concept={t.concept} />)}
     </div>
     <details className="direction-detail">
       <summary>The thinking behind it</summary>
@@ -90,8 +92,27 @@ function Territory({ doc, territory: t, open, chosenHere, onChoose }: { doc: Sdd
   </article>;
 }
 
-/** One key frame as v4 placed it, scaled to the room it has. A frame with nothing placed yet is shown as its structure instead. */
-function KeyFrame({ doc, frame }: { doc: SddDocument; frame: StudyFrame }) {
+const viewportWords = (v: string) => (v === "phone" ? "Phone" : v === "desktop" ? "Desktop" : v);
+
+/**
+ * One key frame: v4's study of it where there is one, the page as drawn in plain code with its typefaces, gradients, motion at
+ * rest and 3D scenes; otherwise, or on asking, as v4 placed it, scaled to the room it has. A frame with nothing placed yet is shown
+ * as its structure instead.
+ */
+function KeyFrame({ doc, frame, study, concept }: { doc: SddDocument; frame: StudyFrame; study: string | null; concept: string }) {
+  const [layout, setLayout] = useState(false);
+  const [broken, setBroken] = useState(false);
+  if (study && !broken && !layout) {
+    return <figure className="keyframe keyframe-study" aria-label={`${frame.viewport} key frame, drawn`}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- a study is served by v4 through the proxy, with the session; it is not an asset Next can optimise */}
+      <img src={study} alt={`${concept}, ${viewportWords(frame.viewport)}: the key frame as drawn. Words show what each slot is for; images show what is to be supplied.`} loading="lazy" onError={() => setBroken(true)} />
+      <figcaption>{viewportWords(frame.viewport)} · drawn <button type="button" className="linkish" onClick={() => setLayout(true)}>Show the layout</button></figcaption>
+    </figure>;
+  }
+  return <LaidOut doc={doc} frame={frame} back={study && !broken ? () => setLayout(false) : null} />;
+}
+
+function LaidOut({ doc, frame, back }: { doc: SddDocument; frame: StudyFrame; back: (() => void) | null }) {
   const sdd = doc.frames.find((f) => f.id === frame.id);
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -106,7 +127,7 @@ function KeyFrame({ doc, frame }: { doc: SddDocument; frame: StudyFrame }) {
   const scale = width / sdd.width;
   return <figure className="keyframe" aria-label={`${frame.viewport} key frame`}>
     <div ref={ref} className="keyframe-board" style={{ height: Math.round(sdd.height * scale) }}>{width > 0 && <Artboard doc={doc} frameId={sdd.id} scale={scale} readOnly />}</div>
-    <figcaption>{frame.viewport === "phone" ? "Phone" : frame.viewport === "desktop" ? "Desktop" : frame.viewport}</figcaption>
+    <figcaption>{viewportWords(frame.viewport)}{back && <> · layout <button type="button" className="linkish" onClick={back}>Show the drawing</button></>}</figcaption>
   </figure>;
 }
 
