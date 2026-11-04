@@ -5,6 +5,7 @@ import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk } from "./client-room";
 import { expectRoomHeldStill } from "./still";
+import { ARRIVAL_KEY } from "../src/components/cc/lobby-arrival";
 
 /**
  * The tour: every screen the CEO and a client have, opened once the whole journey has run, each shown to be connected to real records
@@ -96,6 +97,26 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   for (const s of ["Pricing", "Model spend", "How the agency runs", "Notifications", "People and access", "Your sessions"]) await expect(page.getByRole("tab", { name: s, exact: true })).toBeVisible();
   await shot(page, "Settings: pricing, model spend, how the agency runs, notifications, access and sessions");
+});
+
+// The arrival from the lobby is an entrance, not part of the room: a desk opened while it plays ends it, so it never draws over the
+// desk or keeps the room moving behind it. Its iris is slowed here so the desk certainly opens mid-arrival; at its real 0.9 s this
+// was a race the tour above lost on a fast runner.
+test("a desk opened while the room is still arriving from the lobby ends the arrival", async ({ page }) => {
+  await signIn(page, CEO);
+  await page.addInitScript((key) => {
+    sessionStorage.setItem(key, "lobby");
+    addEventListener("DOMContentLoaded", () => {
+      const slow = document.createElement("style");
+      slow.textContent = ".lobby-arrival { animation-duration: 60s !important; }";
+      document.head.append(slow);
+    });
+  }, ARRIVAL_KEY);
+  await page.goto("/");
+  await expect(page.locator(".lobby-arrival")).toHaveCount(1);
+  await page.getByRole("button", { name: "Computer", exact: true }).click();
+  await expect(page.locator(".lobby-arrival")).toHaveCount(0);
+  await expectRoomHeldStill(page);
 });
 
 test("a client's room and everything in it", async ({ page }) => {

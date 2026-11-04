@@ -10,6 +10,15 @@ import { useEffect, useState } from "react";
  */
 export const ARRIVAL_KEY = "cc-arrival";
 
+/**
+ * A desk opening ends the arrival at once (desk-overlay.tsx). The iris is an entrance, and a person who has already opened a desk
+ * has arrived; left to play, it would draw over the opening desk (it sits above it) and keep the room animating behind an open desk,
+ * which P6.21 L forbids. Finishing the animation, not hiding the layer, fires its end, so the layer is removed and never replays.
+ */
+export function endArrival(): void {
+  document.querySelectorAll(".lobby-arrival").forEach((el) => el.getAnimations().forEach((a) => a.finish()));
+}
+
 export function LobbyArrival() {
   // Read before the first paint of the room, so it never shows unveiled for a frame first.
   const [arriving, setArriving] = useState(() => {
