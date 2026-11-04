@@ -580,6 +580,130 @@
               "additionalProperties": false
             }
           },
+          "researchBasis": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "map": {
+                    "type": "string",
+                    "enum": [
+                      "FLOOR",
+                      "CEILING",
+                      "GAP"
+                    ]
+                  },
+                  "rows": {
+                    "default": [],
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120,
+                      "pattern": "^[A-Za-z0-9._:-]+$"
+                    }
+                  },
+                  "leaders": {
+                    "default": [],
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "memberId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120,
+                          "pattern": "^[A-Za-z0-9._:-]+$"
+                        },
+                        "takes": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        "transformed": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "memberId",
+                        "takes",
+                        "transformed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "ruleBroken": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "rowId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 120,
+                            "pattern": "^[A-Za-z0-9._:-]+$"
+                          },
+                          "why": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "safeguard": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          }
+                        },
+                        "required": [
+                          "rowId",
+                          "why",
+                          "safeguard"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "provisional": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "missing": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 4000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "map",
+                  "rows",
+                  "leaders",
+                  "ruleBroken",
+                  "provisional",
+                  "missing"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "technique": {
             "type": "string",
             "maxLength": 4000
@@ -834,6 +958,7 @@
           "tradeoffs",
           "implementationImplications",
           "referenceLinks",
+          "researchBasis",
           "technique",
           "techniqueMapping",
           "tokens",
