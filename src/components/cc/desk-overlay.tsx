@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { THRESHOLD_MS, useReducedMotion } from "@/lib/motion";
+import { endArrival } from "./lobby-arrival";
 import type { SceneOrigin } from "./scene";
 
 /** How long a desk takes to open (desks.css `desk-open`), after which the room behind it is held still. */
@@ -24,6 +25,7 @@ export function DeskOverlay({ label, backLabel, path, surface, origin, wide, onB
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
+    endArrival(); // opened while the room was still arriving from the lobby: the arrival is over
     const panel = panelRef.current;
     panel?.focus({ preventScroll: true });
     const prev = document.body.style.overflow;
