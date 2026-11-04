@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookmarkCheck } from "lucide-react";
+import { BookmarkCheck, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import { fmtDate } from "@/lib/format";
@@ -20,12 +21,16 @@ import { useStepUp } from "./step-up";
 /**
  * The client's book (v4 ADR-0053, ADR-0054): one document, read in chapters. v4 writes every sentence and decides which parts this
  * reader may see; the book only lays them out. The agency also sees a part not yet fit for the client, with the reason first, and
- * may propose keeping the brand for the client's next projects; the client's owner decides that here.
+ * may propose keeping the brand for the client's next projects; the client's owner decides that here. "Save as PDF" lays every released
+ * chapter out for print from this same view, so the file a reader keeps never says something the screen does not.
  */
 type Chapter = "brand" | "kit" | "market" | "business";
 const CHAPTERS: Record<Chapter, string> = { brand: "The brand", kit: "Selling it", market: "The market", business: "What it means for you" };
 
 export type BookReader = "AGENCY" | "CLIENT_OWNER" | "CLIENT_MEMBER";
+
+/** True inside the printed book, where nothing is folded away. */
+const Printing = createContext(false);
 
 /** One book per project; a reader with several projects chooses which to open. */
 export function ProjectBook({ projects, reader, initialProjectId }: { projects: readonly { id: string; name: string }[]; reader: BookReader; initialProjectId?: string | undefined }) {
@@ -34,7 +39,7 @@ export function ProjectBook({ projects, reader, initialProjectId }: { projects: 
   if (!project) return <Empty title="No project yet.">A project's book opens here once its brand or market work is done.</Empty>;
   return <>
     {projects.length > 1 && <select className="ws-select book-project" aria-label="Project" value={project.id} onChange={(e) => setPid(e.target.value)}>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>}
-    <Book key={project.id} projectId={project.id} reader={reader} />
+    <Book key={project.id} projectId={project.id} reader={reader} title={project.name} />
   </>;
 }
 
@@ -49,26 +54,55 @@ export function BookDesk({ data, dept }: { data: OwnerData; dept: string }) {
   );
 }
 
-export function Book({ projectId, reader }: { projectId: string; reader: BookReader }) {
+export function Book({ projectId, reader, title }: { projectId: string; reader: BookReader; title?: string | undefined }) {
   const ds = useDataSource();
   const q = useQuery({ queryKey: ["book", projectId], queryFn: async () => { const r = await ds.deliverables.book(projectId); if (r.error) throw new Error(r.error.message); return r.data; } });
   const [chapter, setChapter] = useState<Chapter | null>(null);
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    if (!printing) return;
+    // The browser names the saved file after the page title, so the book is titled after its project while it prints.
+    const was = document.title;
+    if (title) document.title = `${title} - the book`;
+    document.body.classList.add("printing-book");
+    const done = () => setPrinting(false);
+    window.addEventListener("afterprint", done);
+    const t = window.setTimeout(() => window.print(), 50); // after the printed book has rendered
+    return () => { window.clearTimeout(t); window.removeEventListener("afterprint", done); document.body.classList.remove("printing-book"); document.title = was; };
+  }, [printing, title]);
   if (q.isLoading) return <p className="case-none">Opening the book…</p>;
   if (q.isError) return <p className="case-none">{(q.error as Error).message}</p>;
   const book: ClientBookView | null | undefined = q.data;
   if (!book) return <Empty title="No chapter of this book is ready yet.">Each chapter appears here once it has passed its checks.</Empty>;
   const chapters = (Object.keys(CHAPTERS) as Chapter[]).filter((c) => (c === "brand" || c === "kit" ? book.brand : book.market));
   const open = chapter && chapters.includes(chapter) ? chapter : chapters[0];
+  const no = (c: Chapter) => String(chapters.indexOf(c) + 1).padStart(2, "0");
+  const body = (c: Chapter | undefined) => <>
+    {c === "brand" && book.brand && <BrandChapter brand={book.brand} projectId={projectId} reader={reader} />}
+    {c === "kit" && book.brand && <KitChapter brand={book.brand} />}
+    {c === "market" && book.market && <MarketChapter report={book.market} />}
+    {c === "business" && book.market && <BusinessChapter report={book.market} />}
+  </>;
+  const toCome = book.toCome.length > 0 && <ul className="book-to-come" aria-label="Still to come">{book.toCome.map((t) => <li key={t.part}>{t.why}</li>)}</ul>;
   return (
     <article className="book" aria-label="The book">
-      {book.toCome.length > 0 && <ul className="book-to-come" aria-label="Still to come">{book.toCome.map((t) => <li key={t.part}>{t.why}</li>)}</ul>}
-      {chapters.length > 0 && <nav className="book-chapters" role="tablist" aria-label="Chapters">
-        {chapters.map((c, i) => <Button key={c} role="tab" variant="ghost" aria-selected={open === c} className={open === c ? "tab active" : "tab"} onClick={() => setChapter(c)}><span className="book-chapter-no">{String(i + 1).padStart(2, "0")}</span>{CHAPTERS[c]}</Button>)}
-      </nav>}
-      {open === "brand" && book.brand && <BrandChapter brand={book.brand} projectId={projectId} reader={reader} />}
-      {open === "kit" && book.brand && <KitChapter brand={book.brand} />}
-      {open === "market" && book.market && <MarketChapter report={book.market} />}
-      {open === "business" && book.market && <BusinessChapter report={book.market} />}
+      {toCome}
+      {chapters.length > 0 && <div className="book-bar">
+        <nav className="book-chapters" role="tablist" aria-label="Chapters">
+          {chapters.map((c) => <Button key={c} role="tab" variant="ghost" aria-selected={open === c} className={open === c ? "tab active" : "tab"} onClick={() => setChapter(c)}><span className="book-chapter-no">{no(c)}</span>{CHAPTERS[c]}</Button>)}
+        </nav>
+        <Button variant="outline" className="book-save" disabled={printing} onClick={() => setPrinting(true)} title="Opens your browser's print window with every chapter; choose Save as PDF there"><Download size={14} /> Save as PDF</Button>
+      </div>}
+      {body(open)}
+      {printing && createPortal(
+        <Printing.Provider value={true}>
+          <article className="book book-print" aria-label="The book, for printing">
+            <header className="book-cover"><p className="book-written">The book</p><h1>{title ?? "The book"}</h1>{toCome}</header>
+            {chapters.map((c) => <section key={c} className="book-print-chapter"><h2><span className="book-chapter-no">{no(c)}</span>{CHAPTERS[c]}</h2>{body(c)}</section>)}
+          </article>
+        </Printing.Provider>,
+        document.body,
+      )}
     </article>
   );
 }
@@ -137,8 +171,9 @@ function KitChapter({ brand }: { brand: BrandBookView }) {
 
 function Evidence({ report, ids }: { report: MarketReportView; ids: readonly string[] }) {
   const found = findingsFor(report, ids);
+  const printing = useContext(Printing);
   if (!found.length) return null;
-  return <details className="book-evidence"><summary>The evidence ({found.length})</summary>
+  return <details className="book-evidence" open={printing || undefined}><summary>The evidence ({found.length})</summary>
     <ul>{found.map((f) => <li key={f.id}>{f.claim} <Known status={f.status} /><small>Confidence {f.confidence.level}: {f.confidence.basis} · as of {f.asOf}{f.sources[0] ? ` · ${f.sources.map((s) => s.locator).join("; ")}` : ""}</small></li>)}</ul>
   </details>;
 }

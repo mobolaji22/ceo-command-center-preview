@@ -121,6 +121,28 @@ export interface SddDocument {
       transformedOrAvoided: string;
       provenance: string;
     }[];
+    researchBasis: {
+      map: "FLOOR" | "CEILING" | "GAP";
+      /**
+       * @maxItems 30
+       */
+      rows: string[];
+      /**
+       * @maxItems 10
+       */
+      leaders: {
+        memberId: string;
+        takes: string;
+        transformed: string;
+      }[];
+      ruleBroken: {
+        rowId: string;
+        why: string;
+        safeguard: string;
+      } | null;
+      provisional: boolean;
+      missing: string | null;
+    } | null;
     technique: string;
     techniqueMapping: string | null;
     tokens: {
