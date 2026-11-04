@@ -1,0 +1,113 @@
+name: e2e
+# The browser suite against the real dev-playbook-v4 API (docs/INTEGRATION.md, "End-to-end in CI"). This repository's change is
+# tested against v4's main; v4's own CI tests its changes against this repository's main. A required check: it fails, never
+# skips, when it cannot run.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16.4
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust # a throwaway database inside this job; nothing to leak
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7.4
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      E2E_PG_ADMIN: postgresql://postgres@localhost:5432/postgres
+      REDIS_URL: redis://localhost:6379/14
+      V4_DIR: ${{ github.workspace }}/v4
+      E2E_LOG_DIR: ${{ github.workspace }}/e2e-output/logs
+      E2E_EVIDENCE: ${{ github.workspace }}/e2e-output/screens
+      PLAYWRIGHT_HTML_OPEN: never
+      PLAYWRIGHT_HTML_OUTPUT_DIR: ${{ github.workspace }}/e2e-output/report
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      # v4 is private: checking it out needs the read-only V4_READ_TOKEN secret, which GitHub never gives to a pull request from a
+      # fork. Missing coverage is a failure, not a pass; a maintainer brings a fork's commits into a branch here (docs/INTEGRATION.md).
+      - name: Integration coverage can run
+        env:
+          FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          HAS_TOKEN: ${{ secrets.V4_READ_TOKEN != '' }}
+        run: |
+          if [ "$FORK" = "true" ]; then
+            echo "::error title=e2e cannot run on a fork::A pull request from a fork gets no secrets, so the v4 API cannot be checked out. A maintainer reviews the change and pushes its commits to a branch in this repository, where this check runs (docs/INTEGRATION.md, End-to-end in CI)."
+            exit 1
+          fi
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::error title=V4_READ_TOKEN is not set::Add a fine-grained token with read-only access to mobolaji22/dev-playbook-v4 contents as the Actions secret V4_READ_TOKEN."
+            exit 1
+          fi
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: cc
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: mobolaji22/dev-playbook-v4
+          ref: main
+          token: ${{ secrets.V4_READ_TOKEN }}
+          path: v4
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            cc/package-lock.json
+            v4/package-lock.json
+
+      - name: What is under test
+        run: |
+          {
+            echo "### e2e"
+            echo "- Command Center: \`$(git -C cc rev-parse HEAD)\`"
+            echo "- dev-playbook-v4 main: \`$(git -C v4 rev-parse HEAD)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install v4
+        working-directory: v4
+        run: npm ci --ignore-scripts && npx prisma generate
+      - name: Install the Command Center
+        working-directory: cc
+        run: npm ci
+      - name: Install psql and Chromium
+        working-directory: cc
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q postgresql-client
+          npx playwright install --with-deps chromium
+
+      - name: Run the suite
+        working-directory: cc
+        run: npx playwright test --reporter=list,html
+
+      - name: Keep logs, screens and traces
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-output
+          path: |
+            e2e-output/
+            cc/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
