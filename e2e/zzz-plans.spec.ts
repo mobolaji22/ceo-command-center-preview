@@ -67,6 +67,8 @@ test("a client reads the plan, asks for a change, sees what changed, approves it
   const plan = card.getByLabel("Plan");
   await expect(plan.getByText("Version 1")).toBeVisible();
   await expect(plan.locator(".resolved-row .pill").first()).toHaveText("AWAITING A DECISION");
+  // The plan says first what approving it does to the goal (v4 ADR-0063): the first approval confirms it.
+  await expect(plan.getByLabel("The goal", { exact: true })).toContainText("Approving this plan confirms this as the project's goal");
   // A client reads the plan in the order they need it (P6.20): the price and the decision first, then what they get. The
   // internal work (tasks, domains, effort levels) is not theirs to read.
   const price = plan.getByLabel("Price");
@@ -102,6 +104,7 @@ test("a client reads the plan, asks for a change, sees what changed, approves it
   await enterStepUpCode(plan, OWNER, asked);
   await expect(plan.getByRole("status").first()).toContainText("Approved. The work can begin.");
   await expect(plan.locator(".resolved-row .pill").first()).toHaveText("APPROVED");
+  await expect(plan.getByLabel("The goal", { exact: true })).toHaveCount(0); // decided: nothing is pending about it
   const history = plan.locator(".plan-history");
   await expect(history).toContainText("Version 1: Asked for a change");
   await expect(history).toContainText("Version 2: Approved");

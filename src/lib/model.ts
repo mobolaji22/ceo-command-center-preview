@@ -291,6 +291,24 @@ export type ClientPlanView = {
   changes: { since: number; lines: string[] } | null
 };
 
+/** What approving a waiting plan would do to the project's goal (v4 ADR-0063): confirm it, keep it, or replace it. */
+export type ObjectiveEffect = "CONFIRMS" | "KEEPS" | "REPLACES";
+
+/**
+ * A project's goal as a decision the owner made (v4 ADR-0063): what it says, whether it is confirmed, the versions it replaced
+ * (newest first), and what approving each waiting plan would do to it. v4 decides all of it; the Command Center only shows it.
+ */
+export type ProjectObjectiveView = {
+  objective: {
+    statement: string
+    state: string
+    version: number
+    decided_at: string | null
+    history: Array<{ version: number; statement: string; decided_at: string | null }>
+  } | null
+  effects: Array<{ proposal_id: string; effect: ObjectiveEffect }>
+};
+
 /** What changed between two versions, in plain sentences, with the money called out. */
 export type PlanChange = {
   from_version: number

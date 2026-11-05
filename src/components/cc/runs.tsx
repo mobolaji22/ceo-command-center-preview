@@ -9,6 +9,7 @@ import { useDataSource } from "@/lib/data";
 import { fmtDate, label, statusTone } from "@/lib/format";
 import type { OwnerData, Question, RunStatus, RunTask } from "@/lib/model";
 import { PlanPanel } from "./plans";
+import { ProjectGoal } from "./objective";
 import { DirectionsFor } from "./workshop/directions";
 import { useStepUp } from "./step-up";
 
@@ -263,6 +264,6 @@ export function ProjectRoom({ project, canControl }: { project: { id: string; na
     <span>{project.name}<small>{project.objective ?? project.description ?? ""}</small></span>
     <span className="project-room-actions"><Standing projectId={project.id} fallback={{ text: label(project.status).toUpperCase(), tone: statusTone(project.status) }} />
       <Button variant="ghost" className="inline-arrow" aria-expanded={open} aria-label={`${open ? "Hide" : "Show"} progress of ${project.name}`} onClick={() => setOpen(!open)}>{open ? "HIDE PROGRESS" : "SEE PROGRESS"}</Button></span>
-    {open && <div className="case-slot"><CaseFile projectId={project.id} audience="client" canControl={canControl} /></div>}
+    {open && <div className="case-slot"><ProjectGoal projectId={project.id} /><CaseFile projectId={project.id} audience="client" canControl={canControl} /></div>}
   </div>;
 }

@@ -5,8 +5,9 @@ import { Check, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useDataSource } from "@/lib/data";
-import type { ClientPlanView, DecisionEntry, DelegationView, PlanChange, PlanVersion } from "@/lib/model";
+import type { ClientPlanView, DecisionEntry, DelegationView, PlanChange, PlanVersion, ProjectObjectiveView } from "@/lib/model";
 import { ClientPlanDoc } from "./client-plan";
+import { PlanGoal } from "./objective";
 import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
 import { useStepUp } from "./step-up";
 
@@ -33,6 +34,7 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
   const [versions, setVersions] = useState<PlanVersion[] | null>(null);
   const [history, setHistory] = useState<DecisionEntry[]>([]);
   const [delegations, setDelegations] = useState<DelegationView[]>([]);
+  const [objective, setObjective] = useState<ProjectObjectiveView | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
   const [changeFor, setChangeFor] = useState<{ id: string; change: PlanChange } | null>(null);
   const [mode, setMode] = useState<null | "approve" | "change" | "decline" | "revoke">(null);
@@ -47,8 +49,8 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
   const isCEO = auth.isOwner;
   const isClientOwner = auth.user?.memberships.some((m) => m.organizationId === organizationId && m.role === "CLIENT_OWNER") ?? false;
 
-  const fetchAll = useCallback(() => Promise.all([ds.plans.list(projectId), ds.plans.decisions(projectId), ds.plans.delegations(projectId)]), [ds, projectId]);
-  const apply = useCallback(([v, h, d]: Awaited<ReturnType<typeof fetchAll>>) => { setVersions(v.data ?? []); setHistory(h.data ?? []); setDelegations(d.data ?? []); }, []);
+  const fetchAll = useCallback(() => Promise.all([ds.plans.list(projectId), ds.plans.decisions(projectId), ds.plans.delegations(projectId), ds.plans.objective(projectId)]), [ds, projectId]);
+  const apply = useCallback(([v, h, d, o]: Awaited<ReturnType<typeof fetchAll>>) => { setVersions(v.data ?? []); setHistory(h.data ?? []); setDelegations(d.data ?? []); setObjective(o.data ?? null); }, []);
   const load = async () => apply(await fetchAll());
   useEffect(() => {
     let live = true;
@@ -146,6 +148,7 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
       <span className="plan-versions" role="tablist" aria-label="Versions">{versions.map((v) => <button key={v.id} role="tab" aria-selected={v.id === shown.id} className={v.id === shown.id ? "active" : ""} onClick={() => { setPicked(v.version); setMode(null); }}>v{v.version}</button>)}</span></div>
     <div className="resolved-row"><span>Version {shown.version}{shown.rationale && <small>{shown.rationale}</small>}</span><span className={`pill ${statusTone(shown.status)}`}>{(STATUS_WORDS[shown.status] ?? label(shown.status)).toUpperCase()}</span></div>
     {msg && <p className="mmsg" role="status">{msg}</p>}
+    <PlanGoal view={objective} shown={shown} />
 
     {!isCEO ? (clientView ? <ClientPlanDoc view={clientView} actions={actionsBlock} /> : null) : <div className="plan-doc">
       <h4>What we will do</h4><p>{p.objective}</p>

@@ -1,6 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -261,6 +261,8 @@ export interface DataSource {
     decide(proposalId: string, decision: { action: "APPROVE" | "REQUEST_REVISION" | "REJECT"; note?: string }): Promise<Result<{ nextVersion: number | null }>>;
     decisions(projectId: string): Promise<Result<DecisionEntry[]>>;
     delegations(projectId: string): Promise<Result<DelegationView[]>>;
+    /** The project's goal, its earlier versions, and what approving each waiting plan would do to it (v4 ADR-0063). */
+    objective(projectId: string): Promise<Result<ProjectObjectiveView>>;
     /** The client's owner or the CEO. From then on every step of the project asks first. */
     revokeDelegation(delegationId: string, reason: string): Promise<Result>;
     /**
