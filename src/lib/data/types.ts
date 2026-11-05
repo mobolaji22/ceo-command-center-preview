@@ -163,6 +163,12 @@ export interface DataSource {
      * browser loads it as an image through the same door as every other read; v4 decides who may see it.
      */
     studyUrl(projectId: string, file: string): string;
+    /**
+     * The page behind a study (v4 ADR-0065 Decision 10): the page Design drew for one key frame, as text, named by its study file.
+     * It is shown only in a frame with an opaque origin (`sandbox="allow-scripts"`, never `allow-same-origin`), so its script
+     * reaches nothing of the viewer's.
+     */
+    page(projectId: string, file: string): Promise<Result<string>>;
     /** The decision owner's answer to a submitted revision. Approving needs a fresh proof of who is deciding. */
     decide(proposalId: string, input: { action: "APPROVE" | "REQUEST_REVISION"; note?: string }): Promise<Result>;
   };

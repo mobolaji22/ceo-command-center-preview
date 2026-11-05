@@ -230,6 +230,27 @@ html:not([data-lighting="day"]) .ws-chip.bad { color: oklch(0.8 0.14 40); }
 .direction-choose { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .direction-choose label { display: grid; gap: 4px; width: 100%; font-size: 12px; }
 .direction-choose textarea { min-height: 64px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 3px; background: var(--background); color: var(--foreground); font: inherit; }
+/* A drawn direction (v4 ADR-0065): one key frame at a time, the page as Design drew it, scrolling inside its card. */
+.direction-pages { display: grid; gap: 8px; min-width: 0; }
+.direction-pages-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.direction-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.direction-tabs button { border: 0; background: transparent; color: var(--foreground); font: 500 12px "DM Sans", sans-serif; padding: 5px 12px; cursor: pointer; }
+.direction-tabs button[aria-pressed="true"] { background: var(--foreground); color: var(--background); }
+.direction-actions { display: inline-flex; gap: 12px; font-size: 12px; }
+.direction-actions .linkish, .direction-pages .linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--foreground); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.direction-page { height: min(62vh, 620px); min-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: 2px; background: var(--muted); }
+.direction-page img { display: block; width: 100%; height: auto; }
+.direction-page.is-phone { display: flex; justify-content: center; align-items: flex-start; padding: 12px 0; }
+.direction-page.is-phone img { width: min(320px, 92%); flex: none; border-radius: 10px; box-shadow: 0 0 0 1px var(--border); }
+.direction-facts { display: grid; gap: 6px; margin: 0; }
+.direction-facts dt { font-size: 11px; font-weight: 600; color: var(--muted-foreground); }
+.direction-facts dd { margin: 0; font-size: 12px; }
+.direction-view { max-width: min(1320px, 96vw); width: 96vw; max-height: 94vh; padding: 14px; gap: 10px; }
+.direction-view-body { overflow: auto; max-height: calc(94vh - 72px); background: var(--muted); border-radius: 2px; }
+.direction-view-body img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+.direction-view-body iframe { display: block; width: 100%; height: calc(94vh - 80px); border: 0; background: #fff; }
+.direction-view-body.is-phone iframe { width: 390px; max-width: 100%; margin: 0 auto; }
+.direction-view-body.is-phone img { max-width: min(390px, 100%); }
 .directions-for { display: grid; gap: 10px; margin: 8px 0; }
 .directions-for > button { justify-self: start; }
 

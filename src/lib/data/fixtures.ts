@@ -1,7 +1,8 @@
 import type { SddAnnotation, SddDocument, SddView } from "@/lib/design/v4";
 // Written by v4's own code from its territory-exploration golden seed (dev-playbook-v4 packages/design/src/territory-draft.ts), so the
 // demo's design document is v4's shape, not an imitation of it.
-import sddSample from "@/lib/design/sdd-sample.json";
+// The sample's directions are drawn pages (v4 ADR-0065): the design benchmark's loan-platform territories, through the study loop.
+import sddSample from "@/lib/design/sdd-sample-drawn.json";
 import type { KeptBrand } from "@/lib/deliverables/v4";
 import { sampleBook } from "@/lib/deliverables/samples";
 import type {
@@ -867,6 +868,11 @@ export function createFixturesDataSource(): DataSource {
         },
         // The demo's studies were drawn by v4's renderer from the sample document and are served as static files.
         studyUrl: (_projectId, file) => `/fixtures/studies/${encodeURIComponent(file)}`,
+        async page(_projectId, file) {
+          const sha = /^([0-9a-f]{64})\.png$/.exec(file)?.[1];
+          const res = sha ? await fetch(`/fixtures/pages/${sha}.html`).catch(() => null) : null;
+          return res?.ok ? ok(await res.text()) : fail("That couldn't be found.", "NOT_FOUND");
+        },
         versions: async (projectId) => withDesign(projectId, (d) => d.approved.map(({ version, approvedAt, approvedById }) => ({ version, approvedAt, approvedById })), false),
         version: async (projectId, version) => {
           const r = withDesign(projectId, (d) => d.approved.find((a) => a.version === version)?.document ?? null, false);
@@ -874,7 +880,7 @@ export function createFixturesDataSource(): DataSource {
         },
         annotate: async (projectId, input) => withDesign(projectId, (d) => {
           const w = workOn(d);
-          const annotation: SddAnnotation = { id: `annotation.${id()}`, target: { kind: input.target.kind, id: input.target.id ?? null }, kind: input.kind, text: input.text.trim(), by: sessionUserId() ?? "demo", at: new Date().toISOString(), status: "OPEN", addressedIn: null, reason: null, settledBy: null, settledAt: null };
+          const annotation: SddAnnotation = { id: `annotation.${id()}`, target: { kind: input.target.kind, id: input.target.id ?? null }, kind: input.kind, text: input.text.trim(), by: sessionUserId() ?? "demo", at: new Date().toISOString(), status: "OPEN", addressedIn: null, reason: null, settledBy: null, settledAt: null, change: null };
           w.document = { ...w.document, annotations: [...w.document.annotations, annotation] };
           return written(w, annotation);
         }),

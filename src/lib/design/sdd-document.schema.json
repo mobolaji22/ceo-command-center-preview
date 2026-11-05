@@ -705,8 +705,16 @@
             ]
           },
           "technique": {
-            "type": "string",
-            "maxLength": 4000
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "techniqueMapping": {
             "default": null,
@@ -933,6 +941,20 @@
               "maxLength": 500
             }
           },
+          "systemRef": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "evaluation": {
             "type": "object",
             "propertyNames": {
@@ -980,6 +1002,7 @@
           "studyFrameIds",
           "rendered",
           "previewRefs",
+          "systemRef",
           "status"
         ],
         "additionalProperties": false
@@ -1273,8 +1296,16 @@
               "CAPTURE",
               "ASK",
               "DERIVE",
+              "DRAW",
               "DRAFT",
               "SOURCE_EXTERNAL"
+            ]
+          },
+          "existing": {
+            "default": null,
+            "type": [
+              "boolean",
+              "null"
             ]
           },
           "assetRef": {
@@ -1300,6 +1331,7 @@
           "ratio",
           "count",
           "source",
+          "existing",
           "assetRef"
         ],
         "additionalProperties": false
@@ -1429,6 +1461,20 @@
                 "type": "null"
               }
             ]
+          },
+          "pageRef": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "pattern": "^[A-Za-z0-9._:-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1439,7 +1485,8 @@
           "rootNodeId",
           "nodeIds",
           "width",
-          "height"
+          "height",
+          "pageRef"
         ],
         "additionalProperties": false
       }
@@ -1654,6 +1701,41 @@
               "bleed": {
                 "default": false,
                 "type": "boolean"
+              },
+              "pin": {
+                "default": null,
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "sectionId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120,
+                        "pattern": "^[A-Za-z0-9._:-]+$"
+                      },
+                      "x": {
+                        "type": "number",
+                        "minimum": -10000,
+                        "maximum": 10000
+                      },
+                      "y": {
+                        "type": "number",
+                        "minimum": -10000,
+                        "maximum": 10000
+                      }
+                    },
+                    "required": [
+                      "sectionId",
+                      "x",
+                      "y"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
@@ -1663,7 +1745,8 @@
               "column",
               "span",
               "layer",
-              "bleed"
+              "bleed",
+              "pin"
             ],
             "additionalProperties": false
           },
@@ -2150,13 +2233,18 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "decorative": {
+                    "default": false,
+                    "type": "boolean"
                   }
                 },
                 "required": [
                   "style",
                   "colour",
                   "align",
-                  "size"
+                  "size",
+                  "decorative"
                 ],
                 "additionalProperties": false
               },
@@ -3128,6 +3216,94 @@
                 "type": "null"
               }
             ]
+          },
+          "change": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "nodeId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
+                  },
+                  "property": {
+                    "type": "string",
+                    "enum": [
+                      "words",
+                      "token",
+                      "spacing",
+                      "order",
+                      "variant"
+                    ]
+                  },
+                  "slot": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "fill",
+                          "stroke",
+                          "text-colour",
+                          "type",
+                          "radius"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "from": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 4000
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "to": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4000
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 500
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "nodeId",
+                  "property",
+                  "slot",
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -3141,7 +3317,8 @@
           "addressedIn",
           "reason",
           "settledBy",
-          "settledAt"
+          "settledAt",
+          "change"
         ],
         "additionalProperties": false
       }
