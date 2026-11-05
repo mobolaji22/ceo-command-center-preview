@@ -200,6 +200,13 @@
 .plan-versions { display: inline-flex; gap: 6px; }
 .plan-versions button { background: none; border: 1px solid var(--border); color: var(--muted-foreground); padding: 2px 9px; font-size: 10px; letter-spacing: .08em; cursor: pointer; }
 .plan-versions button.active { color: var(--primary); border-color: var(--primary); }
+/* The goal a plan confirms, keeps or changes (v4 ADR-0063): said before the decision, so approval is knowing. */
+.plan-goal { display: grid; gap: 4px; margin: 8px 0 4px; padding: 10px 14px; border-left: 2px solid var(--primary); background: oklch(0.76 0.146 76 / 6%); }
+.plan-goal.changes { background: oklch(0.76 0.146 76 / 12%); }
+.plan-goal-label { font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--primary); }
+.plan-goal p { margin: 0; font-size: 14px; line-height: 1.5; }
+.plan-goal small { font-size: 12px; line-height: 1.55; opacity: .8; }
+.goal-earlier { opacity: .7; }
 .plan-doc { display: grid; gap: 4px; padding: 6px 0 4px; }
 .plan-doc h4 { margin: 12px 0 2px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--primary); font-weight: 600; }
 .plan-doc p, .plan-doc li { font-size: 13px; line-height: 1.55; }

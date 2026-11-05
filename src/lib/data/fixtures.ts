@@ -5,6 +5,7 @@ import sddSample from "@/lib/design/sdd-sample.json";
 import type { KeptBrand } from "@/lib/deliverables/v4";
 import { sampleBook } from "@/lib/deliverables/samples";
 import type {
+  ProjectObjectiveView,
   Answer,
   ClientIntentView,
   Approval,
@@ -1116,6 +1117,24 @@ export function createFixturesDataSource(): DataSource {
       },
       async revokeDelegation(delegationId, reason) {
         return mutate((s) => { const d = s.delegations.find((x) => x.id === delegationId); if (d && !d.revoked_at) { d.revoked_at = new Date().toISOString(); d.revoked_reason = reason || "Revoked"; } });
+      },
+      async objective(projectId) {
+        // The demo replays v4's rule (ADR-0063): approving a plan confirms the goal it states; a later approved plan stating another
+        // goal replaces it, and the replaced goal is kept, newest first.
+        const s = load();
+        const project = s.data.projects.find((p) => p.id === projectId);
+        const plans = s.plans.filter((p) => p.project_id === projectId).sort((a, b) => a.version - b.version);
+        let rec: ProjectObjectiveView["objective"] = project?.objective ? { statement: project.objective, state: "PROPOSED", version: 1, decided_at: null, history: [] } : null;
+        for (const p of plans) {
+          if (p.decision !== "APPROVED") continue;
+          if (!rec || rec.state !== "DECIDED_BY_OWNER") rec = { statement: p.plan.objective, state: "DECIDED_BY_OWNER", version: rec?.version ?? 1, decided_at: p.decided_at, history: rec?.history ?? [] };
+          else if (rec.statement !== p.plan.objective) rec = { statement: p.plan.objective, state: "DECIDED_BY_OWNER", version: rec.version + 1, decided_at: p.decided_at, history: [{ version: rec.version, statement: rec.statement, decided_at: rec.decided_at }, ...rec.history] };
+        }
+        const now = rec;
+        const effects = plans.filter((p) => p.status === "SUBMITTED").map((p) => ({
+          proposal_id: p.id, effect: !now || now.state !== "DECIDED_BY_OWNER" ? "CONFIRMS" as const : now.statement === p.plan.objective ? "KEEPS" as const : "REPLACES" as const,
+        }));
+        return ok({ objective: now, effects });
       },
       async mayDecideForClient(plan) {
         // Off until the client's owner lets the agency decide routine steps on this project; never above risk 3.

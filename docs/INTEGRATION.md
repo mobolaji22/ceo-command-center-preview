@@ -34,6 +34,7 @@ spends it, so a mail scanner that fetches the link cannot use it up. There are n
 | intents.answerDelivery                        | POST /v1/intents/:id/delivery `{ answer: DECLINE \| TAKE_ON, note? }` (the CEO only; v4 ADR-0057 Decision 9). The assessment it answers is each intent's `delivery` in the console overview; the client reads its answer as `delivery` in the intent's client view |
 | plans.list                                    | GET /v1/projects/:id/proposals (PLAN only; drafts are hidden from clients) |
 | plans.changes                                 | GET /v1/proposals/:id/diff |
+| plans.objective                               | GET /v1/projects/:id/objective (the goal, the goals it replaced, newest first, and what approving each waiting plan does to it; v4 ADR-0063) |
 | plans.decide                                  | POST /v1/proposals/:id/decision (`APPROVE` / `REQUEST_REVISION` / `REJECT`; a revision answers with the next version) |
 | plans.decisions                               | GET /v1/projects/:id/decisions |
 | plans.delegations / revokeDelegation          | GET /v1/projects/:id/delegations, POST /v1/delegations/:id/revoke |

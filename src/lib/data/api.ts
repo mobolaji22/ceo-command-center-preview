@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -558,6 +558,8 @@ export function createApiDataSource(): DataSource {
       async revokeDelegation(delegationId, reason) {
         return voidResult(await call("POST", `/v1/delegations/${delegationId}/revoke`, { reason }));
       },
+      // v4 shapes it for the Command Center already (snake_case, newest earlier goal first).
+      objective: (projectId) => call<ProjectObjectiveView>("GET", `/v1/projects/${encodeURIComponent(projectId)}/objective`),
       async mayDecideForClient(plan) {
         const r = await call<Array<{ status: string; scope: string; projectId: string | null; proposalId: string | null; expiresAt: string | null; usedAt: string | null }>>("GET", `/v1/organizations/${plan.organization_id}/permissions`);
         if (r.error || !r.data) return false;

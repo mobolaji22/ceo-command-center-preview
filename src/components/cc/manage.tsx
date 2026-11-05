@@ -8,6 +8,7 @@ import { label, statusTone, fmtDate } from "@/lib/format";
 import { useDataSource } from "@/lib/data";
 import { Empty } from "./views";
 import { Library } from "./library";
+import { ProjectGoal } from "./objective";
 import { useDomains } from "@/lib/domains";
 import { FindBar, Marked } from "./find-bar";
 import { useProjectFind } from "@/lib/find";
@@ -151,6 +152,7 @@ function ProjectDetail({ data, refresh, projectId }: P & { projectId: string }) 
       <span className={`pill ${statusTone(p.status)}`}>{label(p.status)}</span></div>
     <p className="pd-sub">{p.wait_reason ? `Waiting: ${label(p.wait_reason)} · ` : ""}{p.description || "No description"} · Departments: {p.domains.join(", ") || "none"}</p>
     {msg && <p className="mmsg">{msg}</p>}
+    <ProjectGoal projectId={pid} />
     <div className="pd-forms">
       {ds.capabilities.timelineUpdates && <form className="mform" onSubmit={async (e) => { e.preventDefault(); if (await run(() => ds.commands.postUpdate(pid, { summary: upd.summary.trim(), share: upd.share }), "Update posted.")) setUpd({ ...upd, summary: "" }); }}>
         <h4>Timeline update</h4><textarea required maxLength={2000} placeholder="What happened?" value={upd.summary} onChange={(e) => setUpd({ ...upd, summary: e.target.value })} /><label className="check"><input type="checkbox" checked={upd.share} onChange={(e) => setUpd({ ...upd, share: e.target.checked })} /> Share with client</label><Button className="approve-btn" type="submit">Post update</Button></form>}
