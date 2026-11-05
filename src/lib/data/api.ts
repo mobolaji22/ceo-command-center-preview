@@ -12,6 +12,8 @@ import { fail, ok, type DataSource, type Result } from "./types";
  */
 
 const PROXY = "/api/v4";
+/** A study's file name: the sha256 of its page, as a picture (v4 ADR-0060). */
+const STUDY_FILE = /^([0-9a-f]{64})\.png$/;
 
 /** What the API says, in words a person can act on. Unknown codes fall back to the code itself. */
 const MESSAGES: Record<string, string> = {
@@ -348,6 +350,17 @@ export function createApiDataSource(): DataSource {
       },
       version: (projectId, version) => call<SddDocument>("GET", `/v1/projects/${encodeURIComponent(projectId)}/sdd/versions/${version}`),
       studyUrl: (projectId, file) => `${PROXY}/v1/projects/${encodeURIComponent(projectId)}/sdd/studies/${encodeURIComponent(file)}`,
+      async page(projectId, file) {
+        const sha = STUDY_FILE.exec(file)?.[1];
+        if (!sha) return fail(MESSAGES["NOT_FOUND"]!, "NOT_FOUND");
+        // v4 sends the page as inert text, so it is read as text here, not through the JSON reader.
+        let res: Response;
+        try { res = await fetch(`${PROXY}/v1/projects/${encodeURIComponent(projectId)}/sdd/pages/${sha}`, { credentials: "same-origin", headers: { Accept: "text/plain" } }); }
+        catch { return fail("Could not reach the server. Check your connection and try again."); }
+        if (res.status === 404) return fail(MESSAGES["NOT_FOUND"]!, "NOT_FOUND");
+        if (!res.ok) return fail(res.status >= 500 ? MESSAGES["SERVER_ERROR"]! : `Request failed (${res.status}).`);
+        return ok(await res.text());
+      },
       annotate: (projectId, input) => call("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/annotations`, { target: { kind: input.target.kind, id: input.target.id }, kind: input.kind, text: input.text }),
       settle: (projectId, annotationId, input) => call("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/annotations/${encodeURIComponent(annotationId)}/settle`, input),
       decide: async (proposalId, input) => voidResult(await call("POST", `/v1/proposals/${encodeURIComponent(proposalId)}/decision`, input)),

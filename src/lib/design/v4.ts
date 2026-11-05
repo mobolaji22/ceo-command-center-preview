@@ -180,7 +180,7 @@ export const fontOf = (type: SddTypeStyle): string => (type.typeface ? `${JSON.s
 
 /** How a media slot's material is to be had, as a person reads it. */
 export const SOURCE_WORDS: Record<SddMediaSlot["source"], string> = {
-  HELD: "held", CAPTURE: "to be captured", ASK: "requested from the client", DERIVE: "drawn by the agency", DRAFT: "drafted by the agency", SOURCE_EXTERNAL: "to be sourced",
+  HELD: "held", CAPTURE: "to be captured", ASK: "requested from the client", DERIVE: "derived by the agency", DRAW: "drawn by the agency", DRAFT: "drafted by the agency", SOURCE_EXTERNAL: "to be sourced",
 };
 export const MEDIA_WORDS: Record<SddMediaSlot["kind"], string> = { photograph: "Photograph", illustration: "Illustration", video: "Video", "model-3d": "3D model", icon: "Icon" };
 /** A media slot in one line: "Photograph: the roaster at the drum (21:9), requested from the client". */

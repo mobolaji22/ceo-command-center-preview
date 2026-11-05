@@ -143,7 +143,7 @@ export interface SddDocument {
       provisional: boolean;
       missing: string | null;
     } | null;
-    technique: string;
+    technique: string | null;
     techniqueMapping: string | null;
     tokens: {
       colour: {
@@ -198,6 +198,7 @@ export interface SddDocument {
      * @maxItems 20
      */
     previewRefs: string[];
+    systemRef: string | null;
     evaluation?: {
       [k: string]: unknown | undefined;
     };
@@ -264,7 +265,8 @@ export interface SddDocument {
     purpose: string;
     ratio: string | null;
     count: number;
-    source: "HELD" | "CAPTURE" | "ASK" | "DERIVE" | "DRAFT" | "SOURCE_EXTERNAL";
+    source: "HELD" | "CAPTURE" | "ASK" | "DERIVE" | "DRAW" | "DRAFT" | "SOURCE_EXTERNAL";
+    existing: boolean | null;
     assetRef: string | null;
   }[];
   /**
@@ -289,6 +291,7 @@ export interface SddDocument {
     nodeIds: string[];
     width: number | null;
     height: number | null;
+    pageRef: string | null;
   }[];
   /**
    * @maxItems 5000
@@ -326,6 +329,11 @@ export interface SddDocument {
         z: number;
       };
       bleed: boolean;
+      pin: {
+        sectionId: string;
+        x: number;
+        y: number;
+      } | null;
     };
     style: {
       fill:
@@ -472,6 +480,7 @@ export interface SddDocument {
           };
       align: "left" | "center" | "right";
       size: number | null;
+      decorative: boolean;
     } | null;
     /**
      * @maxItems 5
@@ -726,6 +735,13 @@ export interface SddDocument {
     reason: string | null;
     settledBy: string | null;
     settledAt: string | null;
+    change: {
+      nodeId: string;
+      property: "words" | "token" | "spacing" | "order" | "variant";
+      slot: ("fill" | "stroke" | "text-colour" | "type" | "radius") | null;
+      from: (string | number) | null;
+      to: string | number;
+    } | null;
   }[];
   /**
    * @maxItems 500

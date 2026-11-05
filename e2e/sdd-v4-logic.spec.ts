@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { existsSync } from "node:fs";
 import sample from "../src/lib/design/sdd-sample.json";
+import drawnSample from "../src/lib/design/sdd-sample-drawn.json";
 import { effectsCss, fillCss, fontOf, mediaLine, mediaOf, motionLine, choosing, contrast, documentOf, framesOf, isLargeText, paintHex, slotOf, surfaceUnder, tokenLines, tokensOf, treeOf, typeStyleOf, wcagLabel, type NodeTree, type SddDocument } from "../src/lib/design/v4";
 
 /**
@@ -108,5 +109,24 @@ test("each direction holds a study of every key frame, and the demo serves each 
     expect(t.rendered).toBe(true);
     expect(t.previewRefs).toHaveLength(t.keyFrameIds.length);
     for (const file of t.previewRefs) expect(existsSync(`public/fixtures/studies/${file}`), file).toBe(true);
+  }
+});
+
+/* Drawn as pages (dev-playbook-v4 ADR-0065): the demo's directions, which v4's study loop drew from the design benchmark's loan pages. */
+test("each drawn direction names its system, and every key frame has its page and the picture of it", () => {
+  const d = structuredClone(drawnSample) as SddDocument;
+  expect(choosing(d)).toBe(true);
+  for (const t of d.territories) {
+    expect(t.systemRef).toBeTruthy();
+    expect(t.rendered).toBe(true);
+    const frames = framesOf(d, t.id);
+    expect(frames.map((f) => f.viewport)).toEqual(["desktop", "phone"]);
+    frames.forEach((f, i) => {
+      expect(d.frames.find((x) => x.id === f.id)!.pageRef).toBeTruthy();
+      expect(count(treeOf(d, f)!)).toBe(f.nodeIds.length);
+      const file = t.previewRefs[i]!;
+      expect(existsSync(`public/fixtures/studies/${file}`), file).toBe(true);
+      expect(existsSync(`public/fixtures/pages/${file.replace(/\.png$/, ".html")}`), file).toBe(true);
+    });
   }
 });

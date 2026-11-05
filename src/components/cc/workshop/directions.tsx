@@ -2,8 +2,10 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
+import type { Result } from "@/lib/data/types";
 import { drawn } from "@/lib/design/edit";
 import { POSTURE_WORDS, choosing, documentOf, framesOf, layoutOf, slotOf, tokenLines, treeOf, type NodeTree, type SddDocument, type SddTerritory, type StudyFrame } from "@/lib/design/v4";
 import { Artboard } from "./canvas";
@@ -27,6 +29,8 @@ export function Directions({ projectId, onChosen }: { projectId: string; onChose
   const doc = documentOf(q.data);
   if (!doc || doc.territories.length === 0) return <Empty title="No directions drawn yet.">They appear here once territory exploration has run for this project.</Empty>;
   const open = choosing(doc) && !chosenHere;
+  // Drawn as pages (v4 ADR-0065): each offered direction has its system and a picture of every key frame.
+  const drawn = doc.territories.every((t) => t.status === "SET_ASIDE" || (t.systemRef !== null && t.rendered));
 
   const choose = async (t: SddTerritory, changes: string) => {
     setMsg(null);
@@ -43,40 +47,49 @@ export function Directions({ projectId, onChosen }: { projectId: string; onChose
   return <section className="directions" aria-label="Design directions">
     <header className="directions-head">
       <b>{open ? "Choose a direction" : "The directions explored"}</b>
-      <p>{doc.basis.reason || "Three directions, each drawn as key frames for a desktop and a phone."} Each frame shows the part of a page that carries the idea, in that direction's colours and type. They are not finished designs: the words are placeholders for the copy that is written next, and images are marked.</p>
+      {drawn
+        ? <p>Each direction is drawn as pages in its own system, then checked and critiqued before it reaches you. Switch between desktop and phone, enlarge a page, or open it live. The direction you choose goes into the Workshop, and the build starts from its pages. Images the client has not supplied yet are marked as requested.</p>
+        : <p>{doc.basis.reason || "Three directions, each drawn as key frames for a desktop and a phone."} Each frame shows the part of a page that carries the idea, in that direction's colours and type. They are not finished designs: the words are placeholders for the copy that is written next, and images are marked.</p>}
     </header>
     <div className="directions-grid">
-      {doc.territories.map((t) => <Territory key={t.id} doc={doc} territory={t} open={open} chosenHere={chosenHere} onChoose={choose} studyUrl={(file) => ds.design.studyUrl(projectId, file)} />)}
+      {doc.territories.map((t) => <Territory key={t.id} doc={doc} territory={t} open={open} chosenHere={chosenHere} onChoose={choose} studyUrl={(file) => ds.design.studyUrl(projectId, file)} readPage={(file) => ds.design.page(projectId, file)} />)}
     </div>
     {msg && <p className="mmsg" role="status">{msg}</p>}
   </section>;
 }
 
-function Territory({ doc, territory: t, open, chosenHere, onChoose, studyUrl }: { doc: SddDocument; territory: SddTerritory; open: boolean; chosenHere: string | null; onChoose: (t: SddTerritory, changes: string) => Promise<void>; studyUrl: (file: string) => string }) {
+function Territory({ doc, territory: t, open, chosenHere, onChoose, studyUrl, readPage }: { doc: SddDocument; territory: SddTerritory; open: boolean; chosenHere: string | null; onChoose: (t: SddTerritory, changes: string) => Promise<void>; studyUrl: (file: string) => string; readPage: ReadPage }) {
   const [withChanges, setWithChanges] = useState(false);
   const [changes, setChanges] = useState("");
   const [busy, setBusy] = useState(false);
   const status = chosenHere ? (chosenHere === t.id ? "Chosen" : "Set aside") : t.status === "SELECTED" ? "Chosen" : t.status === "SET_ASIDE" ? "Set aside" : null;
   const go = async (text: string) => { setBusy(true); await onChoose(t, text); setBusy(false); };
   const frames = framesOf(doc, t.id);
-  // A study is v4's picture of a key frame (ADR-0060), there only while the frame is drawn as it stands: one per key frame, in order.
-  const studyOf = (frameId: string) => { const file = t.rendered ? t.previewRefs[t.keyFrameIds.indexOf(frameId)] : undefined; return file ? studyUrl(file) : null; };
+  // A study is v4's picture of a key frame (ADR-0060, ADR-0065), there only while the frame is drawn as it stands: one per key frame, in order.
+  const studyOf = (frameId: string) => (t.rendered ? t.previewRefs[t.keyFrameIds.indexOf(frameId)] ?? null : null);
+  // Drawn as pages (ADR-0065): the territory names its system, and every key frame has the picture of its page. A study the layout
+  // pass drew (ADR-0060) is shown as before, with its layout a click away.
+  const drawnPages = t.systemRef !== null && frames.length > 0 && frames.every((f) => studyOf(f.id) !== null);
+  const signature = t.signature ? ("device" in t.signature ? t.signature.device : `None: ${t.signature.noneBecause}`) : null;
   return <article className={`direction ${status === "Chosen" ? "is-chosen" : status ? "is-aside" : ""}`} aria-label={t.concept}>
     <div className="direction-head">
       <span className="direction-posture">{t.posture ? POSTURE_WORDS[t.posture] ?? t.posture : "Direction"}</span>
       {status && <span className="pill">{status.toUpperCase()}</span>}
-      <span className="direction-flag" title="The words and images are placeholders until Content and the art direction fill them.">Placeholders</span>
+      {!drawnPages && <span className="direction-flag" title="The words and images are placeholders until Content and the art direction fill them.">Placeholders</span>}
     </div>
     <h3>{t.concept}</h3>
     {t.thesis && <p className="direction-thesis">{t.thesis}</p>}
-    <div className="direction-frames">
-      {frames.length === 0 ? <small>No key frames were drawn for this direction.</small> : frames.map((f) => <KeyFrame key={f.id} doc={doc} frame={f} study={studyOf(f.id)} concept={t.concept} />)}
-    </div>
+    {frames.length === 0 ? <small>No key frames were drawn for this direction.</small>
+      : drawnPages ? <Pages frames={frames} concept={t.concept} file={(f) => studyOf(f.id)!} studyUrl={studyUrl} readPage={readPage} />
+      : <div className="direction-frames">{frames.map((f) => <KeyFrame key={f.id} doc={doc} frame={f} study={studyOf(f.id) ? studyUrl(studyOf(f.id)!) : null} concept={t.concept} />)}</div>}
+    {(signature || t.deliberatelyNot) && <dl className="direction-facts">
+      {signature && <div><dt>Signature</dt><dd>{signature}</dd></div>}
+      {t.deliberatelyNot && <div><dt>Deliberately not</dt><dd>{t.deliberatelyNot}</dd></div>}
+    </dl>}
     <details className="direction-detail">
       <summary>The thinking behind it</summary>
       <dl>
-        {([["Reading of the brief", t.meaningInterpretation], ["What the audience experiences", t.audienceExperience], ["Composition", t.composition], ["Typography", t.typography], ["Art direction", t.artDirection], ["Colour and material", t.colourAndMaterial], ["Interaction and motion", t.interactionAndMotion], ["Answers the brief by", t.addressesBrief], ["Deliberately not", t.deliberatelyNot], ["Technique", [t.technique, t.techniqueMapping].filter(Boolean).join(": ")]] as const).map(([k, v]) => v ? <div key={k}><dt>{k}</dt><dd>{v}</dd></div> : null)}
-        {t.signature && <div><dt>Signature</dt><dd>{"device" in t.signature ? t.signature.device : `None: ${t.signature.noneBecause}`}</dd></div>}
+        {([["Reading of the brief", t.meaningInterpretation], ["What the audience experiences", t.audienceExperience], ["Composition", t.composition], ["Typography", t.typography], ["Art direction", t.artDirection], ["Colour and material", t.colourAndMaterial], ["Interaction and motion", t.interactionAndMotion], ["Answers the brief by", t.addressesBrief], ["Technique", [t.technique, t.techniqueMapping].filter(Boolean).join(": ")]] as const).map(([k, v]) => v ? <div key={k}><dt>{k}</dt><dd>{v}</dd></div> : null)}
       </dl>
       {([["Strengths", t.strengths], ["Weaknesses", t.weaknesses], ["Risks", t.risks], ["Trade-offs", t.tradeoffs]] as const).map(([k, list]) => list.length ? <div key={k} className="direction-list"><b>{k}</b><ul>{list.map((x) => <li key={x}>{x}</li>)}</ul></div> : null)}
       {tokenLines(t).length > 0 && <div className="direction-list"><b>Tokens</b><ul>{tokenLines(t).map((x) => <li key={`${x.group}.${x.name}`}><code>{x.group}.{x.name}</code> {x.value}</li>)}</ul></div>}
@@ -90,6 +103,52 @@ function Territory({ doc, territory: t, open, chosenHere, onChoose, studyUrl }: 
           <Button variant="ghost" disabled={busy} onClick={() => setWithChanges(true)}>Choose with changes</Button></>}
     </div>}
   </article>;
+}
+
+/**
+ * A drawn direction's pages (v4 ADR-0065): one key frame at a time, chosen by its viewport, as the picture of the page Design drew,
+ * scrolling inside its card. Enlarge shows the picture at full size; Live page opens the page itself, in a frame with an opaque
+ * origin, so its script runs and reaches nothing of the viewer's.
+ */
+type ReadPage = (file: string) => Promise<Result<string>>;
+
+function Pages({ frames, concept, file, studyUrl, readPage }: { frames: StudyFrame[]; concept: string; file: (f: StudyFrame) => string; studyUrl: (file: string) => string; readPage: ReadPage }) {
+  const [at, setAt] = useState(0);
+  const [shown, setShown] = useState<"picture" | "live" | null>(null);
+  const frame = frames[Math.min(at, frames.length - 1)]!;
+  const src = studyUrl(file(frame));
+  const phone = frame.viewport === "phone";
+  const title = `${concept}, ${viewportWords(frame.viewport).toLowerCase()}`;
+  const live = useQuery({ queryKey: ["sdd-page", file(frame)], enabled: shown === "live", staleTime: Infinity, queryFn: async () => { const r = await readPage(file(frame)); if (r.error) throw new Error(r.error.message); return r.data!; } });
+  return <div className="direction-pages">
+    <div className="direction-pages-bar">
+      {frames.length > 1 && <div className="direction-tabs" role="group" aria-label={`${concept}: key frames`}>
+        {frames.map((f, i) => <button key={f.id} type="button" aria-pressed={i === at} onClick={() => setAt(i)}>{viewportWords(f.viewport)}</button>)}
+      </div>}
+      <span className="direction-actions">
+        <button type="button" className="linkish" onClick={() => setShown("picture")}>Enlarge</button>
+        <button type="button" className="linkish" onClick={() => setShown("live")}>Live page</button>
+      </span>
+    </div>
+    <div className={`direction-page${phone ? " is-phone" : ""}`} tabIndex={0} aria-label={`${title}: the page as drawn, scrollable`}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- a study is served by v4 through the proxy, with the session; it is not an asset Next can optimise */}
+      <img src={src} alt={`${title}: the page as Design drew it.`} loading="lazy" />
+    </div>
+    <Dialog open={shown !== null} onOpenChange={(o) => { if (!o) setShown(null); }}>
+      <DialogContent className="direction-view">
+        <DialogTitle>{title}{shown === "live" ? ", live" : ""}</DialogTitle>
+        <DialogDescription className="sr-only">{shown === "live" ? "The page itself, running in a sealed frame." : "The page as drawn, at full size."}</DialogDescription>
+        <div className={`direction-view-body${phone ? " is-phone" : ""}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- the same study picture, served by v4 through the proxy */}
+          {shown === "picture" && <img src={src} alt={`${title}: the page as Design drew it, at full size.`} />}
+          {shown === "live" && (live.data !== undefined
+            // No allow-same-origin: the page gets an opaque origin, so it cannot read this app's cookies, storage or session.
+            ? <iframe title={`${title}, live`} sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={live.data} />
+            : <p className="mmsg" role="status">{live.error ? live.error.message : "Opening the page…"}</p>)}
+        </div>
+      </DialogContent>
+    </Dialog>
+  </div>;
 }
 
 const viewportWords = (v: string) => (v === "phone" ? "Phone" : v === "desktop" ? "Desktop" : v);
