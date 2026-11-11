@@ -462,6 +462,23 @@ export type Question = {
 };
 export type Answer = { option: string; note?: string; toUsd?: number; evidence?: string };
 
+/**
+ * A person's step's guide (v4 ADR-0071): how to approach each step, what done looks like and the proof it needs, with what the
+ * person has logged. "It is done" is refused until every step is finished, so the desk shows what is left.
+ */
+export type GuideProof = "NONE" | "NOTE" | "LINK" | "FILE";
+export type GuideStepState = "DONE" | "STUCK" | "SKIPPED";
+export type GuideStep = {
+  id: string; title: string; how: string[]; done_when: string; proof: GuideProof; watch_out: string[]; sources: Array<{ title: string; url: string }>;
+  finished: boolean;
+  logged: { state: GuideStepState; note: string | null; link: string | null; asset_id: string | null; by_user_id: string; at: string } | null;
+};
+export type PersonGuide = {
+  intervention_id: string; task_id: string; version: number; source: "PACK" | "MODEL"; objective: string | null; unknowns: string[];
+  can_log: boolean; progress: { finished: number; total: number; stuck: number }; steps: GuideStep[];
+};
+export type GuideLogEntry = { state: GuideStepState; note?: string; link?: string; assetId?: string };
+
 /* ---- What people are told (CC-5): briefs, the sources behind each statement, and how a person wants to be told ---- */
 
 export type BriefType = "KICKOFF" | "PROGRESS" | "EXCEPTION" | "DIGEST" | "HANDOFF" | "OUTCOME" | "IMPROVEMENT";

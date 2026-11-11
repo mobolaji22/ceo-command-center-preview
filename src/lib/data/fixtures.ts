@@ -25,6 +25,7 @@ import type {
   Profile,
   Project,
   Question,
+  PersonGuide,
   RunView,
   Session,
   V4Event,
@@ -130,7 +131,7 @@ const STATUS_LINE = (i: { status: string; questions: unknown[]; delivery?: { out
   : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
   : { kind: "PLANNING", line: "We're preparing your plan." };
 
-type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand> };
+type Store = { guides?: Record<string, PersonGuide>; standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand> };
 
 /**
  * A project's design document in the demo, as v4 keeps it: the approved versions, and the one revision being worked on (a draft, one
@@ -1014,6 +1015,26 @@ export function createFixturesDataSource(): DataSource {
           if (!q) throw new Error("This was already answered.");
           applyAnswer(s, q, answer);
         });
+      },
+      // The demo holds no person's step with a guide; a stored one is read and logged as the API does (ADR-0071).
+      async guide(questionId) {
+        return ok(structuredClone(load().guides?.[questionId] ?? null));
+      },
+      async logStep(questionId, stepId, entry) {
+        const g = load().guides?.[questionId];
+        const step = g?.steps.find((x) => x.id === stepId);
+        if (!g || !step) return fail("That couldn't be found.", "NOT_FOUND");
+        const proven = step.proof === "NONE" || (step.proof === "NOTE" ? (entry.note?.length ?? 0) >= 10 : step.proof === "LINK" ? Boolean(entry.link?.startsWith("https://")) : Boolean(entry.assetId));
+        if (entry.state === "DONE" && !proven) return fail(`"${step.title}" needs its proof before it is done.`, "INVALID_PARAMS");
+        if (entry.state === "SKIPPED" && step.proof !== "NONE") return fail(`"${step.title}" cannot be skipped.`, "INVALID_PARAMS");
+        const r = await mutate((s) => {
+          const at = s.guides![questionId]!.steps.find((x) => x.id === stepId)!;
+          at.logged = { state: entry.state, note: entry.note ?? null, link: entry.link ?? null, asset_id: entry.assetId ?? null, by_user_id: currentUserId() ?? "", at: new Date().toISOString() };
+          at.finished = entry.state === "DONE" || (entry.state === "SKIPPED" && at.proof === "NONE");
+          const steps = s.guides![questionId]!.steps;
+          s.guides![questionId]!.progress = { finished: steps.filter((x) => x.finished).length, total: steps.length, stuck: steps.filter((x) => x.logged?.state === "STUCK").length };
+        });
+        return r.error ? { data: null, error: r.error } : ok(structuredClone(load().guides![questionId]!));
       },
     },
 

@@ -1,6 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, PersonGuide, GuideLogEntry, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -201,6 +201,10 @@ export interface DataSource {
   questions: {
     list(opts?: { projectId?: string }): Promise<Result<Question[]>>;
     answer(questionId: string, answer: Answer): Promise<Result>;
+    /** A person's step's guide (v4 ADR-0071), or null when its work has none. */
+    guide(questionId: string): Promise<Result<PersonGuide | null>>;
+    /** The person logs one step: done with the proof it needs, stuck with what is in the way, or skipped with why. */
+    logStep(questionId: string, stepId: string, entry: GuideLogEntry): Promise<Result<PersonGuide>>;
   };
   /**
    * What people are told (CC-5). A brief is written from records and every statement names the records it comes from, so the

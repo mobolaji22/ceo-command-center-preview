@@ -157,3 +157,14 @@ export function holdForBudget(textPattern: string) {
     WHERE "rawText" ILIKE '${textPattern}'`;
   execFileSync("psql", [u.toString(), "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio: "pipe" });
 }
+
+/**
+ * The agency's own plan reaching a person's step with a guide (v4 ADR-0071), driven by v4's engine (e2e/guide-seed.mjs). Returns the
+ * question it asks the CEO, with the project it belongs to.
+ */
+export function seedGuidedStep(ceoEmail: string): { id: string; title: string; projectId: string; projectName: string } {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const out = execFileSync("npx", ["tsx", resolve("e2e/guide-seed.mjs"), ceoEmail], { cwd: V4_DIR, encoding: "utf8", env: { ...process.env, DATABASE_URL: u.toString() } });
+  return JSON.parse(out.trim().split("\n").at(-1)!) as { id: string; title: string; projectId: string; projectName: string };
+}

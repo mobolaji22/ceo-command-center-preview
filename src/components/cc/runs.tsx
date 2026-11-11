@@ -12,6 +12,7 @@ import { PlanPanel } from "./plans";
 import { ProjectGoal } from "./objective";
 import { DirectionsFor } from "./workshop/directions";
 import { useStepUp } from "./step-up";
+import { GuideBlock, useGuide } from "./guide";
 
 /**
  * The case file for a project: the work in order, how much of the approved budget it has used, what it is waiting to ask, and the
@@ -174,6 +175,8 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const { guard, panel: stepUpPanel } = useStepUp();
+  // A person's step with a guide (v4 ADR-0071) is done when its log says so; the note is then only something to add.
+  const guided = Boolean(useGuide(x).data);
 
   const askedOf = audience === "client" ? null : x.routed_to === "CEO" ? "Asked of you." : "Asked of the client's owner. You can answer for them only if they have allowed it.";
   const confirm = async () => {
@@ -183,7 +186,7 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
       setBusy(false);
       if (r.error) { setMsg(r.error.message); return; }
       setChoice(null); setNote(""); setAmount("");
-      await Promise.all([qc.invalidateQueries({ queryKey: ["questions"] }), qc.invalidateQueries({ queryKey: ["case"] })]);
+      await Promise.all([qc.invalidateQueries({ queryKey: ["questions"] }), qc.invalidateQueries({ queryKey: ["case"] }), qc.invalidateQueries({ queryKey: ["guide", x.id] })]);
       onChanged?.();
     });
     setBusy(false);
@@ -193,6 +196,7 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
     <div className="question-head"><b>{x.title}</b><small>{audience === "agency" ? `${label(x.reason)} · ` : ""}{x.deadline && x.reason !== "PAUSED_BY_OWNER" ? `answer by ${fmtDate(x.deadline)}` : x.status === "EXPIRED" ? (held ? "overdue · the work stays on hold until it is answered" : "overdue") : ""}</small></div>
     <p className="question-summary">{x.summary}</p>
     <DirectionsFor projectId={x.project_id} onChosen={onChanged} />
+    {x.reason === "HUMAN_TASK" && <GuideBlock question={x} audience={audience} />}
     {audience === "agency" && x.detail && <p className="question-detail">{x.detail}</p>}
     {askedOf && <small className="question-asked">{askedOf}</small>}
     <div className="question-options" role="group" aria-label="Answers">
@@ -202,7 +206,7 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
     {x.recommendation && <small className="question-why">{x.recommendation.why}</small>}
     {choice && <div className="plan-confirm">
       {choice === "RAISE_BUDGET" && <label>Raise the budget to (US dollars)<input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>}
-      {choice === "MARK_DONE" && <label>What was done?<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
+      {choice === "MARK_DONE" && <label>{guided ? "Anything to add? (optional)" : "What was done?"}<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "ACCEPT_RISK" && <label>Why is this acceptable? It is recorded with your name.<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "OUTPUT_STANDS" && <label>Why should the work stand? It is recorded with your name.<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "REQUEST_QUALIFIED_REVIEW" && <label>Who is qualified to review it, and why?<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}

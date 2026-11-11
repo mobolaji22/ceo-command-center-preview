@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, PersonGuide, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -69,6 +69,8 @@ async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
       const issue = code === "INVALID_BODY" ? (json as { issues?: Array<{ message?: unknown }> } | null)?.issues?.[0]?.message : undefined;
       // A refusal v4 explains in a sentence (what in a design document does not hold) is passed on when there is no sentence here.
       const detail = (json as { detail?: unknown } | null)?.detail;
+      // A missing or wrong part of an answer is said exactly when v4 says which (which steps of a guide are still open, ADR-0071).
+      if (code === "INVALID_PARAMS" && typeof detail === "string" && detail) return fail(detail.endsWith(".") ? detail : `${detail}.`, code);
       return fail(typeof issue === "string" && issue ? `${issue.replace(/\.$/, "")}.` : MESSAGES[code] ?? (typeof detail === "string" && detail ? detail : code.replace(/_/g, " ").toLowerCase()), code);
     }
     if (res.status >= 500) return fail(MESSAGES["SERVER_ERROR"]!, "SERVER_ERROR");
@@ -419,6 +421,14 @@ export function createApiDataSource(): DataSource {
       async answer(questionId, answer) {
         const params = { ...(answer.toUsd !== undefined ? { toUsd: answer.toUsd } : {}), ...(answer.evidence ? { evidence: answer.evidence } : {}) };
         return voidResult(await call("POST", `/v1/interventions/${questionId}/resolve`, { option: answer.option, ...(answer.note ? { note: answer.note } : {}), ...(Object.keys(params).length ? { params } : {}) }));
+      },
+      async guide(questionId) {
+        const r = await call<PersonGuide>("GET", `/v1/interventions/${questionId}/guide`);
+        if (r.error?.code === "NO_GUIDE") return ok(null);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data);
+      },
+      async logStep(questionId, stepId, entry) {
+        return call<PersonGuide>("POST", `/v1/interventions/${questionId}/guide/steps/${encodeURIComponent(stepId)}`, entry);
       },
     },
 
