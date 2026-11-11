@@ -16,7 +16,12 @@ export type ContextStatus =
 export type AppRole = "owner" | "client";
 export type ApprovalStatus = "REQUESTED" | "GRANTED" | "REJECTED" | "EXPIRED";
 export type ArtifactStatus = "DRAFT" | "PROPOSED" | "APPROVED" | "REJECTED" | "SUPERSEDED" | "FINAL";
-export type DecisionStatus = "PROPOSED" | "WAITING_FOR_HUMAN" | "ACCEPTED" | "REJECTED" | "DEFERRED" | "SUPERSEDED";
+/** Where a decision in a project's ledger stands (v4 ADR-0034). OPEN and STALE wait for someone; the rest are closed. */
+export type DecisionState = "OPEN" | "PROPOSED" | "DECIDED_BY_OWNER" | "DECIDED_UNDER_DELEGATION" | "HELD_ASSET" | "STALE" | "SUPERSEDED";
+/** How the owner answered the agency's recommendation (v4 ADR-0068): a choice against it releases nothing planned on it. */
+export type DecisionResolution = "ACCEPTED" | "REJECTED" | "DEFERRED";
+/** The kinds of decision only the owner may make, never assumed or made for them (v4 ADR-0068). */
+export type AuthorityKind = "RIGHTS" | "MONEY" | "PUBLIC_CLAIM" | "LEGAL_DUTY" | "COMMITMENT";
 export type TaskStatus = "PENDING" | "READY" | "RUNNING" | "WAITING" | "BLOCKED" | "FAILED" | "COMPLETED" | "CANCELLED";
 
 export type Project = {
@@ -63,7 +68,31 @@ export type Decision = {
   reversibility: number | null
   risk: number | null
   selected_option: string | null
-  status: DecisionStatus
+  state: DecisionState
+  resolution: DecisionResolution | null
+  authority: AuthorityKind | null
+};
+
+/**
+ * One decision a request left open, as the project's ledger holds it (v4 ADR-0068): what is asked, what the agency recommends,
+ * and which work waits for it. Approving the plan settles none of them; each is settled on its own.
+ */
+export type LedgerDecision = {
+  id: string
+  project_id: string
+  question: string
+  options: Array<{ id: string; label: string; tradeoff: string | null }>
+  recommendation: { option_id: string; label: string; why: string | null } | null
+  state: DecisionState
+  resolution: DecisionResolution | null
+  selected_option: { id: string; label: string } | null
+  /** ASK: the owner confirms it. BLOCK: the owner's alone. DISCOVER: the agency finds it out. */
+  disposition: "ASK" | "BLOCK" | "DISCOVER" | "PROCEED_WITH_ASSUMPTION" | null
+  authority: AuthorityKind | null
+  /** The domains whose work waits for it when no step names it. */
+  holds: string[]
+  created_at: string
+  resolved_at: string | null
 };
 
 export type Approval = {
@@ -206,13 +235,16 @@ export type PlanContent = {
   scope_out: string[]
   deliverables: Array<{ id: string; name: string; domain: string }>
   success_metrics: Array<{ id: string; metric: string; baseline: string | null; target: string; measurement: string; window: string; data_source: string }>
-  tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; depends_on: string[] }>
+  /** `awaits`: the open decisions a step waits for, by id (v4 ADR-0068). */
+  tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; depends_on: string[]; awaits: string[] }>
   milestones: Array<{ name: string; after_tasks: string[] }>
   budget: { low_usd: number; high_usd: number; confidence: number }
   risks: Array<{ risk: string; mitigation: string }>
   assumptions: string[]
   open_context_needs: string[]
   decision_points: Array<{ task_id: string | null; description: string }>
+  /** What is still to be decided, each with the recommendation (v4 ADR-0068). Approving the plan decides none of them. */
+  to_confirm: Array<{ id: string; question: string; recommendation: string | null; authority: AuthorityKind | null; disposition: string }>
   /** Steps the plan lets go ahead of a domain they would otherwise wait for, with the reason. For the CEO, not the client. */
   phasing: Array<{ task_id: string; upstream: string; reason: string }>
   /** Domains in the work with no capability yet: a person does their part. */

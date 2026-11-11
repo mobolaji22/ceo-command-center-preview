@@ -55,7 +55,7 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
         <PlanDecisionLedger data={data} />
         {data.decisions.length > 0 && <div className="section-label"><span>OTHER DECISIONS</span><span>{pad(data.decisions.length)}</span></div>}
         {data.decisions.length === 0 ? <Empty title="No decisions recorded yet." /> :
-        <div className="dossier-list">{data.decisions.map((d, i) => <div key={d.id} className="dossier-row"><span className="row-index">{pad(i + 1)}</span><div><b>{d.question}</b><small>{projectName(data, d.project_id)} · {d.resolved_at ? `Resolved ${fmtDate(d.resolved_at)}` : `Raised ${fmtDate(d.created_at)}`}{d.selected_option ? ` · Chose: ${d.selected_option}` : ""}</small></div><span className={`pill ${statusTone(d.status)}`}>{label(d.status).toUpperCase()}</span><span /></div>)}</div>}</div>}
+        <div className="dossier-list">{data.decisions.map((d, i) => <div key={d.id} className="dossier-row"><span className="row-index">{pad(i + 1)}</span><div><b>{d.question}</b><small>{projectName(data, d.project_id)} · {d.resolved_at ? `Resolved ${fmtDate(d.resolved_at)}` : `Raised ${fmtDate(d.created_at)}`}{d.selected_option ? ` · Chose: ${d.selected_option}` : ""}</small></div><span className={`pill ${statusTone(d.state)}`}>{label(d.state).toUpperCase()}</span><span /></div>)}</div>}</div>}
       {tab === "Security/Gov" && <div className="computer-content"><div className="section-label"><span>SECURITY & GOVERNANCE</span><span>PROTOCOL ACTIVE</span></div>
         <GovernancePanel data={data} />
         <div className="governance-grid">
@@ -314,7 +314,7 @@ export function BriefView({ data, openContracts, openComputer }: Common & { open
   const s = new Date(since).getTime();
   const recent = useMemo(() => data.events.filter((e) => new Date(e.created_at).getTime() > s), [data.events, s]);
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
-  const waitingDecisions = data.decisions.filter((d) => d.status === "WAITING_FOR_HUMAN" || d.status === "PROPOSED");
+  const waitingDecisions = data.decisions.filter((d) => d.state === "OPEN" || d.state === "STALE");
   const done = data.tasks.filter((t) => t.completed_at && new Date(t.completed_at).getTime() > s);
   const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
   return <div className="brief-wrap"><div className="eyebrow gold"><Sparkles size={15} /> THE CEO BRIEF / {new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }).toUpperCase()}</div><h2>What happened while <br /><i>I was away?</i></h2><p className="brief-lead">Since {new Date(since).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}: {recent.length} signal{recent.length === 1 ? "" : "s"}, {done.length} task{done.length === 1 ? "" : "s"} completed.</p>

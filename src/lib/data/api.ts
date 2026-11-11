@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -108,9 +108,10 @@ const toAsset = (a: ApiAsset): Asset => ({
 type ApiPlan = {
   objective: string; scope: { in: string[]; out: string[] }; deliverables: PlanContent["deliverables"];
   successMetrics: Array<{ id: string; metric: string; baseline: string | null; target: string; measurement: string; window: string; dataSource: string }>;
-  tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; dependsOn: string[] }>;
+  tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; dependsOn: string[]; awaits?: string[] }>;
   milestones: Array<{ name: string; afterTasks: string[] }>; budget: { lowUsd: number; highUsd: number; confidence: number };
   risks: PlanContent["risks"]; assumptions: string[]; openContextNeeds: string[]; decisionPoints: Array<{ taskId?: string; description: string }>;
+  confirm?: Array<{ id: string; question: string; disposition: string; authority: PlanContent["to_confirm"][number]["authority"]; recommendation: { optionId: string; label: string; why: string | null } | null }>;
   phasing?: Array<{ taskId: string; upstream: string; reason: string }>;
   engagement?: { unstaffed?: string[]; exempt?: PlanContent["exempt"] };
 };
@@ -141,14 +142,28 @@ const toQuestion = (q: ApiQuestion): Question => ({
   title: q.title, summary: q.summary, detail: q.detail ?? null, options: q.options.map((o) => ({ id: o.id, stepUp: o.stepUp === true })), recommendation: q.recommendation, deadline: q.deadline, created_at: q.createdAt,
 });
 
+type ApiLedger = {
+  id: string; projectId: string; question: string; options: Array<{ id: string; label: string; tradeoff?: string | null }>;
+  recommendation: { optionId?: string; label?: string; why?: string | null } | null; state: LedgerDecision["state"]; resolution: LedgerDecision["resolution"];
+  selectedOption: { id: string; label: string } | null; disposition: LedgerDecision["disposition"]; authority: LedgerDecision["authority"]; holds: string[];
+  createdAt: string; resolvedAt: string | null;
+};
+const toLedger = (d: ApiLedger): LedgerDecision => ({
+  id: d.id, project_id: d.projectId, question: d.question, options: d.options.map((o) => ({ id: o.id, label: o.label, tradeoff: o.tradeoff ?? null })),
+  recommendation: d.recommendation?.optionId && d.recommendation.label ? { option_id: d.recommendation.optionId, label: d.recommendation.label, why: d.recommendation.why ?? null } : null,
+  state: d.state, resolution: d.resolution, selected_option: d.selectedOption ? { id: d.selectedOption.id, label: d.selectedOption.label } : null,
+  disposition: d.disposition, authority: d.authority, holds: d.holds, created_at: d.createdAt, resolved_at: d.resolvedAt,
+});
+
 const toPlan = (c: ApiPlan): PlanContent => ({
   objective: c.objective, scope_in: c.scope.in, scope_out: c.scope.out, deliverables: c.deliverables,
   success_metrics: c.successMetrics.map((m) => ({ id: m.id, metric: m.metric, baseline: m.baseline, target: m.target, measurement: m.measurement, window: m.window, data_source: m.dataSource })),
-  tasks: c.tasks.map((t) => ({ id: t.id, title: t.title, domain: t.domain, capability: t.capability, rigor: t.rigor, risk: t.risk, reversibility: t.reversibility, depends_on: t.dependsOn })),
+  tasks: c.tasks.map((t) => ({ id: t.id, title: t.title, domain: t.domain, capability: t.capability, rigor: t.rigor, risk: t.risk, reversibility: t.reversibility, depends_on: t.dependsOn, awaits: t.awaits ?? [] })),
   milestones: c.milestones.map((m) => ({ name: m.name, after_tasks: m.afterTasks })),
   budget: { low_usd: c.budget.lowUsd, high_usd: c.budget.highUsd, confidence: c.budget.confidence },
   risks: c.risks, assumptions: c.assumptions, open_context_needs: c.openContextNeeds,
   decision_points: c.decisionPoints.map((d) => ({ task_id: d.taskId ?? null, description: d.description })),
+  to_confirm: (c.confirm ?? []).map((x) => ({ id: x.id, question: x.question, recommendation: x.recommendation?.label ?? null, authority: x.authority, disposition: x.disposition })),
   phasing: (c.phasing ?? []).map((x) => ({ task_id: x.taskId, upstream: x.upstream, reason: x.reason })),
   unstaffed: c.engagement?.unstaffed ?? [], exempt: c.engagement?.exempt ?? [],
 });
@@ -563,6 +578,14 @@ export function createApiDataSource(): DataSource {
       async decisions(projectId) {
         const r = await call<Array<{ proposalId: string; version: number; decision: DecisionEntry["decision"]; decidedByRole: DecisionEntry["decided_by_role"]; onBehalf: boolean; note: string | null; decidedAt: string }>>("GET", `/v1/projects/${projectId}/decisions`);
         return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map((d) => ({ proposal_id: d.proposalId, version: d.version, decision: d.decision, decided_by_role: d.decidedByRole, on_behalf: d.onBehalf, note: d.note, decided_at: d.decidedAt })));
+      },
+      async ledger(projectId) {
+        const r = await call<ApiLedger[]>("GET", `/v1/projects/${encodeURIComponent(projectId)}/ledger`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map(toLedger));
+      },
+      async resolveDecision(decisionId, answer) {
+        const r = await call<ApiLedger>("POST", `/v1/decisions/${encodeURIComponent(decisionId)}/resolve`, answer);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(toLedger(r.data));
       },
       async delegations(projectId) {
         const r = await call<ApiDelegation[]>("GET", `/v1/projects/${projectId}/delegations`);

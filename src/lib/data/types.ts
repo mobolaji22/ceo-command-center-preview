@@ -1,6 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -266,6 +266,13 @@ export interface DataSource {
     /** A request for a change is answered with the next version straight away. */
     decide(proposalId: string, decision: { action: "APPROVE" | "REQUEST_REVISION" | "REJECT"; note?: string }): Promise<Result<{ nextVersion: number | null }>>;
     decisions(projectId: string): Promise<Result<DecisionEntry[]>>;
+    /** What the project is still waiting on its owner to decide, and what was decided, open first (v4 ADR-0068). */
+    ledger(projectId: string): Promise<Result<LedgerDecision[]>>;
+    /**
+     * Settles one open decision: an option (the recommended one confirms it and releases the work that waited; another releases
+     * nothing until the plan is revised), or "later", which keeps it open. Only the decision's owner may; v4 refuses anyone else.
+     */
+    resolveDecision(decisionId: string, answer: { optionId: string } | { defer: true }): Promise<Result<LedgerDecision>>;
     delegations(projectId: string): Promise<Result<DelegationView[]>>;
     /** The project's goal, its earlier versions, and what approving each waiting plan would do to it (v4 ADR-0063). */
     objective(projectId: string): Promise<Result<ProjectObjectiveView>>;

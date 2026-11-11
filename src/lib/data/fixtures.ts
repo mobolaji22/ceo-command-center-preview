@@ -16,6 +16,7 @@ import type {
   BudgetView,
   ClientData,
   DecisionEntry,
+  LedgerDecision,
   DelegationView,
   NotificationItem,
   NotificationPrefs,
@@ -130,7 +131,7 @@ const STATUS_LINE = (i: { status: string; questions: unknown[]; delivery?: { out
   : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
   : { kind: "PLANNING", line: "We're preparing your plan." };
 
-type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand> };
+type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; ledger?: LedgerDecision[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand> };
 
 /**
  * A project's design document in the demo, as v4 keeps it: the approved versions, and the one revision being worked on (a draft, one
@@ -149,18 +150,27 @@ const demoPlan = (): PlanContent => ({
   deliverables: [{ id: "d-business", name: "Business work for: Q4 priorities", domain: "BUSINESS" }, { id: "d-strategy", name: "Strategy work for: Q4 priorities", domain: "STRATEGY" }],
   success_metrics: [{ id: "m1", metric: "The result you asked for", baseline: null, target: "A shortlist you can act on this quarter", measurement: "Agreed with you before work starts", window: "30 days after delivery", data_source: "To be agreed" }],
   tasks: [
-    { id: "t1", title: "Clarify business objective", domain: "BUSINESS", capability: "analyze", rigor: "light", risk: 1, reversibility: 4, depends_on: [] },
-    { id: "t2", title: "Develop strategic directions", domain: "STRATEGY", capability: "strategy", rigor: "strict", risk: 3, reversibility: 3, depends_on: ["t1"] },
-    { id: "t3", title: "Rank the Q4 list against online orders", domain: "BUSINESS", capability: "analyze", rigor: "standard", risk: 2, reversibility: 4, depends_on: ["t2"] },
+    { id: "t1", title: "Clarify business objective", domain: "BUSINESS", capability: "analyze", rigor: "light", risk: 1, reversibility: 4, depends_on: [], awaits: [] },
+    { id: "t2", title: "Develop strategic directions", domain: "STRATEGY", capability: "strategy", rigor: "strict", risk: 3, reversibility: 3, depends_on: ["t1"], awaits: [] },
+    { id: "t3", title: "Rank the Q4 list against online orders", domain: "BUSINESS", capability: "analyze", rigor: "standard", risk: 2, reversibility: 4, depends_on: ["t2"], awaits: ["ld-1"] },
   ],
   milestones: [{ name: "Develop strategic directions: your decision", after_tasks: ["t2"] }, { name: "Delivery", after_tasks: ["t3"] }],
   budget: { low_usd: 0.63, high_usd: 1.44, confidence: 0.4 },
   risks: [{ risk: "\"Develop strategic directions\" shapes everything after it", mitigation: "It waits for your decision before the next step starts" }],
   assumptions: ["Is there a spending limit we should respect? We are going with: Use the usual range for this kind of work", "Costs are estimates by effort level, not quotes."],
   open_context_needs: ["Brand guidelines"], decision_points: [{ task_id: "t2", description: "Your decision on: Develop strategic directions" }],
+  to_confirm: [{ id: "ld-1", question: "Should the ranking count in-store sales as well as online orders?", recommendation: "Online orders only", authority: null, disposition: "ASK" }],
   phasing: [{ task_id: "t3", upstream: "COMPLIANCE", reason: "The ranking stays inside the business; Compliance reviews only what is published." }],
   unstaffed: ["COMPLIANCE"], exempt: [],
 });
+
+/** The demo plan's one open decision (v4 ADR-0068): the ranking step waits for it; nothing else does. */
+const demoLedger = (): LedgerDecision[] => [{
+  id: "ld-1", project_id: "p-1", question: "Should the ranking count in-store sales as well as online orders?",
+  options: [{ id: "online", label: "Online orders only", tradeoff: "Matches the goal; in-store favourites may rank low." }, { id: "both", label: "Online and in-store", tradeoff: "A fuller picture; needs the till exports." }],
+  recommendation: { option_id: "online", label: "Online orders only", why: "The goal is online orders, and the till exports are not held yet." },
+  state: "OPEN", resolution: null, selected_option: null, disposition: "ASK", authority: null, holds: ["BUSINESS"], created_at: new Date(Date.now() - 864e5 * 19).toISOString(), resolved_at: null,
+}];
 
 function seed(): Store {
   const users: User[] = [
@@ -191,9 +201,9 @@ function seed(): Store {
       { id: "t-7", project_id: "p-3", title: "Draft the portfolio narrative", domain: "Content", status: "READY", risk: 1, reversibility: 5, approval_required: false, description: null, created_at: ago(24 * 2), started_at: null, completed_at: null },
     ],
     decisions: [
-      { id: "d-1", project_id: "p-1", question: "Which design territory should the storefront follow?", options: ["Warm editorial", "Playful modern", "Austere minimal"], recommendation: "Warm editorial", status: "WAITING_FOR_HUMAN", confidence: 0.72, risk: 2, reversibility: 4, rationale: null, selected_option: null, created_at: ago(30), resolved_at: null },
-      { id: "d-2", project_id: "p-2", question: "Should intake be one page or a short sequence?", options: ["One page", "Three short steps"], recommendation: "Three short steps", status: "ACCEPTED", confidence: 0.8, risk: 2, reversibility: 4, rationale: "Less cognitive load per screen.", selected_option: "Three short steps", created_at: ago(24 * 6), resolved_at: ago(24 * 5) },
-      { id: "d-3", project_id: "p-4", question: "Retire the secondary logo?", options: ["Retire", "Keep"], recommendation: "Retire", status: "ACCEPTED", confidence: 0.9, risk: 1, reversibility: 5, rationale: null, selected_option: "Retire", created_at: ago(24 * 40), resolved_at: ago(24 * 38) },
+      { id: "d-1", project_id: "p-1", question: "Which design territory should the storefront follow?", options: ["Warm editorial", "Playful modern", "Austere minimal"], recommendation: "Warm editorial", state: "OPEN", resolution: null, authority: null, confidence: 0.72, risk: 2, reversibility: 4, rationale: null, selected_option: null, created_at: ago(30), resolved_at: null },
+      { id: "d-2", project_id: "p-2", question: "Should intake be one page or a short sequence?", options: ["One page", "Three short steps"], recommendation: "Three short steps", state: "DECIDED_BY_OWNER", resolution: "ACCEPTED", authority: null, confidence: 0.8, risk: 2, reversibility: 4, rationale: "Less cognitive load per screen.", selected_option: "Three short steps", created_at: ago(24 * 6), resolved_at: ago(24 * 5) },
+      { id: "d-3", project_id: "p-4", question: "Retire the secondary logo?", options: ["Retire", "Keep"], recommendation: "Retire", state: "DECIDED_BY_OWNER", resolution: "ACCEPTED", authority: null, confidence: 0.9, risk: 1, reversibility: 5, rationale: null, selected_option: "Retire", created_at: ago(24 * 40), resolved_at: ago(24 * 38) },
     ],
     approvals: [
       { id: "a-1", project_id: "p-2", target_type: "TASK", title: "Publish the redesigned intake form to production", reason: "The new three-step intake passed every quality gate and testing on staging. Publishing makes it live to real patients, so it needs a human signature.", recommendation: "Approve, with a 7-day watch on abandonment.", consequences: "Real patients see the new form immediately. Rolling back is possible but patient submissions during the window cannot be un-submitted.", risk: 4, reversibility: 2, requires_client: true, status: "REQUESTED", constraints: null, evidence_request: null, resolution_note: null, resolved_at: null, resolved_by: null, created_at: ago(20) },
@@ -1114,6 +1124,25 @@ export function createFixturesDataSource(): DataSource {
         const s = load();
         const ids = new Set(s.plans.filter((p) => p.project_id === projectId).map((p) => p.id));
         return ok(structuredClone(s.decisions.filter((d) => ids.has(d.proposal_id))));
+      },
+      async ledger(projectId) {
+        const open = (d: LedgerDecision) => (d.state === "OPEN" || d.state === "STALE" ? 0 : 1);
+        return ok(structuredClone((load().ledger ?? demoLedger()).filter((d) => d.project_id === projectId).sort((a, b) => open(a) - open(b))));
+      },
+      async resolveDecision(decisionId, answer) {
+        const s = load();
+        s.ledger ??= demoLedger();
+        const d = s.ledger.find((x) => x.id === decisionId);
+        if (!d) return fail("That decision was not found.", "DECISION_NOT_FOUND");
+        if (d.state !== "OPEN" && d.state !== "STALE") return fail("This decision is already made.", "ALREADY_DECIDED");
+        if ("defer" in answer) d.resolution = "DEFERRED";
+        else {
+          const o = d.options.find((x) => x.id === answer.optionId);
+          if (!o) return fail("Not one of this decision's options.", "INVALID_OPTION");
+          Object.assign(d, { state: "DECIDED_BY_OWNER", resolution: !d.recommendation || d.recommendation.option_id === o.id ? "ACCEPTED" : "REJECTED", selected_option: { id: o.id, label: o.label }, resolved_at: new Date().toISOString() });
+        }
+        save(s);
+        return ok(structuredClone(d));
       },
       async delegations(projectId) {
         const s = load();
