@@ -205,6 +205,8 @@ export interface DataSource {
     guide(questionId: string): Promise<Result<PersonGuide | null>>;
     /** The person logs one step: done with the proof it needs, stuck with what is in the way, or skipped with why. */
     logStep(questionId: string, stepId: string, entry: GuideLogEntry): Promise<Result<PersonGuide>>;
+    /** The step's person asks v4 about one step; the answer is kept on the guide. Refused, with why, when no model can answer. */
+    askStep(questionId: string, stepId: string, question: string): Promise<Result<PersonGuide>>;
   };
   /**
    * What people are told (CC-5). A brief is written from records and every statement names the records it comes from, so the

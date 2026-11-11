@@ -5,9 +5,9 @@ import { Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import type { NewAttachment } from "@/lib/data/types";
-import type { AgencyDelivery, Asset, ClientDelivery, ClientIntentView, Intent, MaterialWay, ReasoningWait } from "@/lib/model";
+import type { AgencyDelivery, Asset, ClientDelivery, ClientIntentView, Intent, MaterialWay } from "@/lib/model";
 import { useAuth } from "@/lib/auth";
-import { fmtAgo, label, statusTone } from "@/lib/format";
+import { WAIT_LINE, fmtAgo, label, statusTone } from "@/lib/format";
 import { Empty } from "./views";
 import { PlanPanel } from "./plans";
 
@@ -235,13 +235,6 @@ const OUTCOME_LINE: Record<AgencyDelivery["outcome"], string> = {
 };
 const OUTCOME_TAG: Record<AgencyDelivery["outcome"], string> = { CAN: "CAN DO", CAN_PART: "PART", NOT_YET: "NOT YET", WILL_NOT: "WON'T", NOT_ASSESSED: "NOT CHECKED" };
 
-/** Why v4 waits, in words the CEO can act on (v4 ADR-0069). It tries again on its own within a minute. */
-const WAIT_LINE: Record<ReasoningWait, string> = {
-  NO_ENVELOPE: "No model budget is set, so no model is asked. Set one in Settings, under Model spend.",
-  CEILING_REACHED: "The model budget is used up, or this one call would pass its limit. Raise it in Settings, under Model spend.",
-  PROVIDER_UNAVAILABLE: "The model service didn't answer. Nothing is needed from you unless this stays here.",
-  ANSWER_UNUSABLE: "The model answered twice, and neither answer could be used. Nothing is needed from you unless this stays here.",
-};
 
 /** A request waiting for reasoning, with why and what the CEO can do (v4 ADR-0069). */
 function WaitingBlock({ waiting: w }: { waiting: NonNullable<Intent["waiting"]> }) {

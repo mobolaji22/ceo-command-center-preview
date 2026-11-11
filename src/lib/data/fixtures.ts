@@ -38,6 +38,7 @@ import type {
 } from "../model";
 import { RIGORS } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
+import { WAIT_LINE } from "../format";
 
 /**
  * Fixtures DataSource: an in-memory, localStorage-persisted demo of the Command Center's data.
@@ -1035,6 +1036,12 @@ export function createFixturesDataSource(): DataSource {
           s.guides![questionId]!.progress = { finished: steps.filter((x) => x.finished).length, total: steps.length, stuck: steps.filter((x) => x.logged?.state === "STUCK").length };
         });
         return r.error ? { data: null, error: r.error } : ok(structuredClone(load().guides![questionId]!));
+      },
+      // The demo has no model, so a question is refused as v4 refuses it with none switched on.
+      async askStep(questionId, stepId) {
+        const g = load().guides?.[questionId];
+        if (!g?.steps.some((x) => x.id === stepId)) return fail("That couldn't be found.", "NOT_FOUND");
+        return fail(WAIT_LINE.PROVIDER_UNAVAILABLE, "REASONING_UNAVAILABLE");
       },
     },
 

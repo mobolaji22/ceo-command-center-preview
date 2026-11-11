@@ -471,11 +471,15 @@ export type GuideStepState = "DONE" | "STUCK" | "SKIPPED";
 export type GuideStep = {
   id: string; title: string; how: string[]; done_when: string; proof: GuideProof; watch_out: string[]; sources: Array<{ title: string; url: string }>;
   finished: boolean;
+  /** What the step's person asked about this step, and v4's answer, oldest first. */
+  questions: Array<{ id: string; question: string; answer: string; sources: Array<{ title: string; url: string }>; unknowns: string[]; by_user_id: string; at: string }>;
   logged: { state: GuideStepState; note: string | null; link: string | null; asset_id: string | null; by_user_id: string; at: string } | null;
 };
 export type PersonGuide = {
   intervention_id: string; task_id: string; version: number; source: "PACK" | "MODEL"; objective: string | null; unknowns: string[];
   can_log: boolean; progress: { finished: number; total: number; stuck: number }; steps: GuideStep[];
+  /** Whether v4 has tailored it to the project; while it waits, the agency's standard guide stands. */
+  tailoring: { state: "TAILORED" } | { state: "WAITING"; reason: ReasoningWait } | { state: "PENDING" };
 };
 export type GuideLogEntry = { state: GuideStepState; note?: string; link?: string; assetId?: string };
 

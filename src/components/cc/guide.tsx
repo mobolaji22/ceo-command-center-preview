@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import type { GuideStep, GuideStepState, PersonGuide, Question } from "@/lib/model";
+import { WAIT_LINE } from "@/lib/format";
 
 /**
  * A person's step's guide (v4 ADR-0071): each step with how to approach it, what done looks like, what to watch out for and its
@@ -32,10 +33,18 @@ export function GuideBlock({ question, audience }: { question: Question; audienc
   return <section className="guide" aria-label="Step-by-step guide">
     <div className="section-label"><span>STEP BY STEP</span><span>{progressLine(g.progress)}</span></div>
     {g.objective && <p className="guide-objective">What it is for: {g.objective}</p>}
-    {audience === "agency" && g.source === "PACK" && <small className="guide-source">The agency's standard guide for this work.</small>}
+    {audience === "agency" && <TailoringLine g={g} />}
     <ol className="guide-steps">{g.steps.map((s) => <GuideStepItem key={s.id} step={s} question={question} canLog={g.can_log} audience={audience} />)}</ol>
     {g.unknowns.length > 0 && <div className="guide-unknowns"><b>Not settled yet</b><ul>{g.unknowns.map((u) => <li key={u}>{u}</li>)}</ul></div>}
   </section>;
+}
+
+/** Whether v4 has made the guide specific to this project, and if not, why the standard one stands (v4 ADR-0071 Decision 3). */
+function TailoringLine({ g }: { g: PersonGuide }) {
+  const t = g.tailoring;
+  if (t.state === "TAILORED") return <small className="guide-source">Written for this project by v4, on top of the agency's standard guide; specifics name their sources.</small>;
+  if (t.state === "WAITING") return <small className="guide-source">The agency's standard guide, not yet made specific to this project. {WAIT_LINE[t.reason]}</small>;
+  return <small className="guide-source">The agency's standard guide; v4 is making it specific to this project.</small>;
 }
 
 function GuideStepItem({ step: s, question, canLog, audience }: { step: GuideStep; question: Question; canLog: boolean; audience: "agency" | "client" }) {
@@ -48,6 +57,7 @@ function GuideStepItem({ step: s, question, canLog, audience }: { step: GuideSte
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [asking, setAsking] = useState("");
   const tag = s.logged?.state ?? "TODO";
 
   const send = async () => {
@@ -69,6 +79,16 @@ function GuideStepItem({ step: s, question, canLog, audience }: { step: GuideSte
     setBusy(false);
     if (r.error) { setMsg(r.error.message); return; }
     setState(null); setNote(""); setLink(""); setFile(null);
+    qc.setQueryData(["guide", question.id], r.data);
+  };
+
+  const ask = async () => {
+    if (asking.trim().length < 3) return;
+    setBusy(true); setMsg(null);
+    const r = await ds.questions.askStep(question.id, s.id, asking.trim());
+    setBusy(false);
+    if (r.error) { setMsg(r.error.message); return; }
+    setAsking("");
     qc.setQueryData(["guide", question.id], r.data);
   };
 
@@ -95,6 +115,15 @@ function GuideStepItem({ step: s, question, canLog, audience }: { step: GuideSte
             <textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>
           <Button className="approve-btn" disabled={busy} onClick={send}>Log it</Button>
         </div>}
+      </div>}
+      {s.questions.length > 0 && <ul className="guide-questions" aria-label="Questions on this step">{s.questions.map((q) => <li key={q.id}>
+        <b>{q.question}</b><p>{q.answer}</p>
+        {q.sources.length > 0 && <small>Sources: {q.sources.map((x, n) => <span key={x.url}>{n ? ", " : ""}<a href={x.url} target="_blank" rel="noreferrer noopener">{x.title}</a></span>)}</small>}
+        {q.unknowns.length > 0 && <small>Not settled: {q.unknowns.join("; ")}</small>}
+      </li>)}</ul>}
+      {canLog && <div className="guide-ask" role="group" aria-label={`Ask about ${s.title}`}>
+        <label>Ask v4 about this step<textarea value={asking} onChange={(e) => setAsking(e.target.value)} placeholder="What's in the way, or what you're unsure of" /></label>
+        <Button variant="ghost" disabled={busy || asking.trim().length < 3} onClick={ask}>Ask</Button>
       </div>}
       {msg && <p className="mmsg" role="status">{msg}</p>}
     </div>}

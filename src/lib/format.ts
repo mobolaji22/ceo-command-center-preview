@@ -1,9 +1,17 @@
-import type { ApprovalStatus, ArtifactStatus, ContextStatus, DecisionStatus, IntentStatus, PlanStatus, Project, ProjectStatus, RunStatus, ScanStatus, Task, TaskStatus } from "./model";
+import type { ReasoningWait, ApprovalStatus, ArtifactStatus, ContextStatus, DecisionStatus, IntentStatus, PlanStatus, Project, ProjectStatus, RunStatus, ScanStatus, Task, TaskStatus } from "./model";
 
 // Pure presentation helpers, copied from the preview's lib/v4.ts. No data access here.
 
 export const PROJECT_STATUSES: Project["status"][] = ["INTAKE","PROPOSED","ACTIVE","WAITING","DELIVERED","MONITORING","COMPLETED","PAUSED","CANCELLED","ARCHIVED"];
 export const TASK_STATUSES: Task["status"][] = ["PENDING","READY","RUNNING","WAITING","BLOCKED","FAILED","COMPLETED","CANCELLED"];
+
+/** Why v4 waits for a model, in words the CEO can act on (v4 ADR-0069). It tries again on its own within a minute. */
+export const WAIT_LINE: Record<ReasoningWait, string> = {
+  NO_ENVELOPE: "No model budget is set, so no model is asked. Set one in Settings, under Model spend.",
+  CEILING_REACHED: "The model budget is used up, or this one call would pass its limit. Raise it in Settings, under Model spend.",
+  PROVIDER_UNAVAILABLE: "No model answered: none is switched on, or the service didn't answer. Nothing is needed from you unless this stays here.",
+  ANSWER_UNUSABLE: "The model answered twice, and neither answer could be used. Nothing is needed from you unless this stays here.",
+};
 
 export const label = (s: string) => s.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
 export const riskLabel = (n: number | null | undefined) => (n == null ? "Unrated" : n <= 2 ? "Low" : n === 3 ? "Medium" : "High");

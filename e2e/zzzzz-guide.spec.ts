@@ -63,5 +63,11 @@ test("the CEO follows a person's step's guide, logs each step with its proof, an
   await delivery.getByRole("button", { name: "Log it" }).click();
   await expect(delivery.locator(".pill")).toHaveText("STUCK");
   await expect(guide).toContainText("1 of 9 steps done · 1 stuck");
+
+  // Asking about a step with no model switched on says so, rather than guessing (ADR-0071 Decision 6).
+  await delivery.getByLabel("Ask v4 about this step").fill("Which courier covers Lekki on weekends?");
+  await delivery.getByRole("button", { name: "Ask", exact: true }).click();
+  await expect(delivery.getByRole("status")).toContainText("No model answered");
+  await expect(guide).toContainText("The agency's standard guide");
   await shot(page, "A person's step with its guide: one step done, one stuck, and what is left");
 });

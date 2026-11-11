@@ -2,6 +2,7 @@ import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
 import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, PersonGuide, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
+import { WAIT_LINE } from "../format";
 
 /**
  * API DataSource: the dev-playbook-v4 API, reached only through this app's own server.
@@ -71,6 +72,9 @@ async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
       const detail = (json as { detail?: unknown } | null)?.detail;
       // A missing or wrong part of an answer is said exactly when v4 says which (which steps of a guide are still open, ADR-0071).
       if (code === "INVALID_PARAMS" && typeof detail === "string" && detail) return fail(detail.endsWith(".") ? detail : `${detail}.`, code);
+      // A model that cannot answer now says which wait it is (v4 ADR-0027): no budget, the limit, no model, or no usable answer.
+      const reason = (json as { reason?: unknown } | null)?.reason;
+      if (code === "REASONING_UNAVAILABLE" && typeof reason === "string" && reason in WAIT_LINE) return fail(WAIT_LINE[reason as keyof typeof WAIT_LINE], code);
       return fail(typeof issue === "string" && issue ? `${issue.replace(/\.$/, "")}.` : MESSAGES[code] ?? (typeof detail === "string" && detail ? detail : code.replace(/_/g, " ").toLowerCase()), code);
     }
     if (res.status >= 500) return fail(MESSAGES["SERVER_ERROR"]!, "SERVER_ERROR");
@@ -429,6 +433,9 @@ export function createApiDataSource(): DataSource {
       },
       async logStep(questionId, stepId, entry) {
         return call<PersonGuide>("POST", `/v1/interventions/${questionId}/guide/steps/${encodeURIComponent(stepId)}`, entry);
+      },
+      async askStep(questionId, stepId, question) {
+        return call<PersonGuide>("POST", `/v1/interventions/${questionId}/guide/steps/${encodeURIComponent(stepId)}/ask`, { question });
       },
     },
 
