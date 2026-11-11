@@ -145,3 +145,15 @@ export function seedFinishedBrandRun(ownerEmail: string): { projectId: string; p
   const out = execFileSync("npx", ["tsx", resolve("e2e/book-seed.mjs"), ownerEmail], { cwd: V4_DIR, encoding: "utf8", env: { ...process.env, DATABASE_URL: u.toString() } });
   return JSON.parse(out.trim().split("\n").at(-1)!) as { projectId: string; projectName: string };
 }
+
+/**
+ * Stands in for v4 having been refused a model call because no spending envelope is set (v4 ADR-0027): the end-to-end API runs in
+ * Demo, where the keyword reader always answers, so nothing ever waits on its own. The request is put back to waiting to be read.
+ */
+export function holdForBudget(textPattern: string) {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const sql = `UPDATE "Intent" SET status = 'AWAITING_REASONING', "reasoningWait" = 'NO_ENVELOPE', "reasoningStep" = 'INTERPRETATION', "reasoningTriedAt" = now()
+    WHERE "rawText" ILIKE '${textPattern}'`;
+  execFileSync("psql", [u.toString(), "-v", "ON_ERROR_STOP=1", "-c", sql], { stdio: "pipe" });
+}

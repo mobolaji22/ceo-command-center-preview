@@ -5,7 +5,7 @@ import { Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import type { NewAttachment } from "@/lib/data/types";
-import type { AgencyDelivery, Asset, ClientDelivery, ClientIntentView, Intent, MaterialWay } from "@/lib/model";
+import type { AgencyDelivery, Asset, ClientDelivery, ClientIntentView, Intent, MaterialWay, ReasoningWait } from "@/lib/model";
 import { useAuth } from "@/lib/auth";
 import { fmtAgo, label, statusTone } from "@/lib/format";
 import { Empty } from "./views";
@@ -100,6 +100,7 @@ export function IntentCard({ intent, canAnswer, refresh, part }: { intent: Inten
   const asks = part !== "plan";
 
   return <div className="intent-card" data-status={intent.status} data-part={part}>
+    {asks && intent.waiting && <WaitingBlock waiting={intent.waiting} />}
     {asks && intent.delivery && <AgencyDeliveryBlock intent={intent} delivery={intent.delivery} onDone={(m) => { setMsg(m); refresh(); }} onError={setMsg} />}
     {!part && <div className="resolved-row intent-head"><span>{intent.text}<small>{fmtAgo(intent.created_at)}{intent.source === "CEO_DIRECTIVE" ? " · from the agency" : ""}</small></span><span className={`pill ${tone(intent.status)}`}>{(STATUS_WORDS[intent.status] ?? label(intent.status)).toUpperCase()}</span></div>}
     {msg && <p className="mmsg" role="status">{msg}</p>}
@@ -122,7 +123,7 @@ export function IntentCard({ intent, canAnswer, refresh, part }: { intent: Inten
 
     {asks && (intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && intent.questions.length === 0 && intent.materials.length === 0 && !intent.delivery?.needs_answer && <p className="mmsg">Nothing more is needed from you right now.</p>}
 
-    {asks && part && intent.questions.length === 0 && intent.materials.length === 0 && intent.assumptions.length === 0 && !(intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && <p className="mmsg">Nothing is being asked on this request.</p>}
+    {asks && part && !intent.waiting && intent.questions.length === 0 && intent.materials.length === 0 && intent.assumptions.length === 0 && !(intent.status === "UNDERSTOOD" || intent.status === "PLANNED") && <p className="mmsg">Nothing is being asked on this request.</p>}
 
     {part !== "asks" && intent.project_id && (intent.status === "PLANNED" || intent.status === "UNDERSTOOD") && <PlanPanel projectId={intent.project_id} organizationId={intent.organization_id} onChanged={refresh} />}
   </div>;
@@ -230,7 +231,25 @@ const ITEM_WORDS: Record<AgencyDelivery["items"][number]["outcome"], string> = {
 const OUTCOME_LINE: Record<AgencyDelivery["outcome"], string> = {
   CAN: "We can deliver all of it.", CAN_PART: "We can deliver part of it; people stand in for the rest.",
   NOT_YET: "We can't build this yet.", WILL_NOT: "This is something we won't do.",
+  NOT_ASSESSED: "Not checked: the reading didn't name what the client would receive, so we haven't checked whether we can deliver it.",
 };
+const OUTCOME_TAG: Record<AgencyDelivery["outcome"], string> = { CAN: "CAN DO", CAN_PART: "PART", NOT_YET: "NOT YET", WILL_NOT: "WON'T", NOT_ASSESSED: "NOT CHECKED" };
+
+/** Why v4 waits, in words the CEO can act on (v4 ADR-0069). It tries again on its own within a minute. */
+const WAIT_LINE: Record<ReasoningWait, string> = {
+  NO_ENVELOPE: "No model budget is set, so no model is asked. Set one in Settings, under Model spend.",
+  CEILING_REACHED: "The model budget is used up, or this one call would pass its limit. Raise it in Settings, under Model spend.",
+  PROVIDER_UNAVAILABLE: "The model service didn't answer. Nothing is needed from you unless this stays here.",
+  ANSWER_UNUSABLE: "The model answered twice, and neither answer could be used. Nothing is needed from you unless this stays here.",
+};
+
+/** A request waiting for reasoning, with why and what the CEO can do (v4 ADR-0069). */
+function WaitingBlock({ waiting: w }: { waiting: NonNullable<Intent["waiting"]> }) {
+  return <div className="ask-block is-waiting" aria-label="Why it waits">
+    <div className="section-label"><span>WAITING TO {w.step === "PLAN" ? "PLAN" : "READ"} IT</span><span>{w.reason === "NO_ENVELOPE" || w.reason === "CEILING_REACHED" ? "NEEDS YOU" : "TRYING AGAIN"}</span></div>
+    <p className="mmsg">{WAIT_LINE[w.reason]}{w.tried_at ? ` Last tried ${fmtAgo(w.tried_at)}; it is tried again within a minute.` : ""}</p>
+  </div>;
+}
 
 /**
  * What the agency can deliver of a request, as the agency reads it (v4 ADR-0057 Decision 9). When nothing can be built yet, or
@@ -250,7 +269,7 @@ function AgencyDeliveryBlock({ intent, delivery: d, onDone, onError }: { intent:
     else onDone(answer === "DECLINE" ? "Declined. The client reads why." : "Taken on. It is planned with people standing in for what we can't build yet.");
   };
   return <div className={`ask-block delivery${d.needs_answer ? " is-waiting" : ""}`} aria-label="What we can deliver">
-    <div className="section-label"><span>WHAT WE CAN DELIVER</span><span>{d.outcome === "CAN_PART" ? "PART" : ITEM_WORDS[d.outcome === "NOT_YET" ? "NOT_YET" : d.outcome === "WILL_NOT" ? "WILL_NOT" : "CAN"].toUpperCase()}</span></div>
+    <div className="section-label"><span>WHAT WE CAN DELIVER</span><span>{OUTCOME_TAG[d.outcome]}</span></div>
     <p className="mmsg">{OUTCOME_LINE[d.outcome]}{d.answer ? ` You ${d.answer.answer === "DECLINE" ? "declined it" : "took it on"} ${fmtAgo(d.answer.at)}${d.answer.note ? `: “${d.answer.note}”` : "."}` : ""}</p>
     <ul className="delivery-items">{d.items.map((x, n) => <li key={n} data-outcome={x.outcome}><span className={`pill ${x.outcome === "CAN" ? "green" : x.outcome === "NOT_YET" ? "amber" : "red"}`}>{ITEM_WORDS[x.outcome].toUpperCase()}</span> <b>{x.description}</b><small>{x.reason}</small></li>)}</ul>
     {d.needs_answer && (auth.isOwner

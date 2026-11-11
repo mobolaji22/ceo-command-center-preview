@@ -150,8 +150,13 @@ export type V4Event = {
 
 export type IntentStatus = "PROPOSED" | "RECEIVED" | "CLARIFYING" | "AWAITING_REASONING" | "UNDERSTOOD" | "PLANNED" | "SUPERSEDED" | "REJECTED";
 export type MaterialWay = "UPLOAD" | "LINK" | "CONNECT" | "NONE" | "SOURCE";
-/** What the agency can deliver of a request (v4 ADR-0057 Decision 9): all of it, part of it, not yet, or nothing it will do. */
-export type Feasibility = "CAN" | "CAN_PART" | "NOT_YET" | "WILL_NOT";
+/**
+ * What the agency can deliver of a request (v4 ADR-0057 Decision 9): all of it, part of it, not yet, or nothing it will do; or not
+ * assessed, when the reading named nothing the client receives (v4 ADR-0069).
+ */
+export type Feasibility = "CAN" | "CAN_PART" | "NOT_YET" | "WILL_NOT" | "NOT_ASSESSED";
+/** Why v4 is waiting to read or plan a request (v4 ADR-0027): it always names one. */
+export type ReasoningWait = "NO_ENVELOPE" | "CEILING_REACHED" | "PROVIDER_UNAVAILABLE" | "ANSWER_UNUSABLE";
 /**
  * The agency's answer to "can we deliver this?", as the agency reads it: each thing asked for, whether it can be built now and why,
  * and whether the CEO must answer before the client reads anything. Absent when everything can be done.
@@ -194,6 +199,8 @@ export type Intent = {
   materials: Array<{ requirement_id: string; name: string; why: string; if_missing: string; required: boolean; ways: MaterialWay[]; sourcing: boolean; items?: string[] | undefined }>
   /** What the agency can deliver of it, unless everything (v4 sends it once a request is understood). */
   delivery?: AgencyDelivery | null | undefined
+  /** Why it waits for reasoning, while it does (v4 ADR-0069); the agency's console only. */
+  waiting?: { reason: ReasoningWait; step: "INTERPRETATION" | "PLAN"; tried_at: string | null } | null | undefined
 };
 
 export type PlanStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REVISION_REQUESTED" | "REJECTED" | "SUPERSEDED";
