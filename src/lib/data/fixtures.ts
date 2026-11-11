@@ -35,6 +35,7 @@ import type {
   Intent,
   SessionView,
   SpendView,
+  TeamView,
 } from "../model";
 import { RIGORS } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
@@ -132,7 +133,7 @@ const STATUS_LINE = (i: { status: string; questions: unknown[]; delivery?: { out
   : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
   : { kind: "PLANNING", line: "We're preparing your plan." };
 
-type Store = { guides?: Record<string, PersonGuide>; standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand> };
+type Store = { team?: TeamView; guides?: Record<string, PersonGuide>; standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand> };
 
 /**
  * A project's design document in the demo, as v4 keeps it: the approved versions, and the one revision being worked on (a draft, one
@@ -349,6 +350,12 @@ function applyAnswer(s: Store, q: Question, answer: Answer) {
   if (project && ["WAITING", "PAUSED"].includes(project.status)) { project.status = "ACTIVE"; project.wait_reason = null; }
   if (s.budgets[q.project_id]) s.budgets[q.project_id]!.run_status = "RUNNING";
   s.questions = s.questions.filter((x) => x.id !== q.id);
+}
+
+/** The demo agency's team: the CEO, and the work the packs let a person on the team run. */
+function teamOf(s: Store): TeamView {
+  s.team ??= { agencyId: "o-agency", members: [{ userId: "u-ceo", email: "ceo@example.com", name: "Ola", role: "CEO" }], roles: [], work: [{ id: "hosted-store-setup", domain: "ENGINEERING" }] };
+  return s.team;
 }
 
 function load(): Store {
@@ -713,6 +720,34 @@ export function createFixturesDataSource(): DataSource {
       },
     },
 
+    // The agency's team as v4 holds it (ADR-0072): the CEO alone until someone is invited; every change asks for the code first.
+    team: {
+      async get() { return ok(structuredClone(teamOf(load()))); },
+      async invite(email) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        const e = email.trim().toLowerCase();
+        if (!e.includes("@")) return fail("That doesn't look like an email address.", "INVALID_EMAIL");
+        return mutate((s) => { const t = teamOf(s); if (!t.members.some((m) => m.email === e)) t.members.push({ userId: id(), email: e, name: null, role: "AGENCY_STAFF" }); s.team = t; });
+      },
+      async createRole(input) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        if (input.name.trim().length < 2) return fail("A job role's name is 2 to 60 characters.", "INVALID_JOB_ROLE");
+        if (!input.capabilities.length) return fail("A job role covers at least one kind of work.", "INVALID_JOB_ROLE");
+        return mutate((s) => { const t = teamOf(s); t.roles.push({ id: id(), name: input.name.trim(), capabilities: input.capabilities, retired: false, holderIds: [] }); s.team = t; });
+      },
+      async changeRole(roleId, input) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        return mutate((s) => { const r = teamOf(s).roles.find((x) => x.id === roleId); if (!r) throw new Error("No such job role."); Object.assign(r, input); });
+      },
+      async grant(roleId, userId) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        return mutate((s) => { const r = teamOf(s).roles.find((x) => x.id === roleId); if (r && !r.holderIds.includes(userId)) r.holderIds.push(userId); });
+      },
+      async revoke(roleId, userId) {
+        if (!steppedUp) return fail("For safety, please confirm it's you first.", "STEP_UP_REQUIRED");
+        return mutate((s) => { const r = teamOf(s).roles.find((x) => x.id === roleId); if (r) r.holderIds = r.holderIds.filter((x) => x !== userId); });
+      },
+    },
     settings: {
       async system() {
         // The demo is the agency in Demo mode: requests are read with keywords and planned from templates, and nothing waits.
@@ -1036,6 +1071,9 @@ export function createFixturesDataSource(): DataSource {
           s.guides![questionId]!.progress = { finished: steps.filter((x) => x.finished).length, total: steps.length, stuck: steps.filter((x) => x.logged?.state === "STUCK").length };
         });
         return r.error ? { data: null, error: r.error } : ok(structuredClone(load().guides![questionId]!));
+      },
+      async materials(questionId) {
+        return load().guides?.[questionId] ? ok({ design: null, work: [] }) : fail("That couldn't be found.", "NOT_FOUND");
       },
       // The demo has no model, so a question is refused as v4 refuses it with none switched on.
       async askStep(questionId, stepId) {

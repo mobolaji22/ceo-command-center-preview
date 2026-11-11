@@ -1,6 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, PersonGuide, GuideLogEntry, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, PersonGuide, GuideLogEntry, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, StepMaterials, TeamView } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -207,6 +207,8 @@ export interface DataSource {
     logStep(questionId: string, stepId: string, entry: GuideLogEntry): Promise<Result<PersonGuide>>;
     /** The step's person asks v4 about one step; the answer is kept on the guide. Refused, with why, when no model can answer. */
     askStep(questionId: string, stepId: string, question: string): Promise<Result<PersonGuide>>;
+    /** What a person's step applies: the approved design and the finished design and copy it waits on, read-only. */
+    materials(questionId: string): Promise<Result<StepMaterials>>;
   };
   /**
    * What people are told (CC-5). A brief is written from records and every statement names the records it comes from, so the
@@ -225,6 +227,15 @@ export interface DataSource {
    * person is signed in. Changing money (the fee, a rate, the envelope) needs a fresh proof; v4 refuses otherwise, and it never
    * reaches a client.
    */
+  /** The agency's team (v4 ADR-0072). The CEO's alone; every change asks for a fresh emailed code. */
+  team: {
+    get(): Promise<Result<TeamView>>;
+    invite(email: string): Promise<Result>;
+    createRole(input: { name: string; capabilities: string[] }): Promise<Result>;
+    changeRole(id: string, input: { name?: string; capabilities?: string[]; retired?: boolean }): Promise<Result>;
+    grant(roleId: string, userId: string): Promise<Result>;
+    revoke(roleId: string, userId: string): Promise<Result>;
+  };
   settings: {
     system(): Promise<Result<SystemView>>;
     fees(): Promise<Result<FeesView>>;

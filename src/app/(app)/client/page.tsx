@@ -67,7 +67,7 @@ export default function ClientCenter() {
   const [keySheet, setKeySheet] = useState(false);
   const day = useLighting() === "day";
 
-  useEffect(() => { if (!auth.loading && auth.user && auth.isOwner) router.replace("/"); }, [auth, router]);
+  useEffect(() => { if (!auth.loading && auth.user && (auth.isOwner || auth.isStaff)) router.replace(auth.isStaff ? "/team" : "/"); }, [auth, router]);
   const q = useQuery({ queryKey: ["client-data"], queryFn: () => ds.queries.clientData(), enabled: auth.isClient });
   const asked = useQuery({ queryKey: ["questions", "all"], queryFn: async () => { const r = await ds.questions.list(); if (r.error) throw new Error(r.error.message); return r.data!; }, enabled: auth.isClient });
   // The library lives beside the data but loads its own; bumping the tick makes it look again whenever something changed.

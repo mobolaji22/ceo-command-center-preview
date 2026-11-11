@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, PersonGuide, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, PersonGuide, StepMaterials, TeamView, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 import { WAIT_LINE } from "../format";
 
@@ -434,6 +434,9 @@ export function createApiDataSource(): DataSource {
       async logStep(questionId, stepId, entry) {
         return call<PersonGuide>("POST", `/v1/interventions/${questionId}/guide/steps/${encodeURIComponent(stepId)}`, entry);
       },
+      async materials(questionId) {
+        return call<StepMaterials>("GET", `/v1/interventions/${questionId}/materials`);
+      },
       async askStep(questionId, stepId, question) {
         return call<PersonGuide>("POST", `/v1/interventions/${questionId}/guide/steps/${encodeURIComponent(stepId)}/ask`, { question });
       },
@@ -463,6 +466,18 @@ export function createApiDataSource(): DataSource {
       },
     },
 
+    team: {
+      async get() { return call<TeamView>("GET", "/v1/team"); },
+      async invite(email) {
+        const team = await call<TeamView>("GET", "/v1/team");
+        if (team.error || !team.data) return { data: null, error: team.error };
+        return voidResult(await call("POST", "/v1/invitations", { organizationId: team.data.agencyId, email, role: "AGENCY_STAFF" }));
+      },
+      async createRole(input) { return voidResult(await call("POST", "/v1/team/roles", input)); },
+      async changeRole(id, input) { return voidResult(await call("PATCH", `/v1/team/roles/${encodeURIComponent(id)}`, input)); },
+      async grant(roleId, userId) { return voidResult(await call("POST", `/v1/team/roles/${encodeURIComponent(roleId)}/holders`, { userId })); },
+      async revoke(roleId, userId) { return voidResult(await call("DELETE", `/v1/team/roles/${encodeURIComponent(roleId)}/holders/${encodeURIComponent(userId)}`)); },
+    },
     settings: {
       async system() {
         const r = await call<{ agencyMode: SystemView["agency_mode"]; readsWith: SystemView["reads_with"]; modelSwitchedOn: boolean; waiting: SystemView["waiting"]; revisionsWaiting: number }>("GET", "/v1/settings/system");

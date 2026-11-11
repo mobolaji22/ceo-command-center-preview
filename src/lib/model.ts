@@ -13,7 +13,8 @@ export type ProjectStatus =
   | "INTAKE" | "PROPOSED" | "ACTIVE" | "WAITING" | "DELIVERED" | "MONITORING" | "COMPLETED" | "PAUSED" | "CANCELLED" | "ARCHIVED";
 export type ContextStatus =
   | "MISSING" | "REQUESTED" | "PARTIALLY_RECEIVED" | "RECEIVED" | "ASSUMED" | "VALIDATED" | "REJECTED" | "EXPIRED";
-export type AppRole = "owner" | "client";
+/** Who is signed in: the CEO, a client's person, or a member of the agency's team, who sees only their steps (v4 ADR-0072). */
+export type AppRole = "owner" | "client" | "staff";
 export type ApprovalStatus = "REQUESTED" | "GRANTED" | "REJECTED" | "EXPIRED";
 export type ArtifactStatus = "DRAFT" | "PROPOSED" | "APPROVED" | "REJECTED" | "SUPERSEDED" | "FINAL";
 export type DecisionStatus = "PROPOSED" | "WAITING_FOR_HUMAN" | "ACCEPTED" | "REJECTED" | "DEFERRED" | "SUPERSEDED";
@@ -482,6 +483,16 @@ export type PersonGuide = {
   tailoring: { state: "TAILORED" } | { state: "WAITING"; reason: ReasoningWait } | { state: "PENDING" };
 };
 export type GuideLogEntry = { state: GuideStepState; note?: string; link?: string; assetId?: string };
+/** What a person's step applies (v4 ADR-0072): the approved design document and the finished design and copy work it waits on. */
+export type StepMaterials = {
+  design: { version: number; document: unknown } | null;
+  work: Array<{ planTaskId: string | null; title: string; domain: string; capability: string; outputs: unknown }>;
+};
+
+/** The agency's team (v4 ADR-0072): its members, the job roles the CEO defines, and the work a person on the team can be given. */
+export type TeamMember = { userId: string; email: string; name: string | null; role: string };
+export type JobRoleView = { id: string; name: string; capabilities: string[]; retired: boolean; holderIds: string[] };
+export type TeamView = { agencyId: string; members: TeamMember[]; roles: JobRoleView[]; work: Array<{ id: string; domain: string }> };
 
 /* ---- What people are told (CC-5): briefs, the sources behind each statement, and how a person wants to be told ---- */
 

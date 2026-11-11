@@ -11,6 +11,7 @@ import type { OwnerData, Question, RunStatus, RunTask } from "@/lib/model";
 import { PlanPanel } from "./plans";
 import { ProjectGoal } from "./objective";
 import { DirectionsFor } from "./workshop/directions";
+import { StepMaterialsBlock } from "./guide";
 import { useStepUp } from "./step-up";
 import { GuideBlock, useGuide } from "./guide";
 
@@ -19,7 +20,8 @@ import { GuideBlock, useGuide } from "./guide";
  * hand on the brake. One component for the CEO's computer and the client's room; the audience only changes the words and what
  * is shown. Nothing here decides who may do what: the API does, and its refusal is shown as it is.
  */
-export type Audience = "agency" | "client";
+/** Who reads a question: the CEO, a client's person, or a member of the agency's team, who sees only their steps (v4 ADR-0072). */
+export type Audience = "agency" | "client" | "staff";
 
 const WHY: Record<string, string> = {
   AWAITING_APPROVAL: "your go-ahead", AWAITING_CLARIFICATION: "an answer", AWAITING_CONTEXT: "some information", AWAITING_CREDENTIAL: "access",
@@ -178,7 +180,7 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
   // A person's step with a guide (v4 ADR-0071) is done when its log says so; the note is then only something to add.
   const guided = Boolean(useGuide(x).data);
 
-  const askedOf = audience === "client" ? null : x.routed_to === "CEO" ? "Asked of you." : "Asked of the client's owner. You can answer for them only if they have allowed it.";
+  const askedOf = audience === "client" ? null : audience === "staff" || x.routed_to === "CEO" ? "Asked of you." : "Asked of the client's owner. You can answer for them only if they have allowed it.";
   const confirm = async () => {
     if (!choice) return;
     setBusy(true); setMsg(null);
@@ -195,8 +197,9 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
   return <article className="question" aria-label={x.title}>
     <div className="question-head"><b>{x.title}</b><small>{audience === "agency" ? `${label(x.reason)} · ` : ""}{x.deadline && x.reason !== "PAUSED_BY_OWNER" ? `answer by ${fmtDate(x.deadline)}` : x.status === "EXPIRED" ? (held ? "overdue · the work stays on hold until it is answered" : "overdue") : ""}</small></div>
     <p className="question-summary">{x.summary}</p>
-    <DirectionsFor projectId={x.project_id} onChosen={onChanged} />
-    {x.reason === "HUMAN_TASK" && <GuideBlock question={x} audience={audience} />}
+    {audience !== "staff" && <DirectionsFor projectId={x.project_id} onChosen={onChanged} />}
+    {x.reason === "HUMAN_TASK" && <GuideBlock question={x} audience={audience === "client" ? "client" : "agency"} />}
+    {audience === "staff" && x.reason === "HUMAN_TASK" && <StepMaterialsBlock question={x} />}
     {audience === "agency" && x.detail && <p className="question-detail">{x.detail}</p>}
     {askedOf && <small className="question-asked">{askedOf}</small>}
     <div className="question-options" role="group" aria-label="Answers">

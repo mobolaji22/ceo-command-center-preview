@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import type { GuideStep, GuideStepState, PersonGuide, Question } from "@/lib/model";
 import { WAIT_LINE } from "@/lib/format";
+import type { SddDocument } from "@/lib/design/v4";
 
 /**
  * A person's step's guide (v4 ADR-0071): each step with how to approach it, what done looks like, what to watch out for and its
@@ -128,4 +129,35 @@ function GuideStepItem({ step: s, question, canLog, audience }: { step: GuideSte
       {msg && <p className="mmsg" role="status">{msg}</p>}
     </div>}
   </li>;
+}
+
+/** The words in a finished step's output: every string it holds, in order, so copy reads as copy and not as data. */
+function wordsOf(v: unknown, out: string[] = []): string[] {
+  if (typeof v === "string") { if (v.trim()) out.push(v.trim()); }
+  else if (Array.isArray(v)) v.forEach((x) => wordsOf(x, out));
+  else if (v && typeof v === "object") Object.values(v).forEach((x) => wordsOf(x, out));
+  return out;
+}
+
+/**
+ * What a team member's step applies (v4 ADR-0072): the approved design's tokens and pages, and the finished design and copy work the
+ * step waits on, read-only. It is all a team member sees of the project; the plan, prices and budgets stay with the CEO.
+ */
+export function StepMaterialsBlock({ question }: { question: Question }) {
+  const ds = useDataSource();
+  const m = useQuery({ queryKey: ["materials", question.id], queryFn: async () => { const r = await ds.questions.materials(question.id); if (r.error) throw new Error(r.error.message); return r.data; } }).data;
+  if (!m) return null;
+  const doc = m.design?.document as SddDocument | undefined;
+  const colours = Object.entries(doc?.tokens?.colour ?? {}).filter((e): e is [string, string] => typeof e[1] === "string");
+  const pages = [...new Set((doc?.frames ?? []).map((f) => f.page).filter((p): p is string => Boolean(p)))];
+  return <section className="step-materials" aria-label="What this step applies">
+    <div className="section-label"><span>WHAT YOU ARE APPLYING</span><span>read-only</span></div>
+    {m.design ? <div className="step-design">
+      <b>The approved design, version {m.design.version}</b>
+      {pages.length > 0 && <small>Pages: {pages.join(", ")}</small>}
+      {colours.length > 0 && <ul className="step-swatches" aria-label="Colours">{colours.map(([k, c]) => <li key={k}><i style={{ background: c }} />{k} <code>{c}</code></li>)}</ul>}
+    </div> : <small>No design is approved for this project yet.</small>}
+    {m.work.map((w) => <details key={w.planTaskId ?? w.title} className="step-work"><summary>{w.title}</summary>
+      {wordsOf(w.outputs).slice(0, 60).map((t, n) => <p key={n}>{t}</p>)}</details>)}
+  </section>;
 }
