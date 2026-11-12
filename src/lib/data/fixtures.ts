@@ -164,12 +164,26 @@ const demoPlan = (): PlanContent => ({
   unstaffed: ["COMPLIANCE"], exempt: [],
 });
 
-/** The demo plan's one open decision (v4 ADR-0068): the ranking step waits for it; nothing else does. */
+/**
+ * The demo plan's one open decision (v4 ADR-0068): the ranking step waits for it; nothing else does. And one suggestion the agency
+ * offered against what was asked (ADR-0073): the plan follows the ask, and the suggestion holds nothing.
+ */
 const demoLedger = (): LedgerDecision[] => [{
   id: "ld-1", project_id: "p-1", question: "Should the ranking count in-store sales as well as online orders?",
   options: [{ id: "online", label: "Online orders only", tradeoff: "Matches the goal; in-store favourites may rank low." }, { id: "both", label: "Online and in-store", tradeoff: "A fuller picture; needs the till exports." }],
   recommendation: { option_id: "online", label: "Online orders only", why: "The goal is online orders, and the till exports are not held yet." },
-  state: "OPEN", resolution: null, selected_option: null, disposition: "ASK", authority: null, holds: ["BUSINESS"], created_at: new Date(Date.now() - 864e5 * 19).toISOString(), resolved_at: null,
+  state: "OPEN", resolution: null, selected_option: null, disposition: "ASK", authority: null, holds: ["BUSINESS"], counsel: null, created_at: new Date(Date.now() - 864e5 * 19).toISOString(), resolved_at: null,
+}, {
+  id: "ld-2", project_id: "p-1", question: "A separate ordering app, or ordering on the redesigned storefront?",
+  options: [{ id: "app", label: "A separate ordering app, as asked", tradeoff: "Store fees, an install step, and two things to keep up." }, { id: "web", label: "Ordering on the storefront, saved to the home screen", tradeoff: "No install; one thing to keep up." }],
+  recommendation: { option_id: "web", label: "Ordering on the storefront, saved to the home screen", why: "The goal is more online orders, and every install step loses buyers." },
+  state: "OPEN", resolution: null, selected_option: null, disposition: "PROCEED_WITH_ASSUMPTION", authority: null, holds: [],
+  counsel: {
+    kind: "BETTER_FIT", asked: "a separate ordering app", concern: "An app adds an install step between a shopper and an order, which works against more online orders.",
+    evidence: [{ class: "OBSERVED", says: "Your goal: lift online orders by 25% in a quarter." }, { class: "HYPOTHESIS", says: "Most shoppers will not install an app for a shop they use now and then." }],
+    keep_option_id: "app",
+  },
+  created_at: new Date(Date.now() - 864e5 * 19).toISOString(), resolved_at: null,
 }];
 
 function seed(): Store {

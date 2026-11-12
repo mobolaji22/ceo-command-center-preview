@@ -91,8 +91,23 @@ export type LedgerDecision = {
   authority: AuthorityKind | null
   /** The domains whose work waits for it when no step names it. */
   holds: string[]
+  /**
+   * v4 ADR-0073: set when this is the agency pushing back on what was asked. The work follows `keep_option_id` (the owner's ask)
+   * until they choose otherwise; taking the suggestion changes the plan.
+   */
+  counsel: Counsel | null
   created_at: string
   resolved_at: string | null
+};
+
+/** What a counsel's evidence rests on: what the owner said or holds, a source read, what follows from those, or judgment. */
+export type CounselEvidenceClass = "OBSERVED" | "VERIFIED" | "DERIVED" | "HYPOTHESIS";
+export type Counsel = {
+  kind: "BETTER_FIT" | "RISK" | "COST" | "MISSING"
+  asked: string
+  concern: string
+  evidence: Array<{ class: CounselEvidenceClass; says: string }>
+  keep_option_id: string
 };
 
 export type Approval = {

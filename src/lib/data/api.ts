@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -146,13 +146,16 @@ type ApiLedger = {
   id: string; projectId: string; question: string; options: Array<{ id: string; label: string; tradeoff?: string | null }>;
   recommendation: { optionId?: string; label?: string; why?: string | null } | null; state: LedgerDecision["state"]; resolution: LedgerDecision["resolution"];
   selectedOption: { id: string; label: string } | null; disposition: LedgerDecision["disposition"]; authority: LedgerDecision["authority"]; holds: string[];
+  counsel?: { kind: Counsel["kind"]; asked: string; concern: string; evidence: Counsel["evidence"]; keepOptionId: string } | null;
   createdAt: string; resolvedAt: string | null;
 };
 const toLedger = (d: ApiLedger): LedgerDecision => ({
   id: d.id, project_id: d.projectId, question: d.question, options: d.options.map((o) => ({ id: o.id, label: o.label, tradeoff: o.tradeoff ?? null })),
   recommendation: d.recommendation?.optionId && d.recommendation.label ? { option_id: d.recommendation.optionId, label: d.recommendation.label, why: d.recommendation.why ?? null } : null,
   state: d.state, resolution: d.resolution, selected_option: d.selectedOption ? { id: d.selectedOption.id, label: d.selectedOption.label } : null,
-  disposition: d.disposition, authority: d.authority, holds: d.holds, created_at: d.createdAt, resolved_at: d.resolvedAt,
+  disposition: d.disposition, authority: d.authority, holds: d.holds,
+  counsel: d.counsel ? { kind: d.counsel.kind, asked: d.counsel.asked, concern: d.counsel.concern, evidence: d.counsel.evidence, keep_option_id: d.counsel.keepOptionId } : null,
+  created_at: d.createdAt, resolved_at: d.resolvedAt,
 });
 
 const toPlan = (c: ApiPlan): PlanContent => ({
