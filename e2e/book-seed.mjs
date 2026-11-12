@@ -1,7 +1,8 @@
 // Runs inside the v4 checkout (cwd = V4_DIR) so it can use v4's own code. Stands in for a finished Brand run on the client's newest
 // project: a chosen position with a clean handoff lint, Content's brand kit, and Market's research still drafted (no snapshot can be
 // filled before live research, ADR-0042 wave B). Every output is checked against its pack's schema first, so the book the test reads
-// is the one v4 would build from a real run.
+// is the one v4 would build from a real run. Compliance's screen (v4 ADR-0075) is checked by v4's own floor, which writes its records,
+// as it would after a screen run with nothing read.
 // Usage: tsx book-seed.mjs <client owner email>. Prints the project the book belongs to.
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
@@ -9,6 +10,7 @@ const root = process.cwd();
 const { PrismaClient } = createRequire(`${root}/package.json`)("@prisma/client");
 const { packRegistry } = await import(`${root}/packages/packs/src/index.ts`);
 const { BOOK_CHAPTER_WRITERS } = await import(`${root}/packages/contracts/src/index.ts`);
+const { checkSpanOutput } = await import(`${root}/packages/runs/src/span-checks.ts`);
 // Which domain writes each chapter is v4's to say; this only asks.
 const writerOf = (capability) => Object.entries(BOOK_CHAPTER_WRITERS).find(([, c]) => c === capability)[0];
 
@@ -70,11 +72,21 @@ const kit = {
   key_messages: [{ audience: "Home brewers", message: "You can see when your coffee was roasted.", proof: "The roast date on every bag." }],
   open_items: [],
 };
+const unread = { locator: null, quote: null, authority: "NONE", title: null };
+const screen = {
+  scope: { activity: "A coffee roastery's online shop that takes card payments", jurisdictions: [], called_up_by: [{ domain: "ENGINEERING", condition: "The work processes payments." }] },
+  obligations: [
+    { id: "o1", statement: "Show a refund policy before customers pay.", category: "PLATFORM_RULE", source: unread, applicability: "CONDITIONAL", condition: "If the payment provider's terms require one.", rationale: "The shop takes card payments.", status: "UNKNOWN", risk: 2, specialist: "NONE", controls: [{ owner: "ENGINEERING", requirement: "The refund policy is linked beside the pay button.", evidence: "The link on the checkout page." }] },
+    { id: "o2", statement: "Customers' details may be used only as the privacy law of the place of business allows.", category: "LAW_OR_REGULATION", source: unread, applicability: "UNRESOLVED", condition: null, rationale: "No place of business was stated, so the law is not known.", status: "UNKNOWN", risk: 4, specialist: "PRIVACY", controls: [{ owner: "ENGINEERING", requirement: "A privacy notice linked beside every form that asks for details.", evidence: "The link on the checkout form." }] },
+  ],
+  questions: [{ question: "Where is the roastery registered as a business?", changes: "o2: which privacy law applies." }],
+  limitations: ["No source was read."],
+};
 const research = JSON.parse(readFileSync(`${root}/tests/fixtures/golden-seeds/research-orbit-competitors.json`, "utf8"));
 
 try {
   const registry = packRegistry();
-  for (const [capability, output] of [["brand-direction", direction], ["brand-kit", kit], ["research", research]]) {
+  for (const [capability, output] of [["brand-direction", direction], ["brand-kit", kit], ["research", research], ["obligation-screen", screen]]) {
     const check = registry.outputSchemaOf(capability).validator.safeParse(output);
     if (!check.success) throw new Error(`${capability}: ${JSON.stringify(check.error.issues.slice(0, 3))}`);
   }
@@ -90,7 +102,10 @@ try {
     version, content: {}, impact: 1, reversibility: 4, decisionOwner: "CEO", authority: {}, proposedBy: "e2e", correlationId: "e2e-book",
   } });
   const run = await db.run.create({ data: { organizationId: project.organizationId, projectId: project.id, proposalId: plan.id, planVersion: version, status: "COMPLETED", endedAt: new Date() } });
-  const done = (capability, outputs) => ({ projectId: project.id, runId: run.id, planTaskId: capability, title: capability, domain: writerOf(capability), capability, status: "COMPLETED", outputs, completedAt: new Date() });
-  await db.task.createMany({ data: [done("brand-direction", direction), done("brand-kit", kit), done("research", research)] });
+  const done = (capability, outputs, domain = writerOf(capability)) => ({ projectId: project.id, runId: run.id, planTaskId: capability, title: capability, domain, capability, status: "COMPLETED", outputs, completedAt: new Date() });
+  const floor = checkSpanOutput(["obligation-screen"], screen, { capability: "obligation-screen", schemaId: "e2e", readerText: [], engaged: ["ENGINEERING"], now: new Date() });
+  if (floor.blocking.length) throw new Error(`obligation-screen: ${floor.blocking.join("; ")}`);
+  await db.task.createMany({ data: [done("brand-direction", direction), done("brand-kit", kit), done("research", research),
+    done("obligation-screen", { ...screen, ...floor.records }, "COMPLIANCE")] });
   console.log(JSON.stringify({ projectId: project.id, projectName: project.name }));
 } finally { await db.$disconnect(); }

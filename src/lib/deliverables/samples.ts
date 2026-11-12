@@ -151,6 +151,32 @@ function sampleMarketReport(audience: MarketReportView["audience"], completedAt:
   };
 }
 
+/** What to settle before going live (v4 ADR-0075): one item read from a platform's terms, one for the client's own counsel. */
+export function sampleObligationScreen(audience: ClientBookView["audience"], completedAt: string): NonNullable<ClientBookView["compliance"]> {
+  return {
+    kind: "OBLIGATION_SCREEN", audience, source: source("t-screen", "pack:COMPLIANCE/obligation-screen.output/1", completedAt),
+    state: "SOURCED", notYet: null, sourcesRead: 1,
+    counsel: { notice: "This screen is not legal advice. Before the work goes live, please ask your own legal counsel about the items listed here.", obligationIds: ["o2"] },
+    scope: { activity: "A bakery's order page that takes card payments and customers' phone numbers", jurisdictions: ["United Kingdom"] },
+    items: [
+      {
+        id: "o1", statement: "Show a refund policy before customers pay.", category: "PLATFORM_RULE", applicability: "APPLICABLE", condition: null,
+        rationale: "The order page takes payments through this provider.", status: "FACT", risk: 3, specialist: "NONE",
+        source: { title: "Merchant terms", locator: "https://payments.example/terms", authority: "PLATFORM_RULE", quote: "display a refund policy on their checkout page" },
+        controls: [{ owner: "ENGINEERING", requirement: "The refund policy is linked beside the pay button.", evidence: "The link on the order page." }, { owner: "BUSINESS", requirement: "A written refund policy.", evidence: "The policy, approved by the owner." }],
+      },
+      {
+        id: "o2", statement: "Customers' phone numbers may only be used for their order unless they agree to more.", category: "LAW_OR_REGULATION", applicability: "UNRESOLVED", condition: null,
+        rationale: "No source was read on how the numbers may be used for marketing.", status: "UNKNOWN", risk: 4, specialist: "PRIVACY",
+        source: { title: null, locator: null, authority: "NONE", quote: null },
+        controls: [{ owner: "ENGINEERING", requirement: "No marketing box ticked by default.", evidence: "The order form, unticked." }],
+      },
+    ],
+    questions: [{ question: "Will you text customers about offers, or only about their order?", changes: "o2: whether consent to marketing is needed." }],
+    limitations: ["Tax obligations were not screened."],
+  };
+}
+
 export function sampleBook(audience: ClientBookView["audience"], completedAt: string): ClientBookView {
-  return { kind: "BOOK", audience, brand: sampleBrandBook(audience, completedAt), market: sampleMarketReport(audience, completedAt), toCome: [] };
+  return { kind: "BOOK", audience, brand: sampleBrandBook(audience, completedAt), market: sampleMarketReport(audience, completedAt), compliance: sampleObligationScreen(audience, completedAt), toCome: [] };
 }

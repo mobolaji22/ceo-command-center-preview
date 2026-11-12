@@ -53,6 +53,16 @@ test("the CEO reads the whole book in the Brand room, the drafted market chapter
   await chapter(book, /What it means for you/).click();
   await expect(book.getByText("What this means for the business is still to be written.")).toBeVisible();
 
+  // What to settle before going live (v4 ADR-0075): v4's notice to ask counsel comes first, and with nothing read, nothing applies yet.
+  await chapter(book, /Before it goes live/).click();
+  await expect(book.getByRole("note")).toHaveText("This screen is not legal advice. Before the work goes live, please ask your own legal counsel about the items listed here.");
+  await expect(book.getByRole("status")).toContainText("Not yet confirmed, because no source was read");
+  const privacy = book.getByRole("listitem", { name: /Customers' details may be used only/ });
+  await expect(privacy).toContainText("Not settled yet");
+  await expect(privacy).toContainText("Ask a privacy specialist about this one.");
+  await expect(privacy).toContainText("A privacy notice linked beside every form");
+  await expect(book.getByText(/compliant/i)).toHaveCount(0);
+
   await chapter(book, /The brand/).click();
   const keep = book.getByRole("complementary", { name: "Keep this brand" });
   await keep.getByRole("button", { name: "Propose keeping it" }).click();
@@ -69,6 +79,7 @@ test("the client's owner reads the brand chapters, is told the market is still t
   await expect(book.getByRole("list", { name: "Still to come" })).toContainText("The market chapters arrive once the research is complete and judged sufficient.");
   await expect(chapter(book, /The market/)).toHaveCount(0);
   await expect(chapter(book, /Selling it/)).toBeVisible();
+  await expect(chapter(book, /Before it goes live/)).toBeVisible();
 
   // Saving it as a PDF prints every released chapter from this same view, and nothing else on the page.
   await page.evaluate(() => { const w = window as Window & { printed?: number }; w.print = () => { w.printed = (w.printed ?? 0) + 1; }; });
@@ -77,6 +88,7 @@ test("the client's owner reads the brand chapters, is told the market is still t
   const printed = page.getByRole("article", { name: "The book, for printing", includeHidden: true });
   await expect(printed.getByRole("heading", { name: /The brand/, includeHidden: true })).toBeAttached();
   await expect(printed.getByRole("heading", { name: /Selling it/, includeHidden: true })).toBeAttached();
+  await expect(printed.getByRole("heading", { name: /Before it goes live/, includeHidden: true })).toBeAttached();
   await expect.poll(() => page.evaluate(() => (window as Window & { printed?: number }).printed)).toBe(1);
   await expect(page).toHaveTitle(`${story.projectName} - the book`);
   await page.emulateMedia({ media: "print" });
