@@ -87,4 +87,10 @@ test("the CEO gives a team member a job role, and the member sees only the steps
   await member.goto("/");
   await member.waitForURL((u) => u.pathname === "/team");
   await memberCtx.close();
+
+  // The CEO sees who the step is with, and can still do it.
+  await settings.getByRole("button", { name: "BACK TO OFFICE" }).click();
+  await page.getByRole("button", { name: "Contracts", exact: true }).click();
+  const theirs = page.locator(".contracts-desk").getByRole("article", { name: q.title }).filter({ has: page.getByLabel("Step-by-step guide") }).first();
+  await expect(theirs).toContainText("With Store setup on your team. You can still do it yourself.");
 });

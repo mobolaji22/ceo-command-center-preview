@@ -180,7 +180,9 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
   // A person's step with a guide (v4 ADR-0071) is done when its log says so; the note is then only something to add.
   const guided = Boolean(useGuide(x).data);
 
-  const askedOf = audience === "client" ? null : audience === "staff" || x.routed_to === "CEO" ? "Asked of you." : "Asked of the client's owner. You can answer for them only if they have allowed it.";
+  // A person's step a job role covers is with that role's holders; the CEO oversees it and can still do it (v4 ADR-0072).
+  const team = audience === "agency" && x.with_team?.length ? x.with_team.join(", ") : null;
+  const askedOf = audience === "client" ? null : team ? `With ${team} on your team. You can still do it yourself.` : audience === "staff" || x.routed_to === "CEO" ? "Asked of you." : "Asked of the client's owner. You can answer for them only if they have allowed it.";
   const confirm = async () => {
     if (!choice) return;
     setBusy(true); setMsg(null);

@@ -460,6 +460,8 @@ export type Question = {
   /** The system's own account of what went wrong. Only the agency receives it. */
   detail: string | null;
   options: QuestionOption[]; recommendation: { option: string; why: string } | null; deadline: string | null; created_at: string;
+  /** For the CEO, on a waiting person's step: the job roles it is with (v4 ADR-0072). Empty when it is the CEO's own. */
+  with_team?: string[] | undefined;
 };
 export type Answer = { option: string; note?: string; toUsd?: number; evidence?: string };
 
