@@ -714,7 +714,7 @@ export function createFixturesDataSource(): DataSource {
         const s = load();
         if (!s.data.intents.some((x) => x.id === intentId)) return fail("That request couldn't be found.", "NOT_FOUND");
         const messages = s.conversations?.[intentId] ?? [];
-        return ok({ intent_id: intentId, waiting_for_reply: messages.some((m) => m.from === "PERSON"), messages });
+        return ok({ intent_id: intentId, waiting_for_reply: messages.filter((m) => m.from !== "PLATFORM").at(-1)?.from === "PERSON", messages });
       },
       async say(intentId, text) {
         const words = text.trim();
