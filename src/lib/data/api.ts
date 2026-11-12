@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, ConversationMessage, ConversationView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -361,6 +361,32 @@ export function createApiDataSource(): DataSource {
           })),
           still_needs_you: r.data.stillNeedsYou,
         });
+      },
+      async conversation(intentId) {
+        type M = {
+          id: string; from: ConversationMessage["from"]; text: string; at: string; mine: boolean;
+          answered?: Array<{ questionId: string; question: string; kind: ConversationMessage["answered"][number]["kind"]; chosen: string | null; yourWords: string }>;
+          noLongerAsked?: Array<{ questionId: string; question: string }>; separateAsks?: Array<{ ask: string; yourWords: string }>;
+          findings?: ConversationMessage["findings"]; refused?: Array<{ questionId: string; why: string }>; changeIntentId?: string;
+        };
+        const r = await call<{ intentId: string; waitingForReply: boolean; messages: M[] }>("GET", `/v1/intents/${encodeURIComponent(intentId)}/conversation`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        return ok({
+          intent_id: r.data.intentId, waiting_for_reply: r.data.waitingForReply,
+          messages: r.data.messages.map((m) => ({
+            id: m.id, from: m.from, text: m.text, at: m.at, mine: m.mine,
+            answered: (m.answered ?? []).map((a) => ({ question_id: a.questionId, question: a.question, kind: a.kind, chosen: a.chosen, your_words: a.yourWords })),
+            no_longer_asked: (m.noLongerAsked ?? []).map((q) => ({ question_id: q.questionId, question: q.question })),
+            separate_asks: (m.separateAsks ?? []).map((x) => ({ ask: x.ask, your_words: x.yourWords })),
+            findings: m.findings ?? [],
+            ...(m.refused ? { refused: m.refused.map((x) => ({ question_id: x.questionId, why: x.why })) } : {}),
+            ...(m.changeIntentId ? { change_intent_id: m.changeIntentId } : {}),
+          })),
+        });
+      },
+      async say(intentId, text) {
+        const r = await call<{ messageId: string; changeIntentId?: string }>("POST", `/v1/intents/${encodeURIComponent(intentId)}/messages`, { text });
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ change_intent_id: r.data.changeIntentId ?? null });
       },
       async answerDelivery(intentId, answer, note) {
         return voidResult(await call("POST", `/v1/intents/${encodeURIComponent(intentId)}/delivery`, note?.trim() ? { answer, note: note.trim() } : { answer }));

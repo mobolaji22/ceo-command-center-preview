@@ -9,6 +9,7 @@ import type {
   ProjectObjectiveView,
   Answer,
   ClientIntentView,
+  ConversationMessage,
   UnderstandingView,
   Approval,
   Asset,
@@ -132,7 +133,7 @@ const STATUS_LINE = (i: { status: string; questions: unknown[]; delivery?: { out
   : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
   : { kind: "PLANNING", line: "We're preparing your plan." };
 
-type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; ledger?: LedgerDecision[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand> };
+type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; ledger?: LedgerDecision[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand>; conversations?: Record<string, ConversationMessage[]> };
 
 /**
  * A project's design document in the demo, as v4 keeps it: the approved versions, and the one revision being worked on (a draft, one
@@ -707,6 +708,23 @@ export function createFixturesDataSource(): DataSource {
           still_needs_you: { questions: i.questions.map((q) => ({ id: q.id, question: q.question, why: q.why })), decisions: [] },
         };
         return ok(view);
+      },
+      async conversation(intentId) {
+        // Fixtures have no reader (no envelope, no model), so a message waits for the agency's reply, as v4 says when it has none.
+        const s = load();
+        if (!s.data.intents.some((x) => x.id === intentId)) return fail("That request couldn't be found.", "NOT_FOUND");
+        const messages = s.conversations?.[intentId] ?? [];
+        return ok({ intent_id: intentId, waiting_for_reply: messages.some((m) => m.from === "PERSON"), messages });
+      },
+      async say(intentId, text) {
+        const words = text.trim();
+        if (!words) return fail("Write a message.", "INVALID_INTENT");
+        const r = await mutate((s) => {
+          if (!s.data.intents.some((x) => x.id === intentId)) return;
+          const all = (s.conversations ??= {});
+          (all[intentId] ??= []).push({ id: `m-${Date.now()}`, from: "PERSON", text: words, at: new Date().toISOString(), mine: true, answered: [], no_longer_asked: [], separate_asks: [], findings: [] });
+        });
+        return r.error ? { data: null, error: r.error } : ok({ change_intent_id: null });
       },
       async answerDelivery(intentId, answer, note) {
         if (load().users.find((u) => u.id === currentUserId())?.role !== "owner") return fail("Only the CEO answers what the agency can deliver.", "FORBIDDEN");

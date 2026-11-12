@@ -498,3 +498,21 @@ html[data-lighting="day"] .pill.slate { color: oklch(0.42 0.035 250); background
 .und-findings li, .und-recommend li { display: grid; gap: 2px; }
 .und-findings li[data-class="HYPOTHESIS"] strong { opacity: .78; font-weight: 600; }
 .und-findings a { color: var(--primary); overflow-wrap: anywhere; }
+
+/* The conversation on a request (v4 ADR-0077): who said what, and what the person's words settled. */
+.convo { display: grid; gap: 8px; margin: 12px 0; }
+.convo h4 { margin: 0; }
+.convo-thread { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.convo-thread > li { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; max-width: 46rem; }
+.convo-thread > li[data-from="PERSON"] { justify-self: end; background: var(--muted, transparent); }
+.convo-thread > li[data-from="PLATFORM"] { border-style: dashed; }
+.convo-thread p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.convo-who { display: flex; gap: 8px; align-items: baseline; font-weight: 600; font-size: 13px; }
+.convo-who small { font-weight: 400; opacity: .7; }
+.convo-took ul { margin: 2px 0 0; padding-left: 18px; }
+.convo-took q { opacity: .8; }
+.convo-apart { display: grid; gap: 4px; }
+.convo-apart-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.convo-sub { opacity: .8; font-size: 13px; margin: 0; }
+.convo-write { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.convo-write textarea { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: inherit; font: inherit; resize: vertical; }

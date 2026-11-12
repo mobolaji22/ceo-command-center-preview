@@ -1,6 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -126,6 +126,13 @@ export interface DataSource {
     clientView(intentId: string): Promise<Result<ClientIntentView>>;
     /** One understanding of a request, round by round: understood, found, recommended, still needs you (v4 ADR-0076). */
     understanding(intentId: string): Promise<Result<UnderstandingView>>;
+    /** The conversation on a request: the person's messages and the agency's replies (v4 ADR-0077). */
+    conversation(intentId: string): Promise<Result<ConversationView>>;
+    /**
+     * Write on a request's conversation. v4 reads it with the request and the agency replies; it settles nothing by itself. Once
+     * the request is understood, the message is taken as a change, and `change_intent_id` is the new request.
+     */
+    say(intentId: string, text: string): Promise<Result<{ change_intent_id: string | null }>>;
   };
 
   /**

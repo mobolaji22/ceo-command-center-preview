@@ -132,6 +132,29 @@ export type UnderstandingVersion = {
   }>
   looked_up?: { searches: number; pages: number; flagged: number } | undefined
 };
+/** Who wrote a message on a request's conversation (v4 ADR-0077). */
+export type ConversationSpeaker = "PERSON" | "AGENCY" | "PLATFORM";
+
+/** One message on a request's conversation. An agency reply says what the person's words settled, and anything kept apart. */
+export type ConversationMessage = {
+  id: string
+  from: ConversationSpeaker
+  text: string
+  at: string
+  mine: boolean
+  answered: Array<{ question_id: string; question: string; kind: "OPTION" | "TEXT" | "DEFAULT" | "LATER"; chosen: string | null; your_words: string }>
+  no_longer_asked: Array<{ question_id: string; question: string }>
+  separate_asks: Array<{ ask: string; your_words: string }>
+  findings: Array<{ says: string; source: { url: string; title: string; quote: string }; class: FindingClass }>
+  /** For the agency only: what the reader proposed and v4 did not apply, and why. */
+  refused?: Array<{ question_id: string; why: string }> | undefined
+  /** A message sent once the request was understood is taken as a change: the new request it opened. */
+  change_intent_id?: string | undefined
+};
+
+/** The conversation on one request (v4 ADR-0077). `waiting_for_reply` while a message of the person's has not been read. */
+export type ConversationView = { intent_id: string; waiting_for_reply: boolean; messages: ConversationMessage[] };
+
 export type UnderstandingView = {
   intent_id: string
   versions: UnderstandingVersion[]

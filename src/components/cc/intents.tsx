@@ -11,6 +11,7 @@ import { fmtAgo, label, statusTone } from "@/lib/format";
 import { Empty } from "./views";
 import { PlanPanel } from "./plans";
 import { UnderstandingPanel } from "./understanding";
+import { ConversationPanel } from "./conversation";
 
 const STATUS_WORDS: Record<string, string> = {
   RECEIVED: "Received", CLARIFYING: "Needs answers", AWAITING_REASONING: "Waiting for reasoning", UNDERSTOOD: "Understood", PLANNED: "Planned", REJECTED: "Withdrawn", SUPERSEDED: "Replaced", PROPOSED: "Proposed",
@@ -106,6 +107,7 @@ export function IntentCard({ intent, canAnswer, refresh, part }: { intent: Inten
     {msg && <p className="mmsg" role="status">{msg}</p>}
 
     {asks && open && <UnderstandingPanel intentId={intent.id} stamp={`${intent.status}:${intent.questions.length}`} questionsBelow={intent.questions.length > 0} />}
+    {asks && talks(intent.status) && <ConversationPanel intentId={intent.id} organizationId={intent.organization_id} stamp={`${intent.status}:${intent.questions.length}`} canWrite={canAnswer} questionsBelow={intent.questions.length > 0} onChanged={refresh} />}
 
     {asks && intent.questions.length > 0 && <div className="ask-block"><div className="section-label"><span>QUESTIONS</span><span>{intent.questions.length}</span></div>
       {intent.questions.map((q) => <div key={q.id} className="question" aria-label={q.question}>
@@ -130,6 +132,9 @@ export function IntentCard({ intent, canAnswer, refresh, part }: { intent: Inten
     {part !== "asks" && intent.project_id && (intent.status === "PLANNED" || intent.status === "UNDERSTOOD") && <PlanPanel projectId={intent.project_id} organizationId={intent.organization_id} onChanged={refresh} />}
   </div>;
 }
+
+/** A request takes messages until it is declined or replaced (v4 ADR-0077); once understood, a message is a change to its plan. */
+const talks = (status: Intent["status"]) => status !== "REJECTED" && status !== "SUPERSEDED";
 
 /**
  * One request as its client reads it (P6.20): where it stands in one line, then the one question to answer now (with its place
@@ -166,6 +171,7 @@ export function ClientIntentCard({ intent, canAnswer, refresh }: { intent: Inten
     {msg && <p className="mmsg" role="status">{msg}</p>}
 
     {view.status.kind !== "READING" && view.status.kind !== "CLOSED" && view.status.kind !== "DECLINED" && <UnderstandingPanel intentId={intent.id} stamp={`${intent.status}:${tick}`} questionsBelow={Boolean(q)} />}
+    {talks(intent.status) && <ConversationPanel intentId={intent.id} organizationId={intent.organization_id} stamp={`${intent.status}:${tick}`} canWrite={canAnswer} questionsBelow={Boolean(q)} onChanged={reload} />}
 
     {q && <div className="cv-question" aria-label={q.question}>
       <span className="cv-k">Question {q.position} of {q.of}</span>
