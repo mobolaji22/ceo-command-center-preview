@@ -9,6 +9,7 @@ import type {
   ProjectObjectiveView,
   Answer,
   ClientIntentView,
+  UnderstandingView,
   Approval,
   Asset,
   ActionLinkView,
@@ -685,6 +686,27 @@ export function createFixturesDataSource(): DataSource {
             ? { outcome: i.delivery.outcome, taken_on: i.delivery.answer?.answer === "TAKE_ON", items: i.delivery.items.map((x) => ({ description: x.description, now: x.outcome === "CAN", reason: x.outcome === "CAN" ? null : x.reason })) }
             : null,
         });
+      },
+      async understanding(intentId) {
+        // Fixtures hold no reading rounds, so the one version is built from what the request holds: its words, its questions with
+        // a recommendation, and what was assumed. Fixtures look nothing up (no envelope, no paid spend), so nothing is found.
+        const s = load();
+        const i = s.data.intents.find((x) => x.id === intentId);
+        if (!i) return fail("That request couldn't be found.", "NOT_FOUND");
+        const view: UnderstandingView = {
+          intent_id: i.id,
+          versions: [{
+            round: 1, at: i.created_at, current: true,
+            understood: { goal: i.text, desired_outcome: null, objectives: [], constraints: [] },
+            found: { findings: [], finding_out: [] },
+            recommend: [
+              ...i.questions.filter((q) => q.default_option_id).map((q) => ({ id: q.id, question: q.question, recommended: q.options.find((o) => o.id === q.default_option_id)?.label ?? null, why: null, standing: "OPEN" as const, chosen: null, counsel: null })),
+              ...i.assumptions.map((a) => ({ id: a.id, question: a.question, recommended: a.assumed, why: null, standing: "ASSUMED" as const, chosen: a.assumed, counsel: null })),
+            ],
+          }],
+          still_needs_you: { questions: i.questions.map((q) => ({ id: q.id, question: q.question, why: q.why })), decisions: [] },
+        };
+        return ok(view);
       },
       async answerDelivery(intentId, answer, note) {
         if (load().users.find((u) => u.id === currentUserId())?.role !== "owner") return fail("Only the CEO answers what the agency can deliver.", "FORBIDDEN");

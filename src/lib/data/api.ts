@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -339,6 +339,27 @@ export function createApiDataSource(): DataSource {
           questions: v.questions.map((q) => ({ id: q.id, position: q.position, of: q.of, question: q.question, why: q.why, options: q.options, default_option_id: q.defaultOptionId })),
           needs: { required: v.needs.required.map(need), optional: v.needs.optional.map(need) }, assumed: v.assumed, plan: v.plan,
           delivery: v.delivery ? { outcome: v.delivery.outcome, taken_on: v.delivery.takenOn, items: v.delivery.items } : null,
+        });
+      },
+      async understanding(intentId) {
+        type V = {
+          round: number; at: string; current: boolean;
+          understood: { goal: string; desiredOutcome: string | null; objectives: string[]; constraints: string[] } | null;
+          found: { findings: UnderstandingVersion["found"]["findings"]; findingOut: Array<{ id: string; question: string }> };
+          recommend: UnderstandingVersion["recommend"]; lookedUp?: { searches: number; pages: number; flagged: number };
+        };
+        const r = await call<{ intentId: string; versions: V[]; stillNeedsYou: UnderstandingView["still_needs_you"] }>("GET", `/v1/intents/${encodeURIComponent(intentId)}/understanding`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        return ok({
+          intent_id: r.data.intentId,
+          versions: r.data.versions.map((v) => ({
+            round: v.round, at: v.at, current: v.current,
+            understood: v.understood ? { goal: v.understood.goal, desired_outcome: v.understood.desiredOutcome, objectives: v.understood.objectives, constraints: v.understood.constraints } : null,
+            found: { findings: v.found.findings, finding_out: v.found.findingOut },
+            recommend: v.recommend,
+            ...(v.lookedUp ? { looked_up: v.lookedUp } : {}),
+          })),
+          still_needs_you: r.data.stillNeedsYou,
         });
       },
       async answerDelivery(intentId, answer, note) {

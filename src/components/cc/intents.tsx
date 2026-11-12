@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { fmtAgo, label, statusTone } from "@/lib/format";
 import { Empty } from "./views";
 import { PlanPanel } from "./plans";
+import { UnderstandingPanel } from "./understanding";
 
 const STATUS_WORDS: Record<string, string> = {
   RECEIVED: "Received", CLARIFYING: "Needs answers", AWAITING_REASONING: "Waiting for reasoning", UNDERSTOOD: "Understood", PLANNED: "Planned", REJECTED: "Withdrawn", SUPERSEDED: "Replaced", PROPOSED: "Proposed",
@@ -104,6 +105,8 @@ export function IntentCard({ intent, canAnswer, refresh, part }: { intent: Inten
     {!part && <div className="resolved-row intent-head"><span>{intent.text}<small>{fmtAgo(intent.created_at)}{intent.source === "CEO_DIRECTIVE" ? " · from the agency" : ""}</small></span><span className={`pill ${tone(intent.status)}`}>{(STATUS_WORDS[intent.status] ?? label(intent.status)).toUpperCase()}</span></div>}
     {msg && <p className="mmsg" role="status">{msg}</p>}
 
+    {asks && open && <UnderstandingPanel intentId={intent.id} stamp={`${intent.status}:${intent.questions.length}`} questionsBelow={intent.questions.length > 0} />}
+
     {asks && intent.questions.length > 0 && <div className="ask-block"><div className="section-label"><span>QUESTIONS</span><span>{intent.questions.length}</span></div>
       {intent.questions.map((q) => <div key={q.id} className="question" aria-label={q.question}>
         <b>{q.question}</b><small>{q.why} Changes: {q.decision}</small>
@@ -161,6 +164,8 @@ export function ClientIntentCard({ intent, canAnswer, refresh }: { intent: Inten
       <p className="cv-request">“{view.text}”<span className="cv-sub"> · {fmtAgo(view.created_at)}</span></p>
     </div>
     {msg && <p className="mmsg" role="status">{msg}</p>}
+
+    {view.status.kind !== "READING" && view.status.kind !== "CLOSED" && view.status.kind !== "DECLINED" && <UnderstandingPanel intentId={intent.id} stamp={`${intent.status}:${tick}`} questionsBelow={Boolean(q)} />}
 
     {q && <div className="cv-question" aria-label={q.question}>
       <span className="cv-k">Question {q.position} of {q.of}</span>

@@ -110,6 +110,34 @@ export type Counsel = {
   keep_option_id: string
 };
 
+/**
+ * One understanding of a request (v4 ADR-0076 Decision 5), round by round, the last in force: what we understood, what we found
+ * (each finding with its source; `VERIFIED` only when its quote was in what the search returned), what we recommend, and what
+ * still needs the owner. `looked_up` is the agency's only.
+ */
+export type FindingClass = "VERIFIED" | "HYPOTHESIS";
+export type UnderstandingVersion = {
+  round: number
+  at: string
+  current: boolean
+  understood: { goal: string; desired_outcome: string | null; objectives: string[]; constraints: string[] } | null
+  found: {
+    findings: Array<{ says: string; about: string | null; source: { url: string; title: string; quote: string }; class: FindingClass }>
+    finding_out: Array<{ id: string; question: string }>
+  }
+  recommend: Array<{
+    id: string; question: string; recommended: string | null; why: string | null
+    standing: "OPEN" | "ANSWERED" | "ASSUMED" | "LEFT_TO_DECIDE" | "WITHDRAWN"; chosen: string | null
+    counsel: { asked: string; concern: string; evidence: Array<{ class: CounselEvidenceClass; says: string }> } | null
+  }>
+  looked_up?: { searches: number; pages: number; flagged: number } | undefined
+};
+export type UnderstandingView = {
+  intent_id: string
+  versions: UnderstandingVersion[]
+  still_needs_you: { questions: Array<{ id: string; question: string; why: string }>; decisions: Array<{ id: string; question: string; recommended: string | null }> }
+};
+
 export type Approval = {
   consequences: string | null
   constraints: string | null

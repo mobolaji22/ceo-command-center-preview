@@ -10,7 +10,7 @@ import { fmtAgo, label } from "@/lib/format";
 const OWNER_ONLY: Record<string, string> = { RIGHTS: "rights", MONEY: "money", PUBLIC_CLAIM: "a public claim", LEGAL_DUTY: "a legal duty", COMMITMENT: "a commitment" };
 
 /** What a counsel's evidence rests on, in words (v4 ADR-0073): the owner can tell what they said apart from the agency's judgment. */
-const BASIS: Record<CounselEvidenceClass, string> = { OBSERVED: "You told us", VERIFIED: "We found", DERIVED: "We worked out", HYPOTHESIS: "Our judgment, not researched" };
+export const BASIS: Record<CounselEvidenceClass, string> = { OBSERVED: "You told us", VERIFIED: "We found", DERIVED: "We worked out", HYPOTHESIS: "Our judgment, not researched" };
 
 /** The agency's pushback on what was asked (v4 ADR-0073): what they asked, why we would do it another way, and on what grounds. */
 function CounselNote({ d }: { d: LedgerDecision }) {

@@ -488,3 +488,13 @@ html[data-lighting="day"] .pill.slate { color: oklch(0.42 0.035 250); background
 .delivery-answer .delivery-wait { flex-basis: 100%; opacity: .7; }
 .material-items li { font-size: 12px; opacity: .85; }
 .material-items li::before { content: "· "; }
+
+/* v4 ADR-0076: one understanding of a request, in four parts, round by round. */
+.understanding h4 { margin: 12px 0 4px; }
+.und-versions { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.und-versions button { display: grid; text-align: left; padding: 4px 10px; border: 1px solid var(--border); border-radius: 8px; background: transparent; font-size: 14px; cursor: pointer; }
+.und-versions button[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); }
+.und-findings, .und-recommend { list-style: none; padding: 0; display: grid; gap: 8px; }
+.und-findings li, .und-recommend li { display: grid; gap: 2px; }
+.und-findings li[data-class="HYPOTHESIS"] strong { opacity: .78; font-weight: 600; }
+.und-findings a { color: var(--primary); overflow-wrap: anywhere; }
