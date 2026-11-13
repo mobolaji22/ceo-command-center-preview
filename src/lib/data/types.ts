@@ -1,6 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, ThreadView, WorkspaceView } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -133,6 +133,18 @@ export interface DataSource {
      * the request is understood, the message is taken as a change, and `change_intent_id` is the new request.
      */
     say(intentId: string, text: string): Promise<Result<{ change_intent_id: string | null }>>;
+  };
+
+  /**
+   * Projects and their threads (v4 ADR-0078): the same screen for the client and the CEO. A project holds threads, each one line of
+   * conversation; v4 opens a thread for each feature it finds and offers anything outside the project back as a new project.
+   */
+  threads: {
+    /** What the person can see: their own organization for a client, every one for the CEO, as projects and new projects. */
+    workspace(): Promise<Result<WorkspaceView>>;
+    read(threadId: string): Promise<Result<ThreadView>>;
+    /** Write on a thread. It goes to the thread's current request; once that is understood, it starts a change in the same thread. */
+    say(threadId: string, text: string): Promise<Result<{ change_intent_id: string | null }>>;
   };
 
   /**

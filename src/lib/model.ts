@@ -144,16 +144,58 @@ export type ConversationMessage = {
   mine: boolean
   answered: Array<{ question_id: string; question: string; kind: "OPTION" | "TEXT" | "DEFAULT" | "LATER"; chosen: string | null; your_words: string }>
   no_longer_asked: Array<{ question_id: string; question: string }>
-  separate_asks: Array<{ ask: string; your_words: string }>
+  separate_asks: Array<{ ask: string; your_words: string; name?: string | undefined; kind: "FEATURE" | "NEW_PROJECT" }>
   findings: Array<{ says: string; source: { url: string; title: string; quote: string }; class: FindingClass }>
   /** For the agency only: what the reader proposed and v4 did not apply, and why. */
   refused?: Array<{ question_id: string; why: string }> | undefined
   /** A message sent once the request was understood is taken as a change: the new request it opened. */
   change_intent_id?: string | undefined
+  /** A platform note (v4 ADR-0078): a feature of the project the agency opened as its own thread. */
+  opened_thread?: { thread_id: string; title: string } | undefined
+  /** A platform note (v4 ADR-0078): a different project, offered back, started only when the person starts it. */
+  suggested_project?: { name: string; your_words: string } | undefined
 };
 
 /** The conversation on one request (v4 ADR-0077). `waiting_for_reply` while a message of the person's has not been read. */
 export type ConversationView = { intent_id: string; waiting_for_reply: boolean; messages: ConversationMessage[] };
+
+/** Where a thread stands for the person (v4 ADR-0078). WAITING always names what it waits for. */
+export type ThreadState = "NEEDS_YOU" | "WORKING" | "WAITING" | "DONE";
+export type ThreadWait = { reason: "PROJECT_NOT_OPEN" | "REVISION_OPEN"; thread_id: string | null; proposal_id?: string | undefined; version?: number | undefined };
+export type ThreadSummary = {
+  thread_id: string
+  title: string
+  opened_from_id: string | null
+  updated_at: string
+  current: { intent_id: string; status: IntentStatus }
+  state: ThreadState
+  waiting_for?: ThreadWait | undefined
+  needs_you: { questions: number; materials: number; decision: boolean }
+  last_message: { from: ConversationSpeaker; text: string; at: string } | null
+};
+/** What the person can see, as projects and their threads (v4 ADR-0078): their own organization for a client, every one for the CEO. */
+export type WorkspaceView = {
+  organizations: Array<{
+    id: string; name: string; kind: "AGENCY" | "CLIENT" | "INTERNAL"
+    projects: Array<{ project_id: string; name: string; status: string; objective: string | null; updated_at: string; threads: ThreadSummary[] }>
+    /** New projects still being understood: the first thread, and the feature threads opened from it. */
+    new_projects: Array<{ thread_id: string; title: string; threads: ThreadSummary[] }>
+  }>
+};
+/** One thread (v4 ADR-0078): every request made in it, the conversation across them, and where it stands. */
+export type ThreadView = {
+  thread_id: string
+  organization_id: string
+  project_id: string | null
+  title: string
+  state: ThreadState
+  waiting_for?: ThreadWait | undefined
+  opened_from: { thread_id: string; title: string | null } | null
+  current: { intent_id: string; status: IntentStatus }
+  requests: Array<{ intent_id: string; status: IntentStatus; text: string; at: string }>
+  waiting_for_reply: boolean
+  messages: ConversationMessage[]
+};
 
 export type UnderstandingView = {
   intent_id: string

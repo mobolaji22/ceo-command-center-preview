@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, ConversationMessage, ConversationView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, ConversationMessage, ThreadSummary, ThreadView, ThreadWait, WorkspaceView, ConversationView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
 /**
@@ -127,6 +127,33 @@ type ApiQuestion = {
   id: string; projectId: string; organizationId: string; runId: string; taskId: string | null; reason: string; routedTo: Question["routed_to"]; status: Question["status"];
   title: string; summary: string; detail?: string | null; options: Array<{ id: string; stepUp?: boolean }>; recommendation: { option: string; why: string } | null; deadline: string | null; createdAt: string;
 };
+/** A message as v4 sends it (ADR-0077, ADR-0078), and as the screens read it. */
+type ApiMessage = {
+  id: string; from: ConversationMessage["from"]; text: string; at: string; mine: boolean;
+  answered?: Array<{ questionId: string; question: string; kind: ConversationMessage["answered"][number]["kind"]; chosen: string | null; yourWords: string }>;
+  noLongerAsked?: Array<{ questionId: string; question: string }>; separateAsks?: Array<{ ask: string; yourWords: string; name?: string; kind?: "FEATURE" | "NEW_PROJECT" }>;
+  findings?: ConversationMessage["findings"]; refused?: Array<{ questionId: string; why: string }>; changeIntentId?: string;
+  openedThread?: { threadId: string; title: string }; suggestedProject?: { name: string; yourWords: string };
+};
+const messageOf = (m: ApiMessage): ConversationMessage => ({
+  id: m.id, from: m.from, text: m.text, at: m.at, mine: m.mine,
+  answered: (m.answered ?? []).map((a) => ({ question_id: a.questionId, question: a.question, kind: a.kind, chosen: a.chosen, your_words: a.yourWords })),
+  no_longer_asked: (m.noLongerAsked ?? []).map((q) => ({ question_id: q.questionId, question: q.question })),
+  separate_asks: (m.separateAsks ?? []).map((x) => ({ ask: x.ask, your_words: x.yourWords, ...(x.name ? { name: x.name } : {}), kind: x.kind ?? "NEW_PROJECT" })),
+  findings: m.findings ?? [],
+  ...(m.refused ? { refused: m.refused.map((x) => ({ question_id: x.questionId, why: x.why })) } : {}),
+  ...(m.changeIntentId ? { change_intent_id: m.changeIntentId } : {}),
+  ...(m.openedThread ? { opened_thread: { thread_id: m.openedThread.threadId, title: m.openedThread.title } } : {}),
+  ...(m.suggestedProject ? { suggested_project: { name: m.suggestedProject.name, your_words: m.suggestedProject.yourWords } } : {}),
+});
+type ApiWait = { reason: ThreadWait["reason"]; threadId: string | null; proposalId?: string; version?: number };
+const waitOf = (w: ApiWait): ThreadWait => ({ reason: w.reason, thread_id: w.threadId, ...(w.proposalId ? { proposal_id: w.proposalId } : {}), ...(w.version !== undefined ? { version: w.version } : {}) });
+type ApiThreadSummary = { threadId: string; title: string; openedFromId: string | null; updatedAt: string; current: { intentId: string; status: ThreadSummary["current"]["status"] }; state: ThreadSummary["state"]; waitingFor?: ApiWait; needsYou: ThreadSummary["needs_you"]; lastMessage: { from: ConversationMessage["from"]; text: string; at: string } | null };
+const summaryOf = (t: ApiThreadSummary): ThreadSummary => ({
+  thread_id: t.threadId, title: t.title, opened_from_id: t.openedFromId, updated_at: t.updatedAt, current: { intent_id: t.current.intentId, status: t.current.status },
+  state: t.state, ...(t.waitingFor ? { waiting_for: waitOf(t.waitingFor) } : {}), needs_you: t.needsYou, last_message: t.lastMessage,
+});
+
 type ApiBrief = { id: string; organizationId: string; projectId: string | null; type: BriefType; audience: "CLIENT" | "AGENCY"; title: string; attentionLevel: number; compiledAt: string };
 type ApiCitation = { type: string; id?: string; ids?: string[]; path?: string; expect?: string | number; expectSum?: number };
 type ApiPrefs = { timezone: string; quietHours: { start: string; end: string } | null; minInterruptLevel: number; emailEnabled: boolean; digest: NotificationPrefs["digest"] };
@@ -363,26 +390,9 @@ export function createApiDataSource(): DataSource {
         });
       },
       async conversation(intentId) {
-        type M = {
-          id: string; from: ConversationMessage["from"]; text: string; at: string; mine: boolean;
-          answered?: Array<{ questionId: string; question: string; kind: ConversationMessage["answered"][number]["kind"]; chosen: string | null; yourWords: string }>;
-          noLongerAsked?: Array<{ questionId: string; question: string }>; separateAsks?: Array<{ ask: string; yourWords: string }>;
-          findings?: ConversationMessage["findings"]; refused?: Array<{ questionId: string; why: string }>; changeIntentId?: string;
-        };
-        const r = await call<{ intentId: string; waitingForReply: boolean; messages: M[] }>("GET", `/v1/intents/${encodeURIComponent(intentId)}/conversation`);
+        const r = await call<{ intentId: string; waitingForReply: boolean; messages: ApiMessage[] }>("GET", `/v1/intents/${encodeURIComponent(intentId)}/conversation`);
         if (r.error || !r.data) return { data: null, error: r.error };
-        return ok({
-          intent_id: r.data.intentId, waiting_for_reply: r.data.waitingForReply,
-          messages: r.data.messages.map((m) => ({
-            id: m.id, from: m.from, text: m.text, at: m.at, mine: m.mine,
-            answered: (m.answered ?? []).map((a) => ({ question_id: a.questionId, question: a.question, kind: a.kind, chosen: a.chosen, your_words: a.yourWords })),
-            no_longer_asked: (m.noLongerAsked ?? []).map((q) => ({ question_id: q.questionId, question: q.question })),
-            separate_asks: (m.separateAsks ?? []).map((x) => ({ ask: x.ask, your_words: x.yourWords })),
-            findings: m.findings ?? [],
-            ...(m.refused ? { refused: m.refused.map((x) => ({ question_id: x.questionId, why: x.why })) } : {}),
-            ...(m.changeIntentId ? { change_intent_id: m.changeIntentId } : {}),
-          })),
-        });
+        return ok({ intent_id: r.data.intentId, waiting_for_reply: r.data.waitingForReply, messages: r.data.messages.map(messageOf) });
       },
       async say(intentId, text) {
         const r = await call<{ messageId: string; changeIntentId?: string }>("POST", `/v1/intents/${encodeURIComponent(intentId)}/messages`, { text });
@@ -390,6 +400,35 @@ export function createApiDataSource(): DataSource {
       },
       async answerDelivery(intentId, answer, note) {
         return voidResult(await call("POST", `/v1/intents/${encodeURIComponent(intentId)}/delivery`, note?.trim() ? { answer, note: note.trim() } : { answer }));
+      },
+    },
+
+    threads: {
+      async workspace() {
+        const r = await call<{ organizations: Array<{ id: string; name: string; kind: WorkspaceView["organizations"][number]["kind"]; projects: Array<{ projectId: string; name: string; status: string; objective: string | null; updatedAt: string; threads: ApiThreadSummary[] }>; newProjects: Array<{ threadId: string; title: string; threads: ApiThreadSummary[] }> }> }>("GET", "/v1/workspace");
+        if (r.error || !r.data) return { data: null, error: r.error };
+        return ok({ organizations: r.data.organizations.map((o) => ({
+          id: o.id, name: o.name, kind: o.kind,
+          projects: o.projects.map((p) => ({ project_id: p.projectId, name: p.name, status: p.status, objective: p.objective, updated_at: p.updatedAt, threads: p.threads.map(summaryOf) })),
+          new_projects: o.newProjects.map((n) => ({ thread_id: n.threadId, title: n.title, threads: n.threads.map(summaryOf) })),
+        })) });
+      },
+      async read(threadId) {
+        const r = await call<{ threadId: string; organizationId: string; projectId: string | null; title: string; state: ThreadView["state"]; waitingFor?: ApiWait; openedFrom: { threadId: string; title: string | null } | null; current: { intentId: string; status: ThreadView["current"]["status"] }; requests: Array<{ intentId: string; status: ThreadView["current"]["status"]; text: string; at: string }>; waitingForReply: boolean; messages: ApiMessage[] }>("GET", `/v1/threads/${encodeURIComponent(threadId)}`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        const t = r.data;
+        return ok({
+          thread_id: t.threadId, organization_id: t.organizationId, project_id: t.projectId, title: t.title, state: t.state,
+          ...(t.waitingFor ? { waiting_for: waitOf(t.waitingFor) } : {}),
+          opened_from: t.openedFrom ? { thread_id: t.openedFrom.threadId, title: t.openedFrom.title } : null,
+          current: { intent_id: t.current.intentId, status: t.current.status },
+          requests: t.requests.map((q) => ({ intent_id: q.intentId, status: q.status, text: q.text, at: q.at })),
+          waiting_for_reply: t.waitingForReply, messages: t.messages.map(messageOf),
+        });
+      },
+      async say(threadId, text) {
+        const r = await call<{ messageId: string; changeIntentId?: string }>("POST", `/v1/threads/${encodeURIComponent(threadId)}/messages`, { text });
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ change_intent_id: r.data.changeIntentId ?? null });
       },
     },
 

@@ -15,9 +15,13 @@ export async function openClientDesk(page: Page, desk: ClientDesk, tab?: string 
   const here = inDesk && (await page.locator(".desk-heading h2").innerText()).startsWith(HEADING[desk]);
   if (!here) {
     if (inDesk) await page.getByRole("button", { name: "BACK TO ROOM" }).click();
-    // Pressing an object goes straight in; the preview is only for hovering.
-    await page.getByRole("button", { name: desk, exact: true }).click();
-    await expect(page.locator(".desk-heading h2")).toContainText(HEADING[desk]);
+    // Pressing an object goes straight in; the preview is only for hovering. Until the room's data has arrived a press only
+    // previews the object (it has nothing to open yet), so press again until the desk is open.
+    await expect(async () => {
+      if (await page.getByRole("button", { name: "Close preview" }).isVisible()) await page.getByRole("button", { name: "Close preview" }).click();
+      await page.getByRole("button", { name: desk, exact: true }).click();
+      await expect(page.locator(".desk-heading h2")).toContainText(HEADING[desk], { timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
   }
   if (tab) await page.getByRole("tab", { name: tab }).click();
 }
@@ -35,7 +39,7 @@ export async function openClientProject(page: Page, name: RegExp) {
  * yet the form is already open. Returns the form.
  */
 export async function newClientRequest(page: Page) {
-  const open = page.getByRole("button", { name: "New request", exact: true });
+  const open = page.getByRole("button", { name: "New project", exact: true });
   if (await open.isVisible()) await open.click();
   const composer = page.getByLabel("New request");
   await expect(composer).toBeVisible();

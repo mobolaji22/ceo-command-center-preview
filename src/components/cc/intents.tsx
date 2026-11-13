@@ -88,7 +88,8 @@ export function Composer({ organizations, fixedOrganizationId, onSubmitted, onCl
  * is for the people who may (a client's owner for their own requests, the agency for its own).
  */
 /** `part` shows one layer of it (the directive desk's tabs): what is asked, or the plan. Without it, the whole card. */
-export function IntentCard({ intent, canAnswer, refresh, part }: { intent: Intent; canAnswer: boolean; refresh: () => void; part?: "asks" | "plan" | undefined }) {
+/** `talk={false}` leaves the conversation out, for a thread that shows its conversation on its own tab (v4 ADR-0078). */
+export function IntentCard({ intent, canAnswer, refresh, part, talk = true }: { intent: Intent; canAnswer: boolean; refresh: () => void; part?: "asks" | "plan" | undefined; talk?: boolean }) {
   const ds = useDataSource();
   const [msg, setMsg] = useState<string | null>(null);
   const [text, setText] = useState<Record<string, string>>({});
@@ -107,7 +108,7 @@ export function IntentCard({ intent, canAnswer, refresh, part }: { intent: Inten
     {msg && <p className="mmsg" role="status">{msg}</p>}
 
     {asks && open && <UnderstandingPanel intentId={intent.id} stamp={`${intent.status}:${intent.questions.length}`} questionsBelow={intent.questions.length > 0} />}
-    {asks && talks(intent.status) && <ConversationPanel intentId={intent.id} organizationId={intent.organization_id} stamp={`${intent.status}:${intent.questions.length}`} canWrite={canAnswer} questionsBelow={intent.questions.length > 0} onChanged={refresh} />}
+    {asks && talk && talks(intent.status) && <ConversationPanel intentId={intent.id} organizationId={intent.organization_id} stamp={`${intent.status}:${intent.questions.length}`} canWrite={canAnswer} questionsBelow={intent.questions.length > 0} onChanged={refresh} />}
 
     {asks && intent.questions.length > 0 && <div className="ask-block"><div className="section-label"><span>QUESTIONS</span><span>{intent.questions.length}</span></div>
       {intent.questions.map((q) => <div key={q.id} className="question" aria-label={q.question}>
@@ -141,7 +142,8 @@ const talks = (status: Intent["status"]) => status !== "REJECTED" && status !== 
  * in the round), what we need from them (required first, the rest folded), and what we assumed; the plan when there is one.
  * It renders v4's client view as it is (INV-27): the order and what is left out are decided there.
  */
-export function ClientIntentCard({ intent, canAnswer, refresh }: { intent: Intent; canAnswer: boolean; refresh: () => void }) {
+/** In a thread (v4 ADR-0078) the conversation and the plan have tabs of their own, so `talk` and `plan` leave them out here. */
+export function ClientIntentCard({ intent, canAnswer, refresh, talk = true, plan = true }: { intent: Intent; canAnswer: boolean; refresh: () => void; talk?: boolean; plan?: boolean }) {
   const ds = useDataSource();
   const [view, setView] = useState<ClientIntentView | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -171,7 +173,7 @@ export function ClientIntentCard({ intent, canAnswer, refresh }: { intent: Inten
     {msg && <p className="mmsg" role="status">{msg}</p>}
 
     {view.status.kind !== "READING" && view.status.kind !== "CLOSED" && view.status.kind !== "DECLINED" && <UnderstandingPanel intentId={intent.id} stamp={`${intent.status}:${tick}`} questionsBelow={Boolean(q)} />}
-    {talks(intent.status) && <ConversationPanel intentId={intent.id} organizationId={intent.organization_id} stamp={`${intent.status}:${tick}`} canWrite={canAnswer} questionsBelow={Boolean(q)} onChanged={reload} />}
+    {talk && talks(intent.status) && <ConversationPanel intentId={intent.id} organizationId={intent.organization_id} stamp={`${intent.status}:${tick}`} canWrite={canAnswer} questionsBelow={Boolean(q)} onChanged={reload} />}
 
     {q && <div className="cv-question" aria-label={q.question}>
       <span className="cv-k">Question {q.position} of {q.of}</span>
@@ -193,18 +195,13 @@ export function ClientIntentCard({ intent, canAnswer, refresh }: { intent: Inten
       {view.needs.optional.map((m) => <Material key={m.requirement_id} item={{ ...m, required: false }} organizationId={intent.organization_id} canAnswer={canAnswer} onDone={(done) => { setMsg(done); reload(); }} onError={setMsg} />)}</details>}
 
     {/* Once there is a plan, it states what was assumed; saying it twice would only make the page longer. */}
-    {!view.plan && view.assumed.length > 0 && <div className="cv-block"><h4>What we assumed</h4>
+    {!(plan && view.plan) && view.assumed.length > 0 && <div className="cv-block"><h4>What we assumed</h4>
       <ul>{view.assumed.map((a) => <li key={a.id}>{a.question}<span className="cv-sub"> · We are going with: {a.answer}</span></li>)}</ul></div>}
 
-    {view.plan && intent.project_id && <PlanPanel projectId={intent.project_id} organizationId={intent.organization_id} onChanged={reload} />}
+    {plan && view.plan && intent.project_id && <PlanPanel projectId={intent.project_id} organizationId={intent.organization_id} onChanged={reload} />}
   </div>;
 }
 
-/** A client's requests, each as they read it. */
-export function ClientIntentList({ intents, canAnswer, refresh, empty }: { intents: Intent[]; canAnswer: (i: Intent) => boolean; refresh: () => void; empty: string }) {
-  if (intents.length === 0) return <Empty title={empty} />;
-  return <div className="intent-list">{intents.map((i) => <ClientIntentCard key={i.id} intent={i} canAnswer={canAnswer(i)} refresh={refresh} />)}</div>;
-}
 
 function Material({ item, organizationId, canAnswer, onDone, onError }: { item: Intent["materials"][number]; organizationId: string; canAnswer: boolean; onDone: (m: string) => void; onError: (m: string) => void }) {
   const ds = useDataSource();
@@ -284,10 +281,5 @@ function ClientDeliveryBlock({ delivery: d }: { delivery: ClientDelivery }) {
   </div>;
 }
 
-/** A list of requests with their asks. */
-export function IntentList({ intents, canAnswer, refresh, empty }: { intents: Intent[]; canAnswer: (i: Intent) => boolean; refresh: () => void; empty: string }) {
-  if (intents.length === 0) return <Empty title={empty} />;
-  return <div className="intent-list">{intents.map((i) => <IntentCard key={i.id} intent={i} canAnswer={canAnswer(i)} refresh={refresh} />)}</div>;
-}
 
 export { STATUS_WORDS as INTENT_STATUS_WORDS, tone as intentTone, statusTone };

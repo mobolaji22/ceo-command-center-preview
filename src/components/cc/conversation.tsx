@@ -66,20 +66,7 @@ export function ConversationPanel({ intentId, organizationId, stamp, canWrite, q
   if (view.messages.length === 0 && !canWrite) return null;
   return <section className="convo" aria-label="Conversation about this request">
     <h4>Talk to us about this request</h4>
-    {view.messages.length > 0 && <ol className="convo-thread">
-      {view.messages.map((m) => <li key={m.id} data-from={m.from}>
-        <span className="convo-who">{m.from === "AGENCY" ? "The agency" : m.from === "PLATFORM" ? "Note" : m.mine ? "You" : "The client"}<small>{fmtAgo(m.at)}</small></span>
-        <p>{m.text}</p>
-        {m.answered.length > 0 && <div className="convo-took"><small>From your message we took:</small>
-          <ul>{m.answered.map((a) => <li key={a.question_id}><small>{settled(a)} <q>{a.your_words}</q></small></li>)}</ul></div>}
-        {m.no_longer_asked.length > 0 && <small className="convo-sub">No longer asked: {m.no_longer_asked.map((q) => q.question).join("; ")}</small>}
-        {m.findings.length > 0 && <ul className="und-findings">{m.findings.map((f, n) => <li key={n} data-class={f.class}><small><strong>{FOUND[f.class]}:</strong> {f.says} · <a href={f.source.url} target="_blank" rel="noopener noreferrer">{f.source.title || f.source.url}</a></small></li>)}</ul>}
-        {m.separate_asks.length > 0 && <div className="convo-apart"><small>Kept apart, as its own piece of work:</small>
-          {m.separate_asks.map((s) => <div key={s.your_words} className="convo-apart-row"><small>{s.ask}</small>
-            {canWrite && <Button variant="outline" size="sm" onClick={() => void startSeparately(s.your_words)}>Start it as its own request</Button>}</div>)}</div>}
-        {m.refused && m.refused.length > 0 && <small className="convo-sub">For the agency, not applied: {m.refused.map((r) => `${r.question_id} (${r.why})`).join("; ")}</small>}
-      </li>)}
-    </ol>}
+    {view.messages.length > 0 && <MessageList messages={view.messages} canWrite={canWrite} onStartSeparately={(words) => void startSeparately(words)} />}
     {waiting && <p className="convo-sub" role="status">The agency will reply here.</p>}
     {note && <p className="mmsg" role="status">{note}</p>}
     {canWrite && <div className="convo-write">
@@ -88,4 +75,40 @@ export function ConversationPanel({ intentId, organizationId, stamp, canWrite, q
     </div>}
     {canWrite && questionsBelow && <small className="convo-sub">Or tap an answer on a question below.</small>}
   </section>;
+}
+
+/**
+ * The messages of a conversation, oldest first. On a request, a reply lists the separate asks it kept apart, each of which can be
+ * started on its own. In a thread (v4 ADR-0078) those asks arrive as notes instead: a feature opened as its own thread, with a way
+ * to go to it, and a different project offered back in the person's own words, started only when they start it.
+ */
+export function MessageList({ messages, ...rest }: { messages: ConversationMessage[] } & ItemProps) {
+  return <ol className="convo-thread">{messages.map((m) => <MessageItem key={m.id} m={m} {...rest} />)}</ol>;
+}
+
+type ItemProps = {
+  canWrite: boolean;
+  onStartSeparately?: ((words: string) => void) | undefined;
+  onOpenThread?: ((threadId: string) => void) | undefined;
+  onStartProject?: ((s: { name: string; your_words: string }) => void) | undefined;
+};
+
+/** One message of a conversation. */
+export function MessageItem({ m, canWrite, onStartSeparately, onOpenThread, onStartProject }: { m: ConversationMessage } & ItemProps) {
+  const inThread = Boolean(onOpenThread);
+  return <li data-from={m.from} data-note={m.opened_thread ? "thread" : m.suggested_project ? "project" : undefined}>
+      <span className="convo-who">{m.from === "AGENCY" ? "The agency" : m.from === "PLATFORM" ? "Note" : m.mine ? "You" : "The client"}<small>{fmtAgo(m.at)}</small></span>
+      <p>{m.text}</p>
+      {m.opened_thread && onOpenThread && <Button variant="outline" size="sm" className="convo-go" onClick={() => onOpenThread(m.opened_thread!.thread_id)}>Open &ldquo;{m.opened_thread.title}&rdquo;</Button>}
+      {m.suggested_project && <div className="convo-apart-row"><small><q>{m.suggested_project.your_words}</q></small>
+        {canWrite && onStartProject && <Button variant="outline" size="sm" onClick={() => onStartProject(m.suggested_project!)}>Start it as a new project</Button>}</div>}
+      {m.answered.length > 0 && <div className="convo-took"><small>From your message we took:</small>
+        <ul>{m.answered.map((a) => <li key={a.question_id}><small>{settled(a)} <q>{a.your_words}</q></small></li>)}</ul></div>}
+      {m.no_longer_asked.length > 0 && <small className="convo-sub">No longer asked: {m.no_longer_asked.map((q) => q.question).join("; ")}</small>}
+      {m.findings.length > 0 && <ul className="und-findings">{m.findings.map((f, n) => <li key={n} data-class={f.class}><small><strong>{FOUND[f.class]}:</strong> {f.says} · <a href={f.source.url} target="_blank" rel="noopener noreferrer">{f.source.title || f.source.url}</a></small></li>)}</ul>}
+      {!inThread && m.separate_asks.length > 0 && <div className="convo-apart"><small>Kept apart, as its own piece of work:</small>
+        {m.separate_asks.map((s) => <div key={s.your_words} className="convo-apart-row"><small>{s.ask}</small>
+          {canWrite && onStartSeparately && <Button variant="outline" size="sm" onClick={() => onStartSeparately(s.your_words)}>Start it as its own request</Button>}</div>)}</div>}
+      {m.refused && m.refused.length > 0 && <small className="convo-sub">For the agency, not applied: {m.refused.map((r) => `${r.question_id} (${r.why})`).join("; ")}</small>}
+    </li>;
 }

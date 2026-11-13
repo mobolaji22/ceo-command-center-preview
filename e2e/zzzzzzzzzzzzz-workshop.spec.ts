@@ -4,6 +4,7 @@ import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { newClientRequest, openClientDesk } from "./client-room";
 import { answerEveryQuestion } from "./answers";
+import { openDirective } from "./directive";
 
 /**
  * The design, from a direction chosen to a version approved twice (dev-playbook-v4 ADR-0049 and ADR-0051). A client asks for a design
@@ -73,17 +74,19 @@ const savedAndSettled = async (ws: Locator) => expect(ws.locator(".ws-save")).to
 
 test("a client asks for a design direction and approves a plan narrowed to it; the run asks them to choose in the Workshop", async ({ page }) => {
   await signIn(page, OWNER);
-  await openClientDesk(page, "Board", /Your requests/);
+  await openClientDesk(page, "Board", /Your projects/);
   const composer = await newClientRequest(page);
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill(ASK);
   await composer.getByRole("button", { name: "Send request" }).click();
-  await expect(composer.getByRole("status")).toContainText("Received.");
-  const card = page.locator(".intent-card", { hasText: ASK.slice(0, 30) }).first();
+  const thread = await openDirective(page, ASK.slice(0, 30), "What it asks");
+  await expect(thread.getByRole("status").first()).toContainText("Received.");
+  const card = thread.locator(".intent-card", { hasText: ASK.slice(0, 30) }).first();
   await answerEveryQuestion(card);
   await expect(card.locator('[data-stage="PLAN_READY"]')).toBeVisible();
+  await thread.getByRole("tab", { name: /^The plan/ }).click();
 
   // The direction first: the rest of the chain can wait until it is chosen.
-  const plan = card.getByLabel("Plan");
+  const plan = thread.getByLabel("Plan");
   await plan.getByRole("button", { name: "Ask for a change" }).click();
   await plan.getByLabel("WHAT WOULD YOU LIKE CHANGED?").fill("Drop the research. Drop the brand. Drop the copy. Drop the engineering.");
   await plan.getByRole("button", { name: "Send" }).click();
