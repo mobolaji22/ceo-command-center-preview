@@ -9,6 +9,8 @@ import type {
   ProjectObjectiveView,
   Answer,
   ClientIntentView,
+  ConversationMessage,
+  UnderstandingView,
   Approval,
   Asset,
   ActionLinkView,
@@ -16,6 +18,7 @@ import type {
   BudgetView,
   ClientData,
   DecisionEntry,
+  LedgerDecision,
   DelegationView,
   NotificationItem,
   NotificationPrefs,
@@ -34,6 +37,11 @@ import type {
   Intent,
   SessionView,
   SpendView,
+  ThreadState,
+  ThreadSummary,
+  ThreadView,
+  ThreadWait,
+  WorkspaceView,
 } from "../model";
 import { RIGORS } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
@@ -49,7 +57,7 @@ import { fail, ok, type DataSource, type Result } from "./types";
  * client visibility is decided here the way the API will decide it.
  */
 
-const STORE_KEY = "dpl.fixtures.v8";
+const STORE_KEY = "dpl.fixtures.v9";
 const SESSION_KEY = "dpl.fixtures.session";
 const CHANGE_EVENT = "dpl:fixtures-change";
 /**
@@ -130,7 +138,10 @@ const STATUS_LINE = (i: { status: string; questions: unknown[]; delivery?: { out
   : i.status === "REJECTED" || i.status === "SUPERSEDED" ? { kind: "CLOSED", line: i.status === "REJECTED" ? "This request was withdrawn." : "This request was replaced by a newer one." }
   : { kind: "PLANNING", line: "We're preparing your plan." };
 
-type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand> };
+/** A thread of a project (v4 ADR-0078): the request that opened it and any later ones in it. Requests not listed have one each. */
+type FixtureThread = { id: string; organization_id: string; project_id: string | null; title: string; opened_from_id: string | null; intent_ids: string[] };
+
+type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; ledger?: LedgerDecision[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand>; conversations?: Record<string, Array<ConversationMessage & { by?: string | undefined }>>; threads?: FixtureThread[] };
 
 /**
  * A project's design document in the demo, as v4 keeps it: the approved versions, and the one revision being worked on (a draft, one
@@ -149,18 +160,41 @@ const demoPlan = (): PlanContent => ({
   deliverables: [{ id: "d-business", name: "Business work for: Q4 priorities", domain: "BUSINESS" }, { id: "d-strategy", name: "Strategy work for: Q4 priorities", domain: "STRATEGY" }],
   success_metrics: [{ id: "m1", metric: "The result you asked for", baseline: null, target: "A shortlist you can act on this quarter", measurement: "Agreed with you before work starts", window: "30 days after delivery", data_source: "To be agreed" }],
   tasks: [
-    { id: "t1", title: "Clarify business objective", domain: "BUSINESS", capability: "analyze", rigor: "light", risk: 1, reversibility: 4, depends_on: [] },
-    { id: "t2", title: "Develop strategic directions", domain: "STRATEGY", capability: "strategy", rigor: "strict", risk: 3, reversibility: 3, depends_on: ["t1"] },
-    { id: "t3", title: "Rank the Q4 list against online orders", domain: "BUSINESS", capability: "analyze", rigor: "standard", risk: 2, reversibility: 4, depends_on: ["t2"] },
+    { id: "t1", title: "Clarify business objective", domain: "BUSINESS", capability: "analyze", rigor: "light", risk: 1, reversibility: 4, depends_on: [], awaits: [] },
+    { id: "t2", title: "Develop strategic directions", domain: "STRATEGY", capability: "strategy", rigor: "strict", risk: 3, reversibility: 3, depends_on: ["t1"], awaits: [] },
+    { id: "t3", title: "Rank the Q4 list against online orders", domain: "BUSINESS", capability: "analyze", rigor: "standard", risk: 2, reversibility: 4, depends_on: ["t2"], awaits: ["ld-1"] },
   ],
   milestones: [{ name: "Develop strategic directions: your decision", after_tasks: ["t2"] }, { name: "Delivery", after_tasks: ["t3"] }],
   budget: { low_usd: 0.63, high_usd: 1.44, confidence: 0.4 },
   risks: [{ risk: "\"Develop strategic directions\" shapes everything after it", mitigation: "It waits for your decision before the next step starts" }],
   assumptions: ["Is there a spending limit we should respect? We are going with: Use the usual range for this kind of work", "Costs are estimates by effort level, not quotes."],
   open_context_needs: ["Brand guidelines"], decision_points: [{ task_id: "t2", description: "Your decision on: Develop strategic directions" }],
+  to_confirm: [{ id: "ld-1", question: "Should the ranking count in-store sales as well as online orders?", recommendation: "Online orders only", authority: null, disposition: "ASK" }],
   phasing: [{ task_id: "t3", upstream: "COMPLIANCE", reason: "The ranking stays inside the business; Compliance reviews only what is published." }],
   unstaffed: ["COMPLIANCE"], exempt: [],
 });
+
+/**
+ * The demo plan's one open decision (v4 ADR-0068): the ranking step waits for it; nothing else does. And one suggestion the agency
+ * offered against what was asked (ADR-0073): the plan follows the ask, and the suggestion holds nothing.
+ */
+const demoLedger = (): LedgerDecision[] => [{
+  id: "ld-1", project_id: "p-1", question: "Should the ranking count in-store sales as well as online orders?",
+  options: [{ id: "online", label: "Online orders only", tradeoff: "Matches the goal; in-store favourites may rank low." }, { id: "both", label: "Online and in-store", tradeoff: "A fuller picture; needs the till exports." }],
+  recommendation: { option_id: "online", label: "Online orders only", why: "The goal is online orders, and the till exports are not held yet." },
+  state: "OPEN", resolution: null, selected_option: null, disposition: "ASK", authority: null, holds: ["BUSINESS"], counsel: null, created_at: new Date(Date.now() - 864e5 * 19).toISOString(), resolved_at: null,
+}, {
+  id: "ld-2", project_id: "p-1", question: "A separate ordering app, or ordering on the redesigned storefront?",
+  options: [{ id: "app", label: "A separate ordering app, as asked", tradeoff: "Store fees, an install step, and two things to keep up." }, { id: "web", label: "Ordering on the storefront, saved to the home screen", tradeoff: "No install; one thing to keep up." }],
+  recommendation: { option_id: "web", label: "Ordering on the storefront, saved to the home screen", why: "The goal is more online orders, and every install step loses buyers." },
+  state: "OPEN", resolution: null, selected_option: null, disposition: "PROCEED_WITH_ASSUMPTION", authority: null, holds: [],
+  counsel: {
+    kind: "BETTER_FIT", asked: "a separate ordering app", concern: "An app adds an install step between a shopper and an order, which works against more online orders.",
+    evidence: [{ class: "OBSERVED", says: "Your goal: lift online orders by 25% in a quarter." }, { class: "HYPOTHESIS", says: "Most shoppers will not install an app for a shop they use now and then." }],
+    keep_option_id: "app",
+  },
+  created_at: new Date(Date.now() - 864e5 * 19).toISOString(), resolved_at: null,
+}];
 
 function seed(): Store {
   const users: User[] = [
@@ -191,9 +225,9 @@ function seed(): Store {
       { id: "t-7", project_id: "p-3", title: "Draft the portfolio narrative", domain: "Content", status: "READY", risk: 1, reversibility: 5, approval_required: false, description: null, created_at: ago(24 * 2), started_at: null, completed_at: null },
     ],
     decisions: [
-      { id: "d-1", project_id: "p-1", question: "Which design territory should the storefront follow?", options: ["Warm editorial", "Playful modern", "Austere minimal"], recommendation: "Warm editorial", status: "WAITING_FOR_HUMAN", confidence: 0.72, risk: 2, reversibility: 4, rationale: null, selected_option: null, created_at: ago(30), resolved_at: null },
-      { id: "d-2", project_id: "p-2", question: "Should intake be one page or a short sequence?", options: ["One page", "Three short steps"], recommendation: "Three short steps", status: "ACCEPTED", confidence: 0.8, risk: 2, reversibility: 4, rationale: "Less cognitive load per screen.", selected_option: "Three short steps", created_at: ago(24 * 6), resolved_at: ago(24 * 5) },
-      { id: "d-3", project_id: "p-4", question: "Retire the secondary logo?", options: ["Retire", "Keep"], recommendation: "Retire", status: "ACCEPTED", confidence: 0.9, risk: 1, reversibility: 5, rationale: null, selected_option: "Retire", created_at: ago(24 * 40), resolved_at: ago(24 * 38) },
+      { id: "d-1", project_id: "p-1", question: "Which design territory should the storefront follow?", options: ["Warm editorial", "Playful modern", "Austere minimal"], recommendation: "Warm editorial", state: "OPEN", resolution: null, authority: null, confidence: 0.72, risk: 2, reversibility: 4, rationale: null, selected_option: null, created_at: ago(30), resolved_at: null },
+      { id: "d-2", project_id: "p-2", question: "Should intake be one page or a short sequence?", options: ["One page", "Three short steps"], recommendation: "Three short steps", state: "DECIDED_BY_OWNER", resolution: "ACCEPTED", authority: null, confidence: 0.8, risk: 2, reversibility: 4, rationale: "Less cognitive load per screen.", selected_option: "Three short steps", created_at: ago(24 * 6), resolved_at: ago(24 * 5) },
+      { id: "d-3", project_id: "p-4", question: "Retire the secondary logo?", options: ["Retire", "Keep"], recommendation: "Retire", state: "DECIDED_BY_OWNER", resolution: "ACCEPTED", authority: null, confidence: 0.9, risk: 1, reversibility: 5, rationale: null, selected_option: "Retire", created_at: ago(24 * 40), resolved_at: ago(24 * 38) },
     ],
     approvals: [
       { id: "a-1", project_id: "p-2", target_type: "TASK", title: "Publish the redesigned intake form to production", reason: "The new three-step intake passed every quality gate and testing on staging. Publishing makes it live to real patients, so it needs a human signature.", recommendation: "Approve, with a 7-day watch on abandonment.", consequences: "Real patients see the new form immediately. Rolling back is possible but patient submissions during the window cannot be un-submitted.", risk: 4, reversibility: 2, requires_client: true, status: "REQUESTED", constraints: null, evidence_request: null, resolution_note: null, resolved_at: null, resolved_by: null, created_at: ago(20) },
@@ -245,6 +279,8 @@ function seed(): Store {
         questions: [{ id: "q-1", question: "What result would tell you this worked?", why: "Without a result to aim at we cannot tell a good plan from a merely busy one.", decision: "Which approach we propose, and how we measure success.", options: [{ id: "revenue", label: "More completed intakes", tradeoff: "We design around completion; extras that do not help it are left out." }, { id: "trust", label: "Patients who feel at ease", tradeoff: "We invest in tone and content; it is slower to measure." }], default_option_id: null }],
         assumptions: [], answers: [],
         materials: [{ requirement_id: "m-1", name: "Brand guidelines", why: "Design should extend your brand, not invent a new one.", if_missing: "Colors, type and tone would be guessed.", required: true, ways: ["UPLOAD", "LINK", "NONE", "SOURCE"], sourcing: false }] },
+      // v4 ADR-0078: a feature v4 found in the Q4 request, opened as its own thread in the project; it waits for the plan's decision.
+      { id: "in-4", organization_id: "o-1", project_id: "p-1", source: "CLIENT_INTENT", status: "UNDERSTOOD", text: "Show the allergens on every product page", initiator_id: "u-amara", rejection_reason: null, created_at: ago(20), understood_at: ago(19), plan_status: null, questions: [], assumptions: [], answers: [], materials: [] },
     ],
     organizations: [
       { id: "o-1", name: "Northwind Bakery", mission: "Fresh bread, honestly made.", kind: "CLIENT", created_at: ago(24 * 70) },
@@ -296,7 +332,21 @@ function seed(): Store {
     { id: "n-1", brief_id: "b-1", title: "Lumen onboarding: the budget has been reached", type: "EXCEPTION", project_id: "p-2", level: 4, status: "SENT", reason: null, created_at: ago(5) },
     { id: "n-2", brief_id: "b-2", title: "Northwind checkout: what we will do", type: "KICKOFF", project_id: "p-1", level: 2, status: "WAITING_DIGEST", reason: "WAITS_FOR_DIGEST", created_at: ago(24 * 19) },
   ];
-  return { data, users, assets: [], lastSeen: ago(24 * 2), plans, decisions: [], delegations: [], runs, questions, budgets, briefs, prefs, notifications,
+  const threads: FixtureThread[] = [
+    { id: "th-q4", organization_id: "o-1", project_id: "p-1", title: "Q4 priorities for online orders", opened_from_id: null, intent_ids: ["in-1"] },
+    { id: "th-allergens", organization_id: "o-1", project_id: "p-1", title: "Allergens on product pages", opened_from_id: "th-q4", intent_ids: ["in-4"] },
+  ];
+  const note = (id: string, at: string, text: string, extra: Partial<ConversationMessage>): ConversationMessage => ({ id, from: "PLATFORM", text, at, mine: false, answered: [], no_longer_asked: [], separate_asks: [], findings: [], ...extra });
+  const conversations: Record<string, Array<ConversationMessage & { by?: string | undefined }>> = {
+    "in-1": [
+      { id: "m-q4-1", by: "u-amara", from: "PERSON", text: "Online orders first, agreed. People keep asking about allergens, so could every product page show them? And separately, our shop menu boards need redoing.", at: ago(21), mine: true, answered: [], no_longer_asked: [], separate_asks: [], findings: [] },
+      { id: "m-q4-2", from: "AGENCY", text: "Thanks. Allergens on each product page serve the same goal, online orders, so they have their own thread in this project, and we'll plan them with the next version. The menu boards are a different piece of work, in the shops rather than online, so we've kept them apart as a possible new project. Nothing starts on them until you say so.", at: ago(20.5), mine: false, answered: [], no_longer_asked: [],
+        separate_asks: [{ ask: "Show allergens on every product page", your_words: "could every product page show them?", name: "Allergens on product pages", kind: "FEATURE" }, { ask: "Redo the shop menu boards", your_words: "our shop menu boards need redoing", name: "Menu boards", kind: "NEW_PROJECT" }], findings: [] },
+      note("m-q4-3", ago(20.4), "\"Allergens on product pages\" is open as its own thread in this project.", { opened_thread: { thread_id: "th-allergens", title: "Allergens on product pages" } }),
+      note("m-q4-4", ago(20.4), "\"Menu boards\" sounds like a separate project. Nothing starts on it until you start it.", { suggested_project: { name: "Menu boards", your_words: "our shop menu boards need redoing" } }),
+    ],
+  };
+  return { threads, conversations, data, users, assets: [], lastSeen: ago(24 * 2), plans, decisions: [], delegations: [], runs, questions, budgets, briefs, prefs, notifications,
     links: [{ token: "demo-redo", view: { state: "READY", option: "REWORK", label: "Redo the step", does: "The step is done again from the start, within the budget already approved.", title: "A quality check did not pass", summary: "A step's result did not meet the quality bar. It can be redone.", project: "Lumen onboarding", expires_at: ago(-24 * 3) } }] };
 }
 
@@ -421,6 +471,45 @@ function openProject(s: Store, i: Intent) {
   });
 }
 
+/** Every thread (v4 ADR-0078): the seeded ones, and one of its own for each request not in any of them. */
+function threadsOf(s: Store): FixtureThread[] {
+  const listed = s.threads ?? [];
+  const taken = new Set(listed.flatMap((t) => t.intent_ids));
+  const own = s.data.intents.filter((i) => !taken.has(i.id)).map((i) => ({ id: `th-${i.id}`, organization_id: i.organization_id, project_id: i.project_id, title: i.text.slice(0, 80), opened_from_id: null, intent_ids: [i.id] }));
+  return [...listed, ...own].map((t) => {
+    const reqs = t.intent_ids.map((x) => s.data.intents.find((i) => i.id === x)).filter((i): i is Intent => !!i);
+    return { ...t, project_id: t.project_id ?? reqs.find((i) => i.project_id)?.project_id ?? null };
+  });
+}
+
+/** As v4 reads it: where a thread stands, from its current request, its messages and the head of its project's plan. */
+function standingOf(s: Store, t: FixtureThread, all: FixtureThread[]): { state: ThreadState; waiting_for?: ThreadWait; needs_you: ThreadSummary["needs_you"] } {
+  const reqs = withPlanStatus(s, t.intent_ids.map((x) => s.data.intents.find((i) => i.id === x)).filter((i): i is Intent => !!i));
+  const c = reqs.at(-1)!;
+  const head = t.project_id ? s.plans.filter((p) => p.project_id === t.project_id).sort((a, b) => b.version - a.version)[0] ?? null : null;
+  // The thread the plan came from: the one holding the project's first request.
+  const planThread = t.project_id ? all.filter((x) => x.project_id === t.project_id && !x.opened_from_id)[0]?.id ?? null : null;
+  const messages = t.intent_ids.flatMap((x) => s.conversations?.[x] ?? []);
+  const replying = messages.filter((m) => m.from !== "PLATFORM").at(-1)?.from === "PERSON";
+  const needs_you = { questions: c.questions.length, materials: c.materials.filter((m) => m.required).length, decision: head?.status === "SUBMITTED" && planThread === t.id };
+  if (c.status === "RECEIVED" && !t.project_id && t.opened_from_id) return { state: "WAITING", waiting_for: { reason: "PROJECT_NOT_OPEN", thread_id: t.opened_from_id }, needs_you };
+  if (c.status === "UNDERSTOOD" && t.project_id && planThread !== t.id && head && ["DRAFT", "SUBMITTED", "REVISION_REQUESTED"].includes(head.status)) {
+    return { state: "WAITING", waiting_for: { reason: "REVISION_OPEN", thread_id: planThread, proposal_id: head.id, version: head.version }, needs_you };
+  }
+  if (!replying && (needs_you.questions > 0 || needs_you.decision)) return { state: "NEEDS_YOU", needs_you };
+  if (["PLANNED", "REJECTED", "SUPERSEDED"].includes(c.status)) return { state: "DONE", needs_you };
+  return { state: "WORKING", needs_you };
+}
+
+function threadSummary(s: Store, t: FixtureThread, all: FixtureThread[]): ThreadSummary {
+  const reqs = t.intent_ids.map((x) => s.data.intents.find((i) => i.id === x)).filter((i): i is Intent => !!i);
+  const c = reqs.at(-1)!;
+  const messages = t.intent_ids.flatMap((x) => s.conversations?.[x] ?? []).sort((a, b) => a.at.localeCompare(b.at));
+  const last = messages.at(-1);
+  const updated = [c.created_at, ...messages.map((m) => m.at)].sort().at(-1)!;
+  return { thread_id: t.id, title: t.title, opened_from_id: t.opened_from_id, updated_at: updated, current: { intent_id: c.id, status: c.status }, ...standingOf(s, t, all), last_message: last ? { from: last.from, text: last.text.slice(0, 200), at: last.at } : null };
+}
+
 /** As the API does: an intent carries its latest plan's status, read from the plans rather than stored on the intent. */
 function withPlanStatus(s: Store, intents: Intent[]): Intent[] {
   const latest = (pid: string | null) => s.plans.filter((p) => p.project_id === pid).sort((a, b) => b.version - a.version)[0]?.status ?? null;
@@ -447,6 +536,16 @@ export function createFixturesDataSource(): DataSource {
     s.data.events.unshift({ id: id(), created_at: new Date().toISOString(), actor_id: e.actor_id ?? currentUserId(), ...e });
   };
   const currentUserId = sessionUserId;
+  const sayOn = async (intentId: string, text: string): Promise<Result<{ change_intent_id: string | null }>> => {
+    const words = text.trim();
+    if (!words) return fail("Write a message.", "INVALID_INTENT");
+    const r = await mutate((s) => {
+      if (!s.data.intents.some((x) => x.id === intentId)) return;
+      const all = (s.conversations ??= {});
+      (all[intentId] ??= []).push({ id: `m-${Date.now()}`, by: currentUserId() ?? undefined, from: "PERSON", text: words, at: new Date().toISOString(), mine: true, answered: [], no_longer_asked: [], separate_asks: [], findings: [] });
+    });
+    return r.error ? { data: null, error: r.error } : ok({ change_intent_id: null });
+  };
   const approvalById = (s: Store, aid: string): Approval | undefined => s.data.approvals.find((a) => a.id === aid);
 
   return {
@@ -662,6 +761,38 @@ export function createFixturesDataSource(): DataSource {
             : null,
         });
       },
+      async understanding(intentId) {
+        // Fixtures hold no reading rounds, so the one version is built from what the request holds: its words, its questions with
+        // a recommendation, and what was assumed. Fixtures look nothing up (no envelope, no paid spend), so nothing is found.
+        const s = load();
+        const i = s.data.intents.find((x) => x.id === intentId);
+        if (!i) return fail("That request couldn't be found.", "NOT_FOUND");
+        const view: UnderstandingView = {
+          intent_id: i.id,
+          versions: [{
+            round: 1, at: i.created_at, current: true,
+            understood: { goal: i.text, desired_outcome: null, objectives: [], constraints: [] },
+            found: { findings: [], finding_out: [] },
+            recommend: [
+              ...i.questions.filter((q) => q.default_option_id).map((q) => ({ id: q.id, question: q.question, recommended: q.options.find((o) => o.id === q.default_option_id)?.label ?? null, why: null, standing: "OPEN" as const, chosen: null, counsel: null })),
+              ...i.assumptions.map((a) => ({ id: a.id, question: a.question, recommended: a.assumed, why: null, standing: "ASSUMED" as const, chosen: a.assumed, counsel: null })),
+            ],
+          }],
+          still_needs_you: { questions: i.questions.map((q) => ({ id: q.id, question: q.question, why: q.why })), decisions: [] },
+        };
+        return ok(view);
+      },
+      async conversation(intentId) {
+        // Fixtures have no reader (no envelope, no model), so a message waits for the agency's reply, as v4 says when it has none.
+        const s = load();
+        if (!s.data.intents.some((x) => x.id === intentId)) return fail("That request couldn't be found.", "NOT_FOUND");
+        const me = currentUserId();
+        const messages = (s.conversations?.[intentId] ?? []).map(({ by, ...m }) => ({ ...m, mine: m.from === "PERSON" && by === me }));
+        return ok({ intent_id: intentId, waiting_for_reply: messages.filter((m) => m.from !== "PLATFORM").at(-1)?.from === "PERSON", messages });
+      },
+      async say(intentId, text) {
+        return sayOn(intentId, text);
+      },
       async answerDelivery(intentId, answer, note) {
         if (load().users.find((u) => u.id === currentUserId())?.role !== "owner") return fail("Only the CEO answers what the agency can deliver.", "FORBIDDEN");
         return mutate((st) => {
@@ -671,6 +802,60 @@ export function createFixturesDataSource(): DataSource {
           if (answer === "DECLINE") { i.status = "REJECTED"; i.rejection_reason = [...i.delivery.items.filter((x) => x.outcome !== "CAN").map((x) => x.reason), note?.trim() ?? ""].filter(Boolean).join(" "); }
           else { i.status = "PLANNED"; openProject(st, i); }
         });
+      },
+    },
+
+    threads: {
+      async workspace() {
+        const s = load();
+        const me = s.users.find((u) => u.id === currentUserId());
+        if (!me) return fail("Sign in first.", "UNAUTHENTICATED");
+        const mine = new Set(me.memberships.map((m) => m.organizationId));
+        const all = threadsOf(s).filter((t) => t.intent_ids.some((x) => s.data.intents.some((i) => i.id === x)));
+        const by = (a: { updated_at: string }, b: { updated_at: string }) => b.updated_at.localeCompare(a.updated_at);
+        const view: WorkspaceView = {
+          organizations: s.data.organizations.filter((o) => me.role === "owner" || mine.has(o.id)).map((o) => {
+            const own = all.filter((t) => t.organization_id === o.id);
+            return {
+              id: o.id, name: o.name, kind: o.kind ?? "CLIENT",
+              projects: s.data.projects.filter((p) => p.organization_id === o.id).map((p) => {
+                const threads = own.filter((t) => t.project_id === p.id).map((t) => threadSummary(s, t, all)).sort(by);
+                return { project_id: p.id, name: p.name, status: p.status, objective: p.objective, updated_at: threads[0]?.updated_at ?? p.created_at, threads };
+              }),
+              new_projects: own.filter((t) => !t.project_id && !t.opened_from_id).map((r) => ({
+                thread_id: r.id, title: r.title,
+                threads: [r, ...own.filter((t) => t.opened_from_id === r.id && !t.project_id)].map((t) => threadSummary(s, t, all)),
+              })),
+            };
+          }),
+        };
+        return ok(structuredClone(view));
+      },
+      async read(threadId) {
+        const s = load();
+        const me = s.users.find((u) => u.id === currentUserId());
+        const all = threadsOf(s);
+        const t = all.find((x) => x.id === threadId);
+        if (!me || !t || (me.role !== "owner" && !me.memberships.some((m) => m.organizationId === t.organization_id))) return fail("That thread couldn't be found.", "NOT_FOUND");
+        const reqs = t.intent_ids.map((x) => s.data.intents.find((i) => i.id === x)).filter((i): i is Intent => !!i);
+        if (!reqs.length) return fail("That thread couldn't be found.", "NOT_FOUND");
+        const sum = threadSummary(s, t, all);
+        // As v4 does, a message is "mine" when the reader wrote it.
+        const messages = t.intent_ids.flatMap((x) => s.conversations?.[x] ?? []).sort((a, b) => a.at.localeCompare(b.at)).map(({ by, ...m }) => ({ ...m, mine: m.from === "PERSON" && by === me.id }));
+        const from = t.opened_from_id ? all.find((x) => x.id === t.opened_from_id) : undefined;
+        const view: ThreadView = {
+          thread_id: t.id, organization_id: t.organization_id, project_id: t.project_id, title: t.title, state: sum.state, waiting_for: sum.waiting_for,
+          opened_from: t.opened_from_id ? { thread_id: t.opened_from_id, title: from?.title ?? null } : null,
+          current: sum.current, requests: reqs.map((i) => ({ intent_id: i.id, status: i.status, text: i.text, at: i.created_at })),
+          waiting_for_reply: messages.filter((m) => m.from !== "PLATFORM").at(-1)?.from === "PERSON", messages,
+        };
+        return ok(structuredClone(view));
+      },
+      async say(threadId, text) {
+        const t = threadsOf(load()).find((x) => x.id === threadId);
+        const current = t?.intent_ids.at(-1);
+        if (!current) return fail("That thread couldn't be found.", "NOT_FOUND");
+        return sayOn(current, text);
       },
     },
 
@@ -1114,6 +1299,25 @@ export function createFixturesDataSource(): DataSource {
         const s = load();
         const ids = new Set(s.plans.filter((p) => p.project_id === projectId).map((p) => p.id));
         return ok(structuredClone(s.decisions.filter((d) => ids.has(d.proposal_id))));
+      },
+      async ledger(projectId) {
+        const open = (d: LedgerDecision) => (d.state === "OPEN" || d.state === "STALE" ? 0 : 1);
+        return ok(structuredClone((load().ledger ?? demoLedger()).filter((d) => d.project_id === projectId).sort((a, b) => open(a) - open(b))));
+      },
+      async resolveDecision(decisionId, answer) {
+        const s = load();
+        s.ledger ??= demoLedger();
+        const d = s.ledger.find((x) => x.id === decisionId);
+        if (!d) return fail("That decision was not found.", "DECISION_NOT_FOUND");
+        if (d.state !== "OPEN" && d.state !== "STALE") return fail("This decision is already made.", "ALREADY_DECIDED");
+        if ("defer" in answer) d.resolution = "DEFERRED";
+        else {
+          const o = d.options.find((x) => x.id === answer.optionId);
+          if (!o) return fail("Not one of this decision's options.", "INVALID_OPTION");
+          Object.assign(d, { state: "DECIDED_BY_OWNER", resolution: !d.recommendation || d.recommendation.option_id === o.id ? "ACCEPTED" : "REJECTED", selected_option: { id: o.id, label: o.label }, resolved_at: new Date().toISOString() });
+        }
+        save(s);
+        return ok(structuredClone(d));
       },
       async delegations(projectId) {
         const s = load();

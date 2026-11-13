@@ -8,6 +8,7 @@ import { useDataSource } from "@/lib/data";
 import type { ClientPlanView, DecisionEntry, DelegationView, PlanChange, PlanVersion, ProjectObjectiveView } from "@/lib/model";
 import { ClientPlanDoc } from "./client-plan";
 import { PlanGoal } from "./objective";
+import { OpenDecisions } from "./open-decisions";
 import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
 import { useStepUp } from "./step-up";
 
@@ -156,7 +157,7 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
       {p.scope_out.length > 0 && <><h4>Not included</h4><ul>{p.scope_out.map((x) => <li key={x}>{x}</li>)}</ul></>}
       <h4>What you get</h4><ul>{p.deliverables.map((d) => <li key={d.id}>{d.name}</li>)}</ul>
       <h4>How we will know it worked</h4><ul>{p.success_metrics.map((m) => <li key={m.id}>{m.target}<small>Measured by: {m.measurement}. Over: {m.window}.</small></li>)}</ul>
-      <h4>The work</h4><ol className="plan-tasks">{p.tasks.map((t) => <li key={t.id}>{t.title}<small>{label(t.domain)} · {t.rigor} effort{t.depends_on.length ? ` · after ${t.depends_on.map(titleOf).join(", ")}` : ""}</small></li>)}</ol>
+      <h4>The work</h4><ol className="plan-tasks">{p.tasks.map((t) => <li key={t.id}>{t.title}<small>{label(t.domain)} · {t.rigor} effort{t.depends_on.length ? ` · after ${t.depends_on.map(titleOf).join(", ")}` : ""}{t.awaits.length ? " · waits for a decision below" : ""}</small></li>)}</ol>
       <h4>What it may cost</h4>
       <p className="plan-cost" aria-label="Estimated cost"><b>{usd(p.budget.low_usd)} to {usd(p.budget.high_usd)}</b><small>An estimate by effort level, not a quote ({Math.round(p.budget.confidence * 100)}% sure).</small></p>
       {p.risks.length > 0 && <><h4>What could go wrong</h4><ul>{p.risks.map((r) => <li key={r.risk}>{r.risk}<small>{r.mitigation}</small></li>)}</ul></>}
@@ -169,6 +170,9 @@ export function PlanPanel({ projectId, organizationId, onChanged }: { projectId:
         {p.exempt.map((x) => <li key={`${x.upstream}-${x.dependent}-${x.via}`}>{label(x.upstream)} is exempt for now<small>It is not called up and reviews nothing here. Without the exemption, {label(x.dependent)}&apos;s work would have brought it in ({x.via === "required" ? "it needs its output" : condition(x.via)}).</small></li>)}
       </ul></>}
     </div>}
+
+    {/* v4 ADR-0068: what is still to decide is read from the project's ledger, live, not from the version shown. */}
+    <OpenDecisions projectId={projectId} mayAnswer={shown.decision_owner === "CEO" ? isCEO : isClientOwner} isAgency={isCEO} onChanged={onChanged} />
 
     {shown.version > 1 && <div className="plan-change">
       <Button variant="ghost" onClick={showChange}>{change ? "Hide what changed" : `What changed since version ${shown.version - 1}`}</Button>

@@ -11,7 +11,7 @@ import type { OwnerData, Approval } from "@/lib/model";
 import { label, riskLabel, reversibilityLabel, statusTone, fmtDate, fmtAgo, pad } from "@/lib/format";
 import { useDataSource } from "@/lib/data";
 import { useAuth } from "@/lib/auth";
-import { Composer, INTENT_STATUS_WORDS, IntentCard, intentTone } from "./intents";
+import { ThreadsScreen } from "./threads";
 import { directiveNeedsYou } from "@/lib/attention";
 import { useDomains } from "@/lib/domains";
 import { FindBar, Marked } from "./find-bar";
@@ -55,7 +55,7 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
         <PlanDecisionLedger data={data} />
         {data.decisions.length > 0 && <div className="section-label"><span>OTHER DECISIONS</span><span>{pad(data.decisions.length)}</span></div>}
         {data.decisions.length === 0 ? <Empty title="No decisions recorded yet." /> :
-        <div className="dossier-list">{data.decisions.map((d, i) => <div key={d.id} className="dossier-row"><span className="row-index">{pad(i + 1)}</span><div><b>{d.question}</b><small>{projectName(data, d.project_id)} · {d.resolved_at ? `Resolved ${fmtDate(d.resolved_at)}` : `Raised ${fmtDate(d.created_at)}`}{d.selected_option ? ` · Chose: ${d.selected_option}` : ""}</small></div><span className={`pill ${statusTone(d.status)}`}>{label(d.status).toUpperCase()}</span><span /></div>)}</div>}</div>}
+        <div className="dossier-list">{data.decisions.map((d, i) => <div key={d.id} className="dossier-row"><span className="row-index">{pad(i + 1)}</span><div><b>{d.question}</b><small>{projectName(data, d.project_id)} · {d.resolved_at ? `Resolved ${fmtDate(d.resolved_at)}` : `Raised ${fmtDate(d.created_at)}`}{d.selected_option ? ` · Chose: ${d.selected_option}` : ""}</small></div><span className={`pill ${statusTone(d.state)}`}>{label(d.state).toUpperCase()}</span><span /></div>)}</div>}</div>}
       {tab === "Security/Gov" && <div className="computer-content"><div className="section-label"><span>SECURITY & GOVERNANCE</span><span>PROTOCOL ACTIVE</span></div>
         <GovernancePanel data={data} />
         <div className="governance-grid">
@@ -221,79 +221,13 @@ function ResolvedList({ data, items }: { data: OwnerData; items: Approval[] }) {
   return <div className="resolved-list"><div className="section-label"><span>RECENTLY RESOLVED</span><span>{items.length}</span></div>{items.map((x) => <div key={x.id} className="resolved-row"><span>{x.title}<small>{projectName(data, x.project_id)} · {fmtDate(x.resolved_at)}</small></span><span className={`pill ${statusTone(x.status)}`}>{label(x.status).toUpperCase()}</span></div>)}</div>;
 }
 
-type DirectiveTab = "needs" | "progress" | "closed" | "all";
-/** Where a request sits on the directive desk. "Needs you" is what the desk's hotspot counts (lib/attention), so the two agree. */
-function directiveTab(data: OwnerData, i: OwnerData["intents"][number]): Exclude<DirectiveTab, "all"> {
-  if (i.status === "REJECTED" || i.status === "SUPERSEDED") return "closed";
-  const project = data.projects.find((p) => p.id === i.project_id);
-  if (project && CLOSED.includes(project.status)) return "closed";
-  return directiveNeedsYou(i) ? "needs" : "progress";
-}
-
 /**
- * The CEO's directives, one layer at a time (P6.21's rule for desks): the requests sorted into tabs by what they need, a filter for
- * whom they are for, and one request opened at a time with what it asks and its plan on their own tabs. Writing a new one opens
- * the composer in place of the list; sending it opens the request it made.
+ * The CEO's directives are projects and their threads (v4 ADR-0078), on the same screen the client has: every organization's, with a
+ * filter for whom they are for. "Needs you" lists what the desk's hotspot counts (lib/attention), so the two agree.
  */
 export function DirectiveView({ data, refresh, close }: Common & { close: () => void }) {
-  const [writing, setWriting] = useState(data.intents.length === 0);
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [part, setPart] = useState<"asks" | "plan">("asks");
-  const [forOrg, setForOrg] = useState<string>("*");
-  // What the last send came back with, said once on the request it opened.
-  const [notice, setNotice] = useState<{ id: string; text: string } | null>(null);
-  const counts = { needs: 0, progress: 0, closed: 0, all: data.intents.length };
-  for (const i of data.intents) counts[directiveTab(data, i)]++;
-  const [tab, setTab] = useState<DirectiveTab>(counts.needs ? "needs" : "progress");
-  const org = (id: string) => data.organizations.find((o) => o.id === id);
-  const forName = (id: string) => (org(id)?.kind === "INTERNAL" ? "The agency's own work" : org(id)?.name ?? "A client");
-  const shown = data.intents.filter((i) => (tab === "all" || directiveTab(data, i) === tab) && (forOrg === "*" || (forOrg === "INTERNAL" ? org(i.organization_id)?.kind === "INTERNAL" : i.organization_id === forOrg)));
-  const opened = openId ? data.intents.find((i) => i.id === openId) ?? null : null;
-  const openRequest = (i: OwnerData["intents"][number]) => { setOpenId(i.id); setPart(i.questions.length || i.materials.length || i.delivery?.needs_answer || !i.project_id ? "asks" : "plan"); };
-  const asksCount = (i: OwnerData["intents"][number]) => i.questions.length + i.materials.length + (i.delivery?.needs_answer ? 1 : 0);
-  const clients = data.organizations.filter((o) => o.kind !== "INTERNAL");
-
-  return <div className="directive-wrap">
-    <div className="directive-head"><div><div className="eyebrow gold">INTENT FRAMING / CEO OFFICE</div><h2><span className="brain-symbol">✦</span> Executive Directive</h2>
-      <p className="directive-principle">Set direction, resolve ambiguity, authorize what matters. For a client or for the agency itself.</p></div>
-      <div className="directive-actions">{!writing && <Button className="new-request" onClick={() => { setWriting(true); setOpenId(null); }}><Plus size={16} /> New directive</Button>}
-        {/* While writing, the form's own ✕ puts it away; one close at a time. */}
-        {!writing && <Button variant="ghost" size="icon" className="icon-button" aria-label="Close directive" onClick={close}><X size={20} /></Button>}</div></div>
-
-    {writing
-      ? <Composer organizations={data.organizations} onSubmitted={async (sent) => { await refresh(); setWriting(false); setOpenId(sent.intentId); setNotice({ id: sent.intentId, text: sent.status === "CLARIFYING" ? "Received. A few questions will make it sharper." : sent.status === "PLANNED" || sent.status === "UNDERSTOOD" ? "Received and understood. The plan is ready for a decision." : "Received." }); setPart(sent.status === "CLARIFYING" ? "asks" : "plan"); setTab(sent.status === "CLARIFYING" ? "needs" : "progress"); }} onClose={data.intents.length ? () => setWriting(false) : undefined} />
-      : opened
-        ? <div className="directive-detail">
-            <Button variant="ghost" className="back-link" onClick={() => { setOpenId(null); setNotice(null); }}><ArrowLeft size={14} /> ALL DIRECTIVES</Button>
-            <div className="directive-detail-head"><div><small className="who">{forName(opened.organization_id)} · {fmtAgo(opened.created_at)}{opened.source === "CLIENT_INTENT" ? " · from the client" : " · from the agency"}</small><h3>{opened.text}</h3></div>
-              <span className={`pill ${intentTone(opened.status)}`}>{(INTENT_STATUS_WORDS[opened.status] ?? label(opened.status)).toUpperCase()}</span></div>
-            {notice?.id === opened.id && <p className="mmsg directive-notice" role="status">{notice.text}</p>}
-            <div className="desk-tabs" role="tablist">
-              {(["asks", "plan"] as const).map((t) => <Button key={t} role="tab" aria-selected={part === t} variant="ghost" className={part === t ? "tab active" : "tab"} disabled={t === "plan" && !opened.project_id} onClick={() => setPart(t)}>
-                {t === "asks" ? "What it asks" : "The plan"}{t === "asks" && asksCount(opened) ? <span className="tab-count">{asksCount(opened)}</span> : null}</Button>)}
-            </div>
-            {part === "plan" && !opened.project_id ? <Empty title="No plan yet.">It is written once the request is understood.</Empty>
-              : <IntentCard key={`${opened.id}:${part}`} intent={opened} part={part} canAnswer={opened.source === "CEO_DIRECTIVE"} refresh={refresh} />}
-          </div>
-        : <>
-            <div className="directive-toolbar">
-              <div className="desk-tabs" role="tablist">
-                {([["needs", "Needs you"], ["progress", "In progress"], ["closed", "Closed"], ["all", "All"]] as const).map(([id, name]) =>
-                  <Button key={id} role="tab" aria-selected={tab === id} variant="ghost" className={tab === id ? "tab active" : "tab"} onClick={() => setTab(id)}>{name}{counts[id] ? <span className="tab-count">{counts[id]}</span> : null}</Button>)}
-              </div>
-              <label className="directive-filter">FOR<select aria-label="Show directives for" value={forOrg} onChange={(e) => setForOrg(e.target.value)}>
-                <option value="*">Everyone</option><option value="INTERNAL">The agency&apos;s own work</option>
-                {clients.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
-            </div>
-            {shown.length === 0
-              ? <Empty title={tab === "needs" ? "Nothing needs you here." : tab === "closed" ? "Nothing closed yet." : "Nothing here."}>{tab === "needs" ? "Questions and materials asked of you arrive in this tab." : null}</Empty>
-              : <div className="directive-list">{shown.map((i) => <button key={i.id} className="directive-row" data-tab={directiveTab(data, i)} onClick={() => openRequest(i)}>
-                  <span className="dr-text">{i.text}<small>{forName(i.organization_id)} · {fmtAgo(i.created_at)}{i.source === "CLIENT_INTENT" ? " · from the client" : ""}</small></span>
-                  <span className="dr-state">{asksCount(i) > 0 && <em>{i.source === "CEO_DIRECTIVE" ? `${asksCount(i)} for you` : `${asksCount(i)} for the client`}</em>}<span className={`pill ${intentTone(i.status)}`}>{(INTENT_STATUS_WORDS[i.status] ?? label(i.status)).toUpperCase()}</span></span>
-                  <ArrowRight size={14} aria-hidden="true" />
-                </button>)}</div>}
-          </>}
-  </div>;
+  return <ThreadsScreen audience="agency" intents={data.intents} organizations={data.organizations} canWrite={(i) => i.source === "CEO_DIRECTIVE"} needsMe={directiveNeedsYou}
+    refresh={refresh} close={close} eyebrow="INTENT FRAMING / CEO OFFICE" title="Executive Directive" />;
 }
 
 type BriefRange = "visit" | "day" | "week";
@@ -314,7 +248,7 @@ export function BriefView({ data, openContracts, openComputer }: Common & { open
   const s = new Date(since).getTime();
   const recent = useMemo(() => data.events.filter((e) => new Date(e.created_at).getTime() > s), [data.events, s]);
   const pending = data.approvals.filter((a) => a.status === "REQUESTED");
-  const waitingDecisions = data.decisions.filter((d) => d.status === "WAITING_FOR_HUMAN" || d.status === "PROPOSED");
+  const waitingDecisions = data.decisions.filter((d) => d.state === "OPEN" || d.state === "STALE");
   const done = data.tasks.filter((t) => t.completed_at && new Date(t.completed_at).getTime() > s);
   const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
   return <div className="brief-wrap"><div className="eyebrow gold"><Sparkles size={15} /> THE CEO BRIEF / {new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }).toUpperCase()}</div><h2>What happened while <br /><i>I was away?</i></h2><p className="brief-lead">Since {new Date(since).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}: {recent.length} signal{recent.length === 1 ? "" : "s"}, {done.length} task{done.length === 1 ? "" : "s"} completed.</p>
