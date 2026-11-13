@@ -175,6 +175,8 @@ export function sampleObligationScreen(audience: ClientBookView["audience"], com
       },
     ],
     clientActions: [{ action: "Decide whether customers will get offers by text, and keep a record of who agreed.", obligationIds: ["o2"] }],
+    // What v4 sends the agency alone (ADR-0075 Decision 11); a client gets none.
+    forTheAgency: audience === "AGENCY" ? ["We write the text-message wording, so the contract should have the bakery approve each message before it goes out."] : [],
     questions: [{ question: "Will you text customers about offers, or only about their order?", changes: "o2: whether consent to marketing is needed." }],
     limitations: ["Tax obligations were not screened."],
   };

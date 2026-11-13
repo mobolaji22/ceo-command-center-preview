@@ -64,10 +64,14 @@ test("the CEO reads the whole book in the Brand room, the drafted market chapter
   await expect(privacy).toContainText("A privacy notice linked beside every form");
   // What to look up, what to settle first, and what only the client can do (v4 ADR-0075 Decision 10).
   await expect(privacy).toContainText("Settle before it goes live");
-  await expect(privacy).toContainText("To look up (recalled, not yet read): The data protection act. Where to read it: The data protection regulator where the roastery is registered.");
+  await expect(privacy).toContainText("Recalled, not checked: The data protection act. Where to read it: The data protection regulator where the roastery is registered.");
   await expect(book.getByRole("listitem", { name: /Show a refund policy/ })).not.toContainText("Settle before it goes live");
   await expect(book.getByRole("heading", { name: "What only you can do" })).toBeVisible();
   await expect(book.getByText("Keep a record of each customer who agrees to marketing, and when.")).toBeVisible();
+  // The agency's own notes reach the CEO and no client (v4 ADR-0075 Decision 11).
+  await expect(book.getByRole("heading", { name: "For the agency only" })).toBeVisible();
+  await expect(book.getByText("The client does not see this part.")).toBeVisible();
+  await expect(book.getByText("We write the product copy, so the contract should have the roastery approve every claim we draft.")).toBeVisible();
   await expect(book.getByText(/compliant/i)).toHaveCount(0);
 
   await chapter(book, /The brand/).click();
@@ -96,6 +100,7 @@ test("the client's owner reads the brand chapters, is told the market is still t
   await expect(printed.getByRole("heading", { name: /The brand/, includeHidden: true })).toBeAttached();
   await expect(printed.getByRole("heading", { name: /Selling it/, includeHidden: true })).toBeAttached();
   await expect(printed.getByRole("heading", { name: /Before it goes live/, includeHidden: true })).toBeAttached();
+  await expect(printed.getByRole("heading", { name: "For the agency only", includeHidden: true })).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => (window as Window & { printed?: number }).printed)).toBe(1);
   await expect(page).toHaveTitle(`${story.projectName} - the book`);
   await page.emulateMedia({ media: "print" });

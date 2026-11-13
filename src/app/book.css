@@ -86,3 +86,4 @@
   .book-print .book-section h3 { break-after: avoid; }
   .book-print .book-evidence summary { list-style: none; color: var(--muted-foreground); }
 }
+.book-agency-note { margin: 0 0 8px; font-size: 13px; font-style: italic; color: var(--muted-foreground); }

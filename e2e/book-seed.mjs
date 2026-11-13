@@ -80,6 +80,7 @@ const screen = {
     { id: "o2", statement: "Customers' details may be used only as the privacy law of the place of business allows.", category: "LAW_OR_REGULATION", source: unread, applicability: "UNRESOLVED", condition: null, rationale: "No place of business was stated, so the law is not known.", status: "UNKNOWN", risk: 4, specialist: "PRIVACY", recalled: { name: "The data protection act", provision: null, check_at: "The data protection regulator where the roastery is registered", well_established: true }, before_launch: true, controls: [{ owner: "ENGINEERING", requirement: "A privacy notice linked beside every form that asks for details.", evidence: "The link on the checkout form." }] },
   ],
   client_actions: [{ action: "Keep a record of each customer who agrees to marketing, and when.", obligations: ["o2"] }],
+  for_the_agency: ["We write the product copy, so the contract should have the roastery approve every claim we draft."],
   questions: [{ question: "Where is the roastery registered as a business?", changes: "Which privacy law applies to the customer data." }],
   limitations: ["No source was read."],
 };

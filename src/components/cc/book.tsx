@@ -230,7 +230,7 @@ function ComplianceChapter({ screen }: { screen: ObligationScreenView }) {
             {o.source.locator ? <>: <a href={o.source.locator} target="_blank" rel="noreferrer">{o.source.title ?? o.source.locator}</a></> : null}
             {o.source.quote ? <> · “{o.source.quote}”</> : null}
           </small>
-          {o.recalled && <small className="book-obligation-recalled">To look up (recalled, not yet read): {o.recalled.name}{o.recalled.provision ? `, ${o.recalled.provision}` : ""}. Where to read it: {o.recalled.checkAt}.</small>}
+          {o.recalled && <small className="book-obligation-recalled">Recalled, not checked: {o.recalled.name}{o.recalled.provision ? `, ${o.recalled.provision}` : ""}. Where to read it: {o.recalled.checkAt}.</small>}
           {forCounsel.has(o.id) && <small className="book-obligation-counsel">Ask {SPECIALIST_WORDS[o.specialist] || "your own legal counsel"} about this one.</small>}
           {o.controls.length > 0 && <dl className="book-pairs">{o.controls.map((c) => <div key={c.owner + c.requirement}><dt>{nameOf(c.owner)}</dt><dd>{c.requirement}<small>Shown by: {lower(c.evidence)}</small></dd></div>)}</dl>}
         </li>
@@ -239,6 +239,8 @@ function ComplianceChapter({ screen }: { screen: ObligationScreenView }) {
     {screen.clientActions.length > 0 && <Section title="What only you can do"><ul className="book-list">{screen.clientActions.map((a) => <li key={a.action}>{a.action}<small>For: {a.obligationIds.map((id) => screen.items.find((o) => o.id === id)?.statement ?? id).join(" · ")}</small></li>)}</ul></Section>}
     {screen.questions.length > 0 && <Section title="What we need to ask you"><ul className="book-list">{screen.questions.map((q) => <li key={q.question}>{q.question}<small>It changes: {lower(q.changes)}</small></li>)}</ul></Section>}
     {screen.limitations.length > 0 && <Section title="What this did not cover"><ul className="book-list">{screen.limitations.map((l) => <li key={l}>{l}</li>)}</ul></Section>}
+    {/* v4 sends these only to the agency (ADR-0075 Decision 11); a client's book always has none. */}
+    {screen.forTheAgency.length > 0 && <Section title="For the agency only"><p className="book-agency-note">The client does not see this part.</p><ul className="book-list">{screen.forTheAgency.map((l) => <li key={l}>{l}</li>)}</ul></Section>}
   </div>;
 }
 

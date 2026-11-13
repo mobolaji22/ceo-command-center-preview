@@ -1853,6 +1853,15 @@
                     "additionalProperties": false
                   }
                 },
+                "forTheAgency": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1200
+                  }
+                },
                 "questions": {
                   "maxItems": 3,
                   "type": "array",
@@ -1898,6 +1907,7 @@
                 "scope",
                 "items",
                 "clientActions",
+                "forTheAgency",
                 "questions",
                 "limitations"
               ],

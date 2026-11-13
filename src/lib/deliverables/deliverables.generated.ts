@@ -444,6 +444,10 @@ export interface ClientBookView {
       obligationIds: [string, ...string[]];
     }[];
     /**
+     * @maxItems 8
+     */
+    forTheAgency: string[];
+    /**
      * @maxItems 3
      */
     questions: {
