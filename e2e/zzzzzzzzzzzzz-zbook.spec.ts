@@ -58,9 +58,16 @@ test("the CEO reads the whole book in the Brand room, the drafted market chapter
   await expect(book.getByRole("note")).toHaveText("This screen is not legal advice. Before the work goes live, please ask your own legal counsel about the items listed here.");
   await expect(book.getByRole("status")).toContainText("Not yet confirmed, because no source was read");
   const privacy = book.getByRole("listitem", { name: /Customers' details may be used only/ });
-  await expect(privacy).toContainText("Not settled yet");
+  await expect(privacy).toContainText("Expected to apply, still to be confirmed");
+  await expect(privacy).not.toContainText("Not settled yet");
   await expect(privacy).toContainText("Ask a privacy specialist about this one.");
   await expect(privacy).toContainText("A privacy notice linked beside every form");
+  // What to look up, what to settle first, and what only the client can do (v4 ADR-0075 Decision 10).
+  await expect(privacy).toContainText("Settle before it goes live");
+  await expect(privacy).toContainText("To look up (recalled, not yet read): The data protection act. Where to read it: The data protection regulator where the roastery is registered.");
+  await expect(book.getByRole("listitem", { name: /Show a refund policy/ })).not.toContainText("Settle before it goes live");
+  await expect(book.getByRole("heading", { name: "What only you can do" })).toBeVisible();
+  await expect(book.getByText("Keep a record of each customer who agrees to marketing, and when.")).toBeVisible();
   await expect(book.getByText(/compliant/i)).toHaveCount(0);
 
   await chapter(book, /The brand/).click();

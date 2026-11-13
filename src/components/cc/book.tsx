@@ -179,6 +179,8 @@ function Evidence({ report, ids }: { report: MarketReportView; ids: readonly str
   </details>;
 }
 
+/** A rule well established for work like this, not read for this project: expected to apply, never said to apply (v4 ADR-0075 Decision 10). */
+const EXPECTED_WORDS = "Expected to apply, still to be confirmed";
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 function MarketChapter({ report }: { report: MarketReportView }) {
@@ -220,18 +222,21 @@ function ComplianceChapter({ screen }: { screen: ObligationScreenView }) {
     <Section title="What may apply">
       <ul className="book-list book-obligations">{screen.items.map((o) => (
         <li key={o.id} aria-label={o.statement}>
-          <b>{o.statement}</b> <span className={`book-known applies-${o.applicability.toLowerCase()}`}>{APPLICABILITY_WORDS[o.applicability]}{o.condition ? `: ${lower(o.condition)}` : ""}</span>
+          <b>{o.statement}</b> <span className={`book-known applies-${o.applicability.toLowerCase()}`}>{o.recalled?.wellEstablished && o.applicability !== "APPLICABLE" ? EXPECTED_WORDS : APPLICABILITY_WORDS[o.applicability]}{o.condition ? `: ${lower(o.condition)}` : ""}</span>
+          {o.beforeLaunch && <span className="book-known before-launch">Settle before it goes live</span>}
           <small>{o.rationale}</small>
           <small className="book-obligation-source">
             {AUTHORITY_WORDS[o.source.authority]}
             {o.source.locator ? <>: <a href={o.source.locator} target="_blank" rel="noreferrer">{o.source.title ?? o.source.locator}</a></> : null}
             {o.source.quote ? <> · “{o.source.quote}”</> : null}
           </small>
+          {o.recalled && <small className="book-obligation-recalled">To look up (recalled, not yet read): {o.recalled.name}{o.recalled.provision ? `, ${o.recalled.provision}` : ""}. Where to read it: {o.recalled.checkAt}.</small>}
           {forCounsel.has(o.id) && <small className="book-obligation-counsel">Ask {SPECIALIST_WORDS[o.specialist] || "your own legal counsel"} about this one.</small>}
           {o.controls.length > 0 && <dl className="book-pairs">{o.controls.map((c) => <div key={c.owner + c.requirement}><dt>{nameOf(c.owner)}</dt><dd>{c.requirement}<small>Shown by: {lower(c.evidence)}</small></dd></div>)}</dl>}
         </li>
       ))}</ul>
     </Section>
+    {screen.clientActions.length > 0 && <Section title="What only you can do"><ul className="book-list">{screen.clientActions.map((a) => <li key={a.action}>{a.action}<small>For: {a.obligationIds.map((id) => screen.items.find((o) => o.id === id)?.statement ?? id).join(" · ")}</small></li>)}</ul></Section>}
     {screen.questions.length > 0 && <Section title="What we need to ask you"><ul className="book-list">{screen.questions.map((q) => <li key={q.question}>{q.question}<small>It changes: {lower(q.changes)}</small></li>)}</ul></Section>}
     {screen.limitations.length > 0 && <Section title="What this did not cover"><ul className="book-list">{screen.limitations.map((l) => <li key={l}>{l}</li>)}</ul></Section>}
   </div>;

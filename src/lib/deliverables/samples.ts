@@ -163,15 +163,18 @@ export function sampleObligationScreen(audience: ClientBookView["audience"], com
         id: "o1", statement: "Show a refund policy before customers pay.", category: "PLATFORM_RULE", applicability: "APPLICABLE", condition: null,
         rationale: "The order page takes payments through this provider.", status: "FACT", risk: 3, specialist: "NONE",
         source: { title: "Merchant terms", locator: "https://payments.example/terms", authority: "PLATFORM_RULE", quote: "display a refund policy on their checkout page" },
+        recalled: null, beforeLaunch: true,
         controls: [{ owner: "ENGINEERING", requirement: "The refund policy is linked beside the pay button.", evidence: "The link on the order page." }, { owner: "BUSINESS", requirement: "A written refund policy.", evidence: "The policy, approved by the owner." }],
       },
       {
         id: "o2", statement: "Customers' phone numbers may only be used for their order unless they agree to more.", category: "LAW_OR_REGULATION", applicability: "UNRESOLVED", condition: null,
         rationale: "No source was read on how the numbers may be used for marketing.", status: "UNKNOWN", risk: 4, specialist: "PRIVACY",
         source: { title: null, locator: null, authority: "NONE", quote: null },
+        recalled: { name: "The electronic marketing regulations", provision: "the rule on marketing texts", checkAt: "The data protection regulator's guidance", wellEstablished: true }, beforeLaunch: false,
         controls: [{ owner: "ENGINEERING", requirement: "No marketing box ticked by default.", evidence: "The order form, unticked." }],
       },
     ],
+    clientActions: [{ action: "Decide whether customers will get offers by text, and keep a record of who agreed.", obligationIds: ["o2"] }],
     questions: [{ question: "Will you text customers about offers, or only about their order?", changes: "o2: whether consent to marketing is needed." }],
     limitations: ["Tax obligations were not screened."],
   };

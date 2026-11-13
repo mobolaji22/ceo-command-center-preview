@@ -403,6 +403,13 @@ export interface ClientBookView {
         authority: "LAW" | "REGULATOR" | "PLATFORM_RULE" | "CONTRACT" | "STANDARD" | "GUIDANCE" | "COMMENTARY" | "NONE";
         quote: string | null;
       };
+      recalled: {
+        name: string;
+        provision: string | null;
+        checkAt: string;
+        wellEstablished: boolean;
+      } | null;
+      beforeLaunch: boolean;
       /**
        * @maxItems 8
        */
@@ -424,6 +431,17 @@ export interface ClientBookView {
         requirement: string;
         evidence: string;
       }[];
+    }[];
+    /**
+     * @maxItems 10
+     */
+    clientActions: {
+      action: string;
+      /**
+       * @minItems 1
+       * @maxItems 30
+       */
+      obligationIds: [string, ...string[]];
     }[];
     /**
      * @maxItems 3

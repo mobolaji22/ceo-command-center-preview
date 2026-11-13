@@ -1716,6 +1716,53 @@
                         ],
                         "additionalProperties": false
                       },
+                      "recalled": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "provision": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 1200
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "checkAt": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "wellEstablished": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "provision",
+                              "checkAt",
+                              "wellEstablished"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "beforeLaunch": {
+                        "type": "boolean"
+                      },
                       "controls": {
                         "maxItems": 8,
                         "type": "array",
@@ -1771,7 +1818,37 @@
                       "risk",
                       "specialist",
                       "source",
+                      "recalled",
+                      "beforeLaunch",
                       "controls"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "clientActions": {
+                  "maxItems": 10,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "obligationIds": {
+                        "minItems": 1,
+                        "maxItems": 30,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "obligationIds"
                     ],
                     "additionalProperties": false
                   }
@@ -1820,6 +1897,7 @@
                 "counsel",
                 "scope",
                 "items",
+                "clientActions",
                 "questions",
                 "limitations"
               ],

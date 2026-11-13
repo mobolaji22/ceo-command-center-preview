@@ -45,6 +45,8 @@
 .book-known.applies-applicable { border-color: color-mix(in oklab, var(--primary) 60%, transparent); color: var(--primary); }
 .book-known.applies-unresolved, .book-known.applies-outside_authority { border-style: dashed; }
 .book-obligation-counsel { font-weight: 600; }
+.book-known.before-launch { margin-left: 6px; font-weight: 600; }
+.book-obligation-recalled { font-style: italic; }
 .book-evidence summary { cursor: pointer; font-size: 12px; color: var(--muted-foreground); }
 .book-evidence ul { display: grid; gap: 8px; margin: 8px 0 0; padding-left: 18px; font-size: 14px; }
 .book-implication { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border); }
