@@ -12,6 +12,9 @@ export type MarketReportView = NonNullable<ClientBookView["market"]>;
 export type Finding = MarketReportView["findings"][number];
 export type Implication = NonNullable<MarketReportView["forYourBusiness"]>["implications"][number];
 export type EpistemicStatus = Finding["status"];
+/** What to settle before going live (v4 ADR-0075): Compliance's screen, never a verdict that the work is compliant. */
+export type ObligationScreenView = NonNullable<ClientBookView["compliance"]>;
+export type Obligation = ObligationScreenView["items"][number];
 
 /**
  * The agency's proposal that a kept Brand book stands in for Brand on the client's next projects (ADR-0026). The client's owner
@@ -29,6 +32,18 @@ export type KeptBrand = {
 };
 
 /** How well a statement is known, in the words a reader uses (v4's labels, Market §4). */
+/** Whether an obligation applies to this work, in the words a client reads. */
+export const APPLICABILITY_WORDS: Record<Obligation["applicability"], string> = {
+  APPLICABLE: "Applies", CONDITIONAL: "Applies if", UNRESOLVED: "Not settled yet", OUTSIDE_AUTHORITY: "For a specialist to settle", NOT_APPLICABLE: "Does not apply",
+};
+/** What kind of source an obligation rests on: only law, a regulator, a platform's rules or a contract can make one apply. */
+export const AUTHORITY_WORDS: Record<Obligation["source"]["authority"], string> = {
+  LAW: "Law", REGULATOR: "Regulator", PLATFORM_RULE: "Platform rules", CONTRACT: "Contract", STANDARD: "Standard", GUIDANCE: "Guidance", COMMENTARY: "Commentary", NONE: "Not read yet",
+};
+export const SPECIALIST_WORDS: Record<Obligation["specialist"], string> = {
+  NONE: "", LEGAL: "a lawyer", PRIVACY: "a privacy specialist", FINANCIAL: "a financial adviser", SECURITY: "a security specialist", OTHER: "a specialist",
+};
+
 export const STATUS_WORDS: Record<EpistemicStatus, string> = {
   FACT: "Fact", INFERRED: "Inferred", ASSUMPTION: "Assumption", UNKNOWN: "Unknown", CONFLICT: "Sources disagree",
 };

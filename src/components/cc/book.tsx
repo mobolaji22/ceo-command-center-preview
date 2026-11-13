@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import { fmtDate } from "@/lib/format";
 import {
-  COMPETITOR_WORDS, FOUNDATION_WORDS, IMPLICATION_HEADINGS, STATUS_WORDS, STORY_PARTS, areaWords, channelWords, findingsFor, lensWords,
-  type BrandBookView, type ClientBookView, type KeptBrand, type MarketReportView,
+  APPLICABILITY_WORDS, AUTHORITY_WORDS, COMPETITOR_WORDS, FOUNDATION_WORDS, IMPLICATION_HEADINGS, SPECIALIST_WORDS, STATUS_WORDS, STORY_PARTS, areaWords, channelWords,
+  findingsFor, lensWords, type BrandBookView, type ClientBookView, type KeptBrand, type MarketReportView, type ObligationScreenView,
 } from "@/lib/deliverables/v4";
 import type { OwnerData } from "@/lib/model";
 import { useDomains } from "@/lib/domains";
@@ -24,8 +24,8 @@ import { useStepUp } from "./step-up";
  * may propose keeping the brand for the client's next projects; the client's owner decides that here. "Save as PDF" lays every released
  * chapter out for print from this same view, so the file a reader keeps never says something the screen does not.
  */
-type Chapter = "brand" | "kit" | "market" | "business";
-const CHAPTERS: Record<Chapter, string> = { brand: "The brand", kit: "Selling it", market: "The market", business: "What it means for you" };
+type Chapter = "brand" | "kit" | "market" | "business" | "compliance";
+const CHAPTERS: Record<Chapter, string> = { brand: "The brand", kit: "Selling it", market: "The market", business: "What it means for you", compliance: "Before it goes live" };
 
 export type BookReader = "AGENCY" | "CLIENT_OWNER" | "CLIENT_MEMBER";
 
@@ -74,7 +74,7 @@ export function Book({ projectId, reader, title }: { projectId: string; reader: 
   if (q.isError) return <p className="case-none">{(q.error as Error).message}</p>;
   const book: ClientBookView | null | undefined = q.data;
   if (!book) return <Empty title="No chapter of this book is ready yet.">Each chapter appears here once it has passed its checks.</Empty>;
-  const chapters = (Object.keys(CHAPTERS) as Chapter[]).filter((c) => (c === "brand" || c === "kit" ? book.brand : book.market));
+  const chapters = (Object.keys(CHAPTERS) as Chapter[]).filter((c) => (c === "brand" || c === "kit" ? book.brand : c === "compliance" ? book.compliance : book.market));
   const open = chapter && chapters.includes(chapter) ? chapter : chapters[0];
   const no = (c: Chapter) => String(chapters.indexOf(c) + 1).padStart(2, "0");
   const body = (c: Chapter | undefined) => <>
@@ -82,6 +82,7 @@ export function Book({ projectId, reader, title }: { projectId: string; reader: 
     {c === "kit" && book.brand && <KitChapter brand={book.brand} />}
     {c === "market" && book.market && <MarketChapter report={book.market} />}
     {c === "business" && book.market && <BusinessChapter report={book.market} />}
+    {c === "compliance" && book.compliance && <ComplianceChapter screen={book.compliance} />}
   </>;
   const toCome = book.toCome.length > 0 && <ul className="book-to-come" aria-label="Still to come">{book.toCome.map((t) => <li key={t.part}>{t.why}</li>)}</ul>;
   return (
@@ -178,6 +179,8 @@ function Evidence({ report, ids }: { report: MarketReportView; ids: readonly str
   </details>;
 }
 
+/** A rule well established for work like this, not read for this project: expected to apply, never said to apply (v4 ADR-0075 Decision 10). */
+const EXPECTED_WORDS = "Expected to apply, still to be confirmed";
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 function MarketChapter({ report }: { report: MarketReportView }) {
@@ -198,6 +201,46 @@ function MarketChapter({ report }: { report: MarketReportView }) {
       <ul className="book-list">{report.gaps.map((g) => <li key={g.section + g.missing}>{g.missing}: {g.reason}.<small>What would fill it: {g.wouldFill}. It could change: {g.couldChange}.</small></li>)}</ul>
     </Section>}
     <Checks lines={report.checks} />
+  </div>;
+}
+
+/**
+ * Compliance's screen (v4 ADR-0075): what may apply, where it comes from, and whose work meets it. v4 writes the counsel notice and
+ * the "not yet" line; this only lays them out, the notice first. Nothing here says the work is compliant.
+ */
+function ComplianceChapter({ screen }: { screen: ObligationScreenView }) {
+  const { nameOf } = useDomains();
+  const forCounsel = new Set(screen.counsel?.obligationIds ?? []);
+  return <div className="book-chapter">
+    {screen.counsel && <p className="book-banner" role="note">{screen.counsel.notice}</p>}
+    {screen.notYet && <p className="book-banner" role="status">{screen.notYet}</p>}
+    {written(screen.source.completedAt)}
+    <header className="book-lead">
+      <p className="book-statement">{screen.scope.activity}</p>
+      <small>{screen.scope.jurisdictions.length ? screen.scope.jurisdictions.join(" · ") : "No place of business was stated, so none was assumed."}</small>
+    </header>
+    <Section title="What may apply">
+      <ul className="book-list book-obligations">{screen.items.map((o) => (
+        <li key={o.id} aria-label={o.statement}>
+          <b>{o.statement}</b> <span className={`book-known applies-${o.applicability.toLowerCase()}`}>{o.recalled?.wellEstablished && o.applicability !== "APPLICABLE" ? EXPECTED_WORDS : APPLICABILITY_WORDS[o.applicability]}{o.condition ? `: ${lower(o.condition)}` : ""}</span>
+          {o.beforeLaunch && <span className="book-known before-launch">Settle before it goes live</span>}
+          <small>{o.rationale}</small>
+          <small className="book-obligation-source">
+            {AUTHORITY_WORDS[o.source.authority]}
+            {o.source.locator ? <>: <a href={o.source.locator} target="_blank" rel="noreferrer">{o.source.title ?? o.source.locator}</a></> : null}
+            {o.source.quote ? <> · “{o.source.quote}”</> : null}
+          </small>
+          {o.recalled && <small className="book-obligation-recalled">Recalled, not checked: {o.recalled.name}{o.recalled.provision ? `, ${o.recalled.provision}` : ""}. Where to read it: {o.recalled.checkAt}.</small>}
+          {forCounsel.has(o.id) && <small className="book-obligation-counsel">Ask {SPECIALIST_WORDS[o.specialist] || "your own legal counsel"} about this one.</small>}
+          {o.controls.length > 0 && <dl className="book-pairs">{o.controls.map((c) => <div key={c.owner + c.requirement}><dt>{nameOf(c.owner)}</dt><dd>{c.requirement}<small>Shown by: {lower(c.evidence)}</small></dd></div>)}</dl>}
+        </li>
+      ))}</ul>
+    </Section>
+    {screen.clientActions.length > 0 && <Section title="What only you can do"><ul className="book-list">{screen.clientActions.map((a) => <li key={a.action}>{a.action}<small>For: {a.obligationIds.map((id) => screen.items.find((o) => o.id === id)?.statement ?? id).join(" · ")}</small></li>)}</ul></Section>}
+    {screen.questions.length > 0 && <Section title="What we need to ask you"><ul className="book-list">{screen.questions.map((q) => <li key={q.question}>{q.question}<small>It changes: {lower(q.changes)}</small></li>)}</ul></Section>}
+    {screen.limitations.length > 0 && <Section title="What this did not cover"><ul className="book-list">{screen.limitations.map((l) => <li key={l}>{l}</li>)}</ul></Section>}
+    {/* v4 sends these only to the agency (ADR-0075 Decision 11); a client's book always has none. */}
+    {screen.forTheAgency.length > 0 && <Section title="For the agency only"><p className="book-agency-note">The client does not see this part.</p><ul className="book-list">{screen.forTheAgency.map((l) => <li key={l}>{l}</li>)}</ul></Section>}
   </div>;
 }
 

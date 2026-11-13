@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "dpb:deliverables/2",
+  "$id": "dpb:deliverables/3",
   "title": "Deliverable",
   "anyOf": [
     {
@@ -1450,8 +1450,476 @@
             }
           ]
         },
+        "compliance": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "OBLIGATION_SCREEN"
+                },
+                "audience": {
+                  "type": "string",
+                  "enum": [
+                    "AGENCY",
+                    "CLIENT"
+                  ]
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "runId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "taskId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "schemaId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "runId",
+                    "taskId",
+                    "schemaId",
+                    "completedAt"
+                  ],
+                  "additionalProperties": false
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "SOURCED",
+                    "NOT_YET"
+                  ]
+                },
+                "notYet": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "sourcesRead": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "counsel": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "notice": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "obligationIds": {
+                          "minItems": 1,
+                          "maxItems": 30,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "notice",
+                        "obligationIds"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "scope": {
+                  "type": "object",
+                  "properties": {
+                    "activity": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "jurisdictions": {
+                      "maxItems": 60,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      }
+                    }
+                  },
+                  "required": [
+                    "activity",
+                    "jurisdictions"
+                  ],
+                  "additionalProperties": false
+                },
+                "items": {
+                  "maxItems": 30,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "LAW_OR_REGULATION",
+                          "CONTRACT",
+                          "INTERNAL_POLICY",
+                          "CLIENT_REQUIREMENT",
+                          "PLATFORM_RULE",
+                          "LICENSE",
+                          "STANDARD",
+                          "V4_CONTROL"
+                        ]
+                      },
+                      "applicability": {
+                        "type": "string",
+                        "enum": [
+                          "APPLICABLE",
+                          "CONDITIONAL",
+                          "UNRESOLVED",
+                          "OUTSIDE_AUTHORITY",
+                          "NOT_APPLICABLE"
+                        ]
+                      },
+                      "condition": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "rationale": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "FACT",
+                          "INFERRED",
+                          "ASSUMPTION",
+                          "UNKNOWN",
+                          "CONFLICT"
+                        ]
+                      },
+                      "risk": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "specialist": {
+                        "type": "string",
+                        "enum": [
+                          "NONE",
+                          "LEGAL",
+                          "PRIVACY",
+                          "FINANCIAL",
+                          "SECURITY",
+                          "OTHER"
+                        ]
+                      },
+                      "source": {
+                        "type": "object",
+                        "properties": {
+                          "title": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "locator": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 2048
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "authority": {
+                            "type": "string",
+                            "enum": [
+                              "LAW",
+                              "REGULATOR",
+                              "PLATFORM_RULE",
+                              "CONTRACT",
+                              "STANDARD",
+                              "GUIDANCE",
+                              "COMMENTARY",
+                              "NONE"
+                            ]
+                          },
+                          "quote": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "title",
+                          "locator",
+                          "authority",
+                          "quote"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "recalled": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "provision": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 1200
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "checkAt": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1200
+                              },
+                              "wellEstablished": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "provision",
+                              "checkAt",
+                              "wellEstablished"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "beforeLaunch": {
+                        "type": "boolean"
+                      },
+                      "controls": {
+                        "maxItems": 8,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "owner": {
+                              "type": "string",
+                              "enum": [
+                                "STRATEGY",
+                                "MARKET",
+                                "BUSINESS",
+                                "BRAND",
+                                "DESIGN",
+                                "CONTENT",
+                                "MEDIA",
+                                "PRODUCT",
+                                "ENGINEERING",
+                                "GROWTH",
+                                "COMMUNICATIONS",
+                                "MEASUREMENT",
+                                "COMPLIANCE"
+                              ]
+                            },
+                            "requirement": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            },
+                            "evidence": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            }
+                          },
+                          "required": [
+                            "owner",
+                            "requirement",
+                            "evidence"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "statement",
+                      "category",
+                      "applicability",
+                      "condition",
+                      "rationale",
+                      "status",
+                      "risk",
+                      "specialist",
+                      "source",
+                      "recalled",
+                      "beforeLaunch",
+                      "controls"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "clientActions": {
+                  "maxItems": 10,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "obligationIds": {
+                        "minItems": 1,
+                        "maxItems": 30,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "obligationIds"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "forTheAgency": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1200
+                  }
+                },
+                "questions": {
+                  "maxItems": 3,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "question": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "changes": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      }
+                    },
+                    "required": [
+                      "question",
+                      "changes"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "limitations": {
+                  "maxItems": 60,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1200
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "audience",
+                "source",
+                "state",
+                "notYet",
+                "sourcesRead",
+                "counsel",
+                "scope",
+                "items",
+                "clientActions",
+                "forTheAgency",
+                "questions",
+                "limitations"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "toCome": {
-          "maxItems": 2,
+          "maxItems": 3,
           "type": "array",
           "items": {
             "type": "object",
@@ -1460,7 +1928,8 @@
                 "type": "string",
                 "enum": [
                   "BRAND",
-                  "MARKET"
+                  "MARKET",
+                  "COMPLIANCE"
                 ]
               },
               "why": {
@@ -1482,6 +1951,7 @@
         "audience",
         "brand",
         "market",
+        "compliance",
         "toCome"
       ],
       "additionalProperties": false

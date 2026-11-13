@@ -9,7 +9,7 @@ const KEY = "dpl.destination";
 const KEEP_MS = 30 * 60_000;
 const REMEMBERABLE = /^\/briefs\/[A-Za-z0-9_-]{1,64}$/;
 
-export const homeFor = (s: Session) => (s.role === "owner" ? "/" : "/client");
+export const homeFor = (s: Session) => (s.role === "owner" ? "/" : s.role === "staff" ? "/team" : "/client");
 
 export function rememberDestination(path: string): void {
   if (!REMEMBERABLE.test(path)) return;

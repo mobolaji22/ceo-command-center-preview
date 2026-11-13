@@ -5,8 +5,8 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import type { Result } from "@/lib/data/types";
-import { fmtAgo, fmtDate } from "@/lib/format";
-import { RIGORS, type FeeScope, type FeesView, type OwnerData, type Rigor, type SystemView } from "@/lib/model";
+import { fmtAgo, fmtDate, label } from "@/lib/format";
+import { RIGORS, type FeeScope, type FeesView, type OwnerData, type Rigor, type SystemView, type TeamView } from "@/lib/model";
 import { NotificationSettings } from "./briefs";
 import { Orgs, People } from "./manage";
 import { StandingPermission } from "./standing";
@@ -17,8 +17,8 @@ import { useStepUp } from "./step-up";
  * what v4 holds and sends what the CEO changes; v4 validates, prices and audits (INV-27). Changing money (the fee, a rate, the
  * spending envelope) asks for a fresh emailed code first, and nothing changes until it is right.
  */
-type Section = "Pricing" | "Model spend" | "How the agency runs" | "Notifications" | "People and access" | "Your sessions";
-const SECTIONS: Section[] = ["Pricing", "Model spend", "How the agency runs", "Notifications", "People and access", "Your sessions"];
+type Section = "Pricing" | "Model spend" | "How the agency runs" | "Notifications" | "People and access" | "Team" | "Your sessions";
+const SECTIONS: Section[] = ["Pricing", "Model spend", "How the agency runs", "Notifications", "People and access", "Team", "Your sessions"];
 
 const usd = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
 const RIGOR_WORDS: Record<Rigor, string> = { light: "Light", standard: "Standard", strict: "Strict", critical: "Critical" };
@@ -38,11 +38,61 @@ export function SettingsView({ data, refresh }: { data: OwnerData; refresh: () =
           {section === "How the agency runs" && <System />}
           {section === "Notifications" && <><h3>Notifications</h3><p className="settings-lead">How and when you are told. The same settings are on your phone.</p><NotificationSettings /></>}
           {section === "People and access" && <Access data={data} refresh={refresh} />}
+          {section === "Team" && <Team />}
           {section === "Your sessions" && <Sessions />}
         </div>
       </div>
     </div>
   );
+}
+
+/** What a capability is, in words, for the role form: its id with dashes as spaces, and its domain. */
+const workWords = (w: { id: string; domain: string }) => `${label(w.id.replace(/-/g, "_"))} (${label(w.domain)})`;
+
+/**
+ * The agency's team (v4 ADR-0072): invite team members, define the job roles a person's steps go to, and give roles out. A step no
+ * role covers comes to you. Each change asks for the emailed code first.
+ */
+function Team() {
+  const ds = useDataSource();
+  const q = useSetting<TeamView>("team", () => ds.team.get());
+  const { change, busy, note } = useChange("team");
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [work, setWork] = useState<string[]>([]);
+  if (!q.data) return <Loading q={q} />;
+  const t = q.data;
+  const staff = t.members.filter((m) => m.role !== "CEO");
+  const who = (m: TeamView["members"][number]) => m.name ?? m.email;
+  const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+  const invite = (e: FormEvent) => { e.preventDefault(); void change(() => ds.team.invite(email), `Invitation sent to ${email}.`).then(() => setEmail("")); };
+  const create = (e: FormEvent) => { e.preventDefault(); void change(() => ds.team.createRole({ name, capabilities: work }), `"${name}" added.`).then(() => { setName(""); setWork([]); }); };
+  return <>
+    <h3>Team</h3>
+    <p className="settings-lead">The people on your team, and the job roles your steps go to. A step no role covers comes to you. A team member sees only their steps and what those steps apply.</p>
+    <ul className="settings-rows" aria-label="Team members">{t.members.map((m) => <li key={m.userId}><span><b>{who(m)}</b><small>{m.role === "CEO" ? "You" : "Team member"} · {m.email}</small></span></li>)}</ul>
+    <form className="settings-form" onSubmit={invite} aria-label="Invite a team member">
+      <label>Team member's email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@agency.example" /></label>
+      <Button type="submit" disabled={busy || !email.includes("@")}>Invite</Button>
+    </form>
+    <h4>Job roles</h4>
+    {t.roles.length === 0 && <p className="case-none">No roles yet, so every person's step comes to you.</p>}
+    <ul className="settings-rows team-roles" aria-label="Job roles">{t.roles.map((r) => <li key={r.id} aria-label={r.name}>
+      <span><b>{r.name}{r.retired ? " · retired" : ""}</b><small>Covers: {r.capabilities.map((c) => workWords(t.work.find((w) => w.id === c) ?? { id: c, domain: "" })).join(", ")}</small>
+        {!r.retired && <span className="team-holders" role="group" aria-label={`Who holds ${r.name}`}>{staff.length === 0 ? <small>Invite a team member to give this role out.</small> : staff.map((m) => {
+          const holds = r.holderIds.includes(m.userId);
+          return <label key={m.userId}><input type="checkbox" checked={holds} disabled={busy} onChange={() => void change(() => (holds ? ds.team.revoke(r.id, m.userId) : ds.team.grant(r.id, m.userId)), holds ? `${who(m)} no longer holds ${r.name}.` : `${who(m)} now holds ${r.name}.`)} /> {who(m)}</label>;
+        })}</span>}
+      </span>
+      <Button variant="ghost" disabled={busy} onClick={() => void change(() => ds.team.changeRole(r.id, { retired: !r.retired }), r.retired ? `${r.name} is back in use.` : `${r.name} is retired; its steps come to you.`)}>{r.retired ? "Bring back" : "Retire"}</Button>
+    </li>)}</ul>
+    <form className="settings-form" onSubmit={create} aria-label="Add a job role">
+      <label>Role name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Store setup" /></label>
+      <fieldset><legend>The work it covers</legend>{t.work.map((w) => <label key={w.id}><input type="checkbox" checked={work.includes(w.id)} onChange={() => setWork(toggle(work, w.id))} /> {workWords(w)}</label>)}</fieldset>
+      <Button type="submit" disabled={busy || name.trim().length < 2 || !work.length}>Add the role</Button>
+    </form>
+    {note}
+  </>;
 }
 
 /** A query against one settings read, refetched after a change. */

@@ -11,14 +11,17 @@ import type { OwnerData, Question, RunStatus, RunTask } from "@/lib/model";
 import { PlanPanel } from "./plans";
 import { ProjectGoal } from "./objective";
 import { DirectionsFor } from "./workshop/directions";
+import { StepMaterialsBlock } from "./guide";
 import { useStepUp } from "./step-up";
+import { GuideBlock, useGuide } from "./guide";
 
 /**
  * The case file for a project: the work in order, how much of the approved budget it has used, what it is waiting to ask, and the
  * hand on the brake. One component for the CEO's computer and the client's room; the audience only changes the words and what
  * is shown. Nothing here decides who may do what: the API does, and its refusal is shown as it is.
  */
-export type Audience = "agency" | "client";
+/** Who reads a question: the CEO, a client's person, or a member of the agency's team, who sees only their steps (v4 ADR-0072). */
+export type Audience = "agency" | "client" | "staff";
 
 const WHY: Record<string, string> = {
   AWAITING_APPROVAL: "your go-ahead", AWAITING_CLARIFICATION: "an answer", AWAITING_CONTEXT: "some information", AWAITING_CREDENTIAL: "access",
@@ -174,8 +177,12 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const { guard, panel: stepUpPanel } = useStepUp();
+  // A person's step with a guide (v4 ADR-0071) is done when its log says so; the note is then only something to add.
+  const guided = Boolean(useGuide(x).data);
 
-  const askedOf = audience === "client" ? null : x.routed_to === "CEO" ? "Asked of you." : "Asked of the client's owner. You can answer for them only if they have allowed it.";
+  // A person's step a job role covers is with that role's holders; the CEO oversees it and can still do it (v4 ADR-0072).
+  const team = audience === "agency" && x.with_team?.length ? x.with_team.join(", ") : null;
+  const askedOf = audience === "client" ? null : team ? `With ${team} on your team. You can still do it yourself.` : audience === "staff" || x.routed_to === "CEO" ? "Asked of you." : "Asked of the client's owner. You can answer for them only if they have allowed it.";
   const confirm = async () => {
     if (!choice) return;
     setBusy(true); setMsg(null);
@@ -183,7 +190,7 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
       setBusy(false);
       if (r.error) { setMsg(r.error.message); return; }
       setChoice(null); setNote(""); setAmount("");
-      await Promise.all([qc.invalidateQueries({ queryKey: ["questions"] }), qc.invalidateQueries({ queryKey: ["case"] })]);
+      await Promise.all([qc.invalidateQueries({ queryKey: ["questions"] }), qc.invalidateQueries({ queryKey: ["case"] }), qc.invalidateQueries({ queryKey: ["guide", x.id] })]);
       onChanged?.();
     });
     setBusy(false);
@@ -192,7 +199,9 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
   return <article className="question" aria-label={x.title}>
     <div className="question-head"><b>{x.title}</b><small>{audience === "agency" ? `${label(x.reason)} · ` : ""}{x.deadline && x.reason !== "PAUSED_BY_OWNER" ? `answer by ${fmtDate(x.deadline)}` : x.status === "EXPIRED" ? (held ? "overdue · the work stays on hold until it is answered" : "overdue") : ""}</small></div>
     <p className="question-summary">{x.summary}</p>
-    <DirectionsFor projectId={x.project_id} onChosen={onChanged} />
+    {audience !== "staff" && <DirectionsFor projectId={x.project_id} onChosen={onChanged} />}
+    {x.reason === "HUMAN_TASK" && <GuideBlock question={x} audience={audience === "client" ? "client" : "agency"} />}
+    {audience === "staff" && x.reason === "HUMAN_TASK" && <StepMaterialsBlock question={x} />}
     {audience === "agency" && x.detail && <p className="question-detail">{x.detail}</p>}
     {askedOf && <small className="question-asked">{askedOf}</small>}
     <div className="question-options" role="group" aria-label="Answers">
@@ -202,7 +211,7 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
     {x.recommendation && <small className="question-why">{x.recommendation.why}</small>}
     {choice && <div className="plan-confirm">
       {choice === "RAISE_BUDGET" && <label>Raise the budget to (US dollars)<input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>}
-      {choice === "MARK_DONE" && <label>What was done?<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
+      {choice === "MARK_DONE" && <label>{guided ? "Anything to add? (optional)" : "What was done?"}<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "ACCEPT_RISK" && <label>Why is this acceptable? It is recorded with your name.<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "OUTPUT_STANDS" && <label>Why should the work stand? It is recorded with your name.<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "REQUEST_QUALIFIED_REVIEW" && <label>Who is qualified to review it, and why?<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}

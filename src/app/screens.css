@@ -488,3 +488,34 @@ html[data-lighting="day"] .pill.slate { color: oklch(0.42 0.035 250); background
 .delivery-answer .delivery-wait { flex-basis: 100%; opacity: .7; }
 .material-items li { font-size: 12px; opacity: .85; }
 .material-items li::before { content: "· "; }
+
+/* A person's step's guide (v4 ADR-0071): the steps, what each needs, and what was logged. */
+.guide { display: grid; gap: 8px; margin: 8px 0; }
+.guide-objective, .guide-source, .guide-logged, .guide-proof, .guide-sources { color: var(--muted-foreground); font-size: 11px; }
+.guide-steps { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.guide-step { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
+.guide-step.done { opacity: .8; }
+.guide-step-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.guide-step-title { justify-content: flex-start; text-align: left; white-space: normal; height: auto; padding: 2px 0; font-weight: 600; }
+.guide-step-body { display: grid; gap: 6px; margin-top: 6px; }
+.guide-how, .guide-watch, .guide-unknowns ul { margin: 0; padding-left: 18px; }
+.guide-watch li { color: var(--destructive, #b45309); }
+.guide-log { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+.guide-log .plan-confirm { flex-basis: 100%; }
+.guide-unknowns { font-size: 12px; }
+.guide-questions { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.guide-questions li { display: grid; gap: 2px; border-left: 2px solid var(--border); padding-left: 8px; font-size: 12px; }
+.guide-questions p { margin: 0; }
+.guide-questions small { color: var(--muted-foreground); font-size: 11px; }
+.guide-ask { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
+.guide-ask label { flex: 1 1 220px; min-width: 0; display: grid; gap: 4px; font-size: 12px; }
+/* What a team member's step applies (v4 ADR-0072). */
+.step-materials { display: grid; gap: 6px; margin: 8px 0; font-size: 12px; }
+.step-design { display: grid; gap: 4px; }
+.step-swatches { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 0; padding: 0; list-style: none; }
+.step-swatches li { display: inline-flex; align-items: center; gap: 4px; }
+.step-swatches i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--border); display: inline-block; }
+.step-work summary { cursor: pointer; font-weight: 600; }
+.step-work p { margin: 4px 0; }
+.team-page { max-width: 760px; margin: 0 auto; padding: 24px 16px; display: grid; gap: 12px; }
+.team-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

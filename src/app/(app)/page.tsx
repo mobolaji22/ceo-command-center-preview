@@ -70,6 +70,7 @@ export default function Index() {
   const [arrival] = useState<Place>(() => (typeof window === "undefined" ? {} : readPlace()));
   useEffect(() => {
     if (auth.loading || !auth.user || auth.isOwner) return;
+    if (auth.isStaff) { router.replace("/team"); return; }
     // A link to a project's Workshop (the question about a design direction carries one) opens the client's view of the same design.
     router.replace(arrival.spot === "workshop" && arrival.project ? `/client?desk=design&project=${encodeURIComponent(arrival.project)}` : "/client");
   }, [auth, router, arrival]);

@@ -13,7 +13,8 @@ export type ProjectStatus =
   | "INTAKE" | "PROPOSED" | "ACTIVE" | "WAITING" | "DELIVERED" | "MONITORING" | "COMPLETED" | "PAUSED" | "CANCELLED" | "ARCHIVED";
 export type ContextStatus =
   | "MISSING" | "REQUESTED" | "PARTIALLY_RECEIVED" | "RECEIVED" | "ASSUMED" | "VALIDATED" | "REJECTED" | "EXPIRED";
-export type AppRole = "owner" | "client";
+/** Who is signed in: the CEO, a client's person, or a member of the agency's team, who sees only their steps (v4 ADR-0072). */
+export type AppRole = "owner" | "client" | "staff";
 export type ApprovalStatus = "REQUESTED" | "GRANTED" | "REJECTED" | "EXPIRED";
 export type ArtifactStatus = "DRAFT" | "PROPOSED" | "APPROVED" | "REJECTED" | "SUPERSEDED" | "FINAL";
 export type DecisionStatus = "PROPOSED" | "WAITING_FOR_HUMAN" | "ACCEPTED" | "REJECTED" | "DEFERRED" | "SUPERSEDED";
@@ -150,8 +151,13 @@ export type V4Event = {
 
 export type IntentStatus = "PROPOSED" | "RECEIVED" | "CLARIFYING" | "AWAITING_REASONING" | "UNDERSTOOD" | "PLANNED" | "SUPERSEDED" | "REJECTED";
 export type MaterialWay = "UPLOAD" | "LINK" | "CONNECT" | "NONE" | "SOURCE";
-/** What the agency can deliver of a request (v4 ADR-0057 Decision 9): all of it, part of it, not yet, or nothing it will do. */
-export type Feasibility = "CAN" | "CAN_PART" | "NOT_YET" | "WILL_NOT";
+/**
+ * What the agency can deliver of a request (v4 ADR-0057 Decision 9): all of it, part of it, not yet, or nothing it will do; or not
+ * assessed, when the reading named nothing the client receives (v4 ADR-0069).
+ */
+export type Feasibility = "CAN" | "CAN_PART" | "NOT_YET" | "WILL_NOT" | "NOT_ASSESSED";
+/** Why v4 is waiting to read or plan a request (v4 ADR-0027): it always names one. */
+export type ReasoningWait = "NO_ENVELOPE" | "CEILING_REACHED" | "PROVIDER_UNAVAILABLE" | "ANSWER_UNUSABLE";
 /**
  * The agency's answer to "can we deliver this?", as the agency reads it: each thing asked for, whether it can be built now and why,
  * and whether the CEO must answer before the client reads anything. Absent when everything can be done.
@@ -194,6 +200,8 @@ export type Intent = {
   materials: Array<{ requirement_id: string; name: string; why: string; if_missing: string; required: boolean; ways: MaterialWay[]; sourcing: boolean; items?: string[] | undefined }>
   /** What the agency can deliver of it, unless everything (v4 sends it once a request is understood). */
   delivery?: AgencyDelivery | null | undefined
+  /** Why it waits for reasoning, while it does (v4 ADR-0069); the agency's console only. */
+  waiting?: { reason: ReasoningWait; step: "INTERPRETATION" | "PLAN"; tried_at: string | null } | null | undefined
 };
 
 export type PlanStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REVISION_REQUESTED" | "REJECTED" | "SUPERSEDED";
@@ -452,8 +460,41 @@ export type Question = {
   /** The system's own account of what went wrong. Only the agency receives it. */
   detail: string | null;
   options: QuestionOption[]; recommendation: { option: string; why: string } | null; deadline: string | null; created_at: string;
+  /** For the CEO, on a waiting person's step: the job roles it is with (v4 ADR-0072). Empty when it is the CEO's own. */
+  with_team?: string[] | undefined;
 };
 export type Answer = { option: string; note?: string; toUsd?: number; evidence?: string };
+
+/**
+ * A person's step's guide (v4 ADR-0071): how to approach each step, what done looks like and the proof it needs, with what the
+ * person has logged. "It is done" is refused until every step is finished, so the desk shows what is left.
+ */
+export type GuideProof = "NONE" | "NOTE" | "LINK" | "FILE";
+export type GuideStepState = "DONE" | "STUCK" | "SKIPPED";
+export type GuideStep = {
+  id: string; title: string; how: string[]; done_when: string; proof: GuideProof; watch_out: string[]; sources: Array<{ title: string; url: string }>;
+  finished: boolean;
+  /** What the step's person asked about this step, and v4's answer, oldest first. */
+  questions: Array<{ id: string; question: string; answer: string; sources: Array<{ title: string; url: string }>; unknowns: string[]; by_user_id: string; at: string }>;
+  logged: { state: GuideStepState; note: string | null; link: string | null; asset_id: string | null; by_user_id: string; at: string } | null;
+};
+export type PersonGuide = {
+  intervention_id: string; task_id: string; version: number; source: "PACK" | "MODEL"; objective: string | null; unknowns: string[];
+  can_log: boolean; progress: { finished: number; total: number; stuck: number }; steps: GuideStep[];
+  /** Whether v4 has tailored it to the project; while it waits, the agency's standard guide stands. */
+  tailoring: { state: "TAILORED" } | { state: "WAITING"; reason: ReasoningWait } | { state: "PENDING" };
+};
+export type GuideLogEntry = { state: GuideStepState; note?: string; link?: string; assetId?: string };
+/** What a person's step applies (v4 ADR-0072): the approved design document and the finished design and copy work it waits on. */
+export type StepMaterials = {
+  design: { version: number; document: unknown } | null;
+  work: Array<{ planTaskId: string | null; title: string; domain: string; capability: string; outputs: unknown }>;
+};
+
+/** The agency's team (v4 ADR-0072): its members, the job roles the CEO defines, and the work a person on the team can be given. */
+export type TeamMember = { userId: string; email: string; name: string | null; role: string };
+export type JobRoleView = { id: string; name: string; capabilities: string[]; retired: boolean; holderIds: string[] };
+export type TeamView = { agencyId: string; members: TeamMember[]; roles: JobRoleView[]; work: Array<{ id: string; domain: string }> };
 
 /* ---- What people are told (CC-5): briefs, the sources behind each statement, and how a person wants to be told ---- */
 

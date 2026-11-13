@@ -1,6 +1,6 @@
 import { newDirective, openDirective } from "./directive";
 import { expect, test, type Page } from "@playwright/test";
-import { forgetSignInRequests } from "./db";
+import { forgetSignInRequests, holdForBudget } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { newClientRequest, openClientDesk } from "./client-room";
@@ -145,4 +145,34 @@ test("the CEO sends a directive with no client: it is the agency's own work, and
   await page.getByLabel("Show directives for").selectOption({ label: "The agency's own work" });
   await expect(page.locator(".directive-row", { hasText: "Rebuild our own portfolio site" })).toBeVisible();
   await expect(page.locator(".directive-row", { hasText: "Refresh the brand" })).toHaveCount(0);
+});
+
+test("a directive waiting for a model budget says so and counts as needing the CEO; one that names nothing to deliver says it was not checked (v4 ADR-0069)", async ({ page }) => {
+  await signIn(page, CEO);
+  await page.getByRole("button", { name: "Directive", exact: true }).click();
+  const composer = await newDirective(page);
+  await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Write our own quarterly newsletter for past clients");
+  await composer.getByRole("button", { name: "Send request" }).click();
+  const card = await openDirective(page, "Write our own quarterly newsletter");
+  // Nothing in it names what the client receives, so nothing was checked, and the CEO is told so rather than shown nothing.
+  await answerEveryQuestion(card);
+  await expect(card.getByLabel("What we can deliver")).toContainText("NOT CHECKED");
+  await expect(card.getByLabel("What we can deliver")).toContainText("we haven't checked whether we can deliver it");
+
+  // A second request, read and then held as v4 holds one it may not spend on: it waits on the CEO, and says why and what to do.
+  await page.getByRole("button", { name: "New directive", exact: true }).click();
+  const second = page.getByLabel("New request");
+  await second.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Plan our own team offsite");
+  await second.getByRole("button", { name: "Send request" }).click();
+  await openDirective(page, "Plan our own team offsite");
+  holdForBudget("Plan our own team offsite");
+  // The desk reads again on its own; the held request then says why it waits and what the CEO can do.
+  const waits = page.locator(".directive-detail").getByLabel("Why it waits");
+  await expect(waits).toContainText("WAITING TO READ IT", { timeout: 30_000 });
+  await expect(waits).toContainText("No model budget is set, so no model is asked. Set one in Settings, under Model spend.");
+  await shot(page, "A directive waiting for a model budget says why and what to do");
+  // It waits on the CEO, so it is listed under "Needs you".
+  await page.getByRole("button", { name: "ALL DIRECTIVES" }).click();
+  await page.getByRole("tab", { name: /^Needs you/ }).click();
+  await expect(page.locator(".directive-row", { hasText: "Plan our own team offsite" })).toBeVisible();
 });
