@@ -182,6 +182,9 @@ function Evidence({ report, ids }: { report: MarketReportView; ids: readonly str
 /** A rule well established for work like this, not read for this project: expected to apply, never said to apply (v4 ADR-0075 Decision 10). */
 const EXPECTED_WORDS = "Expected to apply, still to be confirmed";
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+/** A model's condition often repeats the label ("Applies if the store..."), and a provision may end in its own full stop; the book says each once (blind probes, 2026-11-14). */
+const conditionWords = (s: string) => lower(s.replace(/^\s*(?:(?:it\s+)?applies\s+(?:only\s+)?)?if\b\s*[:,]?\s*/i, ""));
+const clause = (s: string) => s.replace(/[.\s]+$/, "");
 
 function MarketChapter({ report }: { report: MarketReportView }) {
   return <div className="book-chapter">
@@ -222,7 +225,7 @@ function ComplianceChapter({ screen }: { screen: ObligationScreenView }) {
     <Section title="What may apply">
       <ul className="book-list book-obligations">{screen.items.map((o) => (
         <li key={o.id} aria-label={o.statement}>
-          <b>{o.statement}</b> <span className={`book-known applies-${o.applicability.toLowerCase()}`}>{o.recalled?.wellEstablished && o.applicability !== "APPLICABLE" ? EXPECTED_WORDS : APPLICABILITY_WORDS[o.applicability]}{o.condition ? `: ${lower(o.condition)}` : ""}</span>
+          <b>{o.statement}</b> <span className={`book-known applies-${o.applicability.toLowerCase()}`}>{o.recalled?.wellEstablished && o.applicability !== "APPLICABLE" ? EXPECTED_WORDS : APPLICABILITY_WORDS[o.applicability]}{o.condition ? `: ${conditionWords(o.condition)}` : ""}</span>
           {o.beforeLaunch && <span className="book-known before-launch">Settle before it goes live</span>}
           <small>{o.rationale}</small>
           <small className="book-obligation-source">
@@ -230,7 +233,7 @@ function ComplianceChapter({ screen }: { screen: ObligationScreenView }) {
             {o.source.locator ? <>: <a href={o.source.locator} target="_blank" rel="noreferrer">{o.source.title ?? o.source.locator}</a></> : null}
             {o.source.quote ? <> · “{o.source.quote}”</> : null}
           </small>
-          {o.recalled && <small className="book-obligation-recalled">Recalled, not checked: {o.recalled.name}{o.recalled.provision ? `, ${o.recalled.provision}` : ""}. Where to read it: {o.recalled.checkAt}.</small>}
+          {o.recalled && <small className="book-obligation-recalled">Recalled, not checked: {clause(o.recalled.name)}{o.recalled.provision ? `, ${clause(o.recalled.provision)}` : ""}. Where to read it: {clause(o.recalled.checkAt)}.</small>}
           {forCounsel.has(o.id) && <small className="book-obligation-counsel">Ask {SPECIALIST_WORDS[o.specialist] || "your own legal counsel"} about this one.</small>}
           {o.controls.length > 0 && <dl className="book-pairs">{o.controls.map((c) => <div key={c.owner + c.requirement}><dt>{nameOf(c.owner)}</dt><dd>{c.requirement}<small>Shown by: {lower(c.evidence)}</small></dd></div>)}</dl>}
         </li>

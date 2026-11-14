@@ -66,6 +66,8 @@ test("the CEO reads the whole book in the Brand room, the drafted market chapter
   await expect(privacy).toContainText("Settle before it goes live");
   await expect(privacy).toContainText("Recalled, not checked: The data protection act. Where to read it: The data protection regulator where the roastery is registered.");
   await expect(book.getByRole("listitem", { name: /Show a refund policy/ })).not.toContainText("Settle before it goes live");
+  // A condition that repeats its label, and a source ending in its own full stop, are said once (blind probes, 2026-11-14).
+  await expect(book.getByRole("listitem", { name: /Show a refund policy/ })).toContainText("Applies if: the payment provider's terms require one.");
   await expect(book.getByRole("heading", { name: "What only you can do" })).toBeVisible();
   await expect(book.getByText("Keep a record of each customer who agrees to marketing, and when.")).toBeVisible();
   // The agency's own notes reach the CEO and no client (v4 ADR-0075 Decision 11).
