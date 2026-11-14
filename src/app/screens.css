@@ -61,24 +61,12 @@
 .directive-targets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 0 0 22px; }
 .directive-targets label { display: flex; flex-direction: column; gap: 8px; font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--primary); }
 .directive-history { margin-top: 55px; }
-/* The directive desk, one layer at a time: a short heading, tabs by what each request needs, a list, then one request. */
+/* The directive desk is the projects and threads screen (below); these are what it shares with the older layout. */
 .directive-head .directive-principle { margin: 10px 0 0; max-width: 560px; color: var(--muted-foreground); font: italic 17px/1.4 "Cormorant Garamond", serif; }
 .directive-actions { display: flex; align-items: center; gap: 8px; }
 .directive-actions .new-request { margin: 0; }
-.directive-toolbar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px 24px; margin: 34px 0 6px; border-bottom: 1px solid var(--border); }
-.directive-toolbar .desk-tabs .tab { padding-bottom: 13px !important; }
 .directive-filter { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; font-size: 9px; font-weight: 700; letter-spacing: .16em; color: var(--muted-foreground); }
 .directive-filter select { width: auto; min-width: 190px; padding: 7px 10px; font-size: 12px; }
-.directive-list { border-top: 0; }
-.directive-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 16px; align-items: center; gap: 18px; width: 100%; padding: 17px 4px; text-align: left; color: var(--foreground); background: none; border: 0; border-bottom: 1px solid var(--border); cursor: pointer; font: 14px/1.45 "DM Sans", sans-serif; transition: background-color var(--t-feedback, .15s) ease; }
-.directive-row:hover, .directive-row:focus-visible { background: oklch(1 0 0 / 3%); outline: none; }
-.directive-row:focus-visible { box-shadow: inset 2px 0 0 var(--primary); }
-.directive-row > svg { color: var(--muted-foreground); }
-.dr-text { min-width: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.dr-text small { display: block; margin-top: 6px; color: var(--muted-foreground); font-size: 11px; }
-.dr-state { display: flex; align-items: center; gap: 10px; }
-.dr-state em { font-style: normal; font-size: 10px; letter-spacing: .06em; color: var(--primary); }
-.directive-row[data-tab="closed"] .dr-text { color: var(--muted-foreground); }
 .directive-detail { margin-top: 30px; }
 .directive-notice { margin: -8px 0 18px; }
 @media (max-width: 1000px) { .directive-wrap { margin: 30px 24px; } }
@@ -102,8 +90,6 @@
   .composer-for small { grid-column: 1; }
   .composer-attach { flex-wrap: wrap; }
   .composer-attach > input { flex-basis: 100%; }
-  .directive-row { grid-template-columns: minmax(0, 1fr) 16px; }
-  .dr-state { grid-column: 1; grid-row: 2; }
   .directive-filter select { min-width: 0; }
 }
 .brief-events { margin-top: 36px; }
@@ -519,3 +505,100 @@ html[data-lighting="day"] .pill.slate { color: oklch(0.42 0.035 250); background
 .step-work p { margin: 4px 0; }
 .team-page { max-width: 760px; margin: 0 auto; padding: 24px 16px; display: grid; gap: 12px; }
 .team-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* v4 ADR-0076: one understanding of a request, in four parts, round by round. */
+.understanding h4 { margin: 12px 0 4px; }
+.und-versions { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.und-versions button { display: grid; text-align: left; padding: 4px 10px; border: 1px solid var(--border); border-radius: 8px; background: transparent; font-size: 14px; cursor: pointer; }
+.und-versions button[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); }
+.und-findings, .und-recommend { list-style: none; padding: 0; display: grid; gap: 8px; }
+.und-findings li, .und-recommend li { display: grid; gap: 2px; }
+.und-findings li[data-class="HYPOTHESIS"] strong { opacity: .78; font-weight: 600; }
+.und-findings a { color: var(--primary); overflow-wrap: anywhere; }
+
+/* The conversation on a request (v4 ADR-0077): who said what, and what the person's words settled. */
+.convo { display: grid; gap: 8px; margin: 12px 0; }
+.convo h4 { margin: 0; }
+.convo-thread { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.convo-thread > li { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; max-width: 46rem; }
+.convo-thread > li[data-from="PERSON"] { justify-self: end; background: var(--muted, transparent); }
+.convo-thread > li[data-from="PLATFORM"] { border-style: dashed; }
+.convo-thread p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.convo-who { display: flex; gap: 8px; align-items: baseline; font-weight: 600; font-size: 13px; }
+.convo-who small { font-weight: 400; opacity: .7; }
+.convo-took ul { margin: 2px 0 0; padding-left: 18px; }
+.convo-took q { opacity: .8; }
+.convo-apart { display: grid; gap: 4px; }
+.convo-apart-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.convo-sub { opacity: .8; font-size: 13px; margin: 0; }
+.convo-write { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.convo-write textarea { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: inherit; font: inherit; resize: vertical; }
+
+/* Projects and their threads (v4 ADR-0078): the same screen for the CEO's directive desk and the client's board. Three columns where
+   there is room (projects with their threads, the open thread, the project), two on a narrower desk, and one on a phone, where the
+   list and the open thread take turns. Container queries, so the layout follows the room it is given, not the window. */
+.threads-wrap { container-type: inline-size; max-width: 1380px; margin: 0 auto; padding: 40px 44px; }
+.thread-convo .convo-thread p { font-size: 14px; line-height: 1.55; }
+.thread-convo .convo-thread > li { max-width: 40rem; }
+.desk-sheet .threads-wrap { margin: 0; padding: 0; }
+.threads-head { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 22px; }
+.threads-head h2 { margin: 8px 0 0; font: 400 46px/1.05 "Cormorant Garamond", serif; }
+.desk-sheet .threads-head { margin-bottom: 14px; }
+.threads-grid { display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(200px, 240px); gap: 26px; align-items: start; }
+.threads-side { display: grid; gap: 14px; position: sticky; top: 12px; max-height: calc(100svh - 120px); overflow-y: auto; padding-right: 4px; }
+.threads-side .desk-tabs { border-bottom: 1px solid var(--border); }
+.threads-side .directive-filter select { width: 100%; }
+.thread-group { display: grid; gap: 2px; }
+.thread-group h4 { display: grid; gap: 2px; margin: 6px 0 4px; font-size: 12px; font-weight: 600; line-height: 1.3; letter-spacing: .02em; }
+.thread-group h4 small { font-weight: 400; color: var(--muted-foreground); font-size: 11px; }
+.thread-row { display: grid; gap: 3px; width: 100%; padding: 9px 10px; text-align: left; color: var(--foreground); background: none; border: 0; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; cursor: pointer; }
+.thread-row:hover, .thread-row:focus-visible { background: oklch(1 0 0 / 4%); outline: none; }
+.thread-row:focus-visible { box-shadow: inset 0 0 0 1px var(--primary); }
+.thread-row[aria-current] { background: oklch(0.76 0.146 76 / 9%); border-left-color: var(--primary); }
+.thread-row[data-feature] { padding-left: 22px; }
+.tr-title { display: flex; gap: 6px; align-items: baseline; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.tr-title svg { flex: none; color: var(--muted-foreground); }
+.tr-meta { display: flex; gap: 8px; align-items: center; font-size: 11px; color: var(--muted-foreground); }
+.tr-last { color: var(--muted-foreground); font-size: 11px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.thread-state { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+.thread-state[data-state="NEEDS_YOU"] { color: var(--primary); }
+.thread-state[data-state="WORKING"] { color: oklch(0.78 0.12 220); }
+.thread-state[data-state="DONE"] { color: oklch(0.78 0.14 157); }
+.threads-main { min-width: 0; }
+.threads-main .directive-detail { margin-top: 0; }
+.threads-main .directive-detail-head { margin-top: 0; }
+.threads-empty { padding: 40px 0; }
+.thread-back { display: none !important; }
+.thread-from { display: block; margin-top: 6px; }
+.link-button { padding: 0; border: 0; background: none; color: var(--primary); font: inherit; text-align: left; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.thread-wait { margin: -8px 0 16px; font-size: 12px; color: var(--muted-foreground); }
+.thread-convo { gap: 12px; margin-top: 0; }
+.thread-asking { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border: 1px solid oklch(0.76 0.146 76 / 30%); border-radius: 10px; background: oklch(0.76 0.146 76 / 6%); }
+.ask-chip { padding: 5px 11px; border: 1px solid oklch(0.76 0.146 76 / 40%); border-radius: 999px; background: none; color: var(--foreground); font-size: 12px; line-height: 1.3; text-align: left; cursor: pointer; }
+.ask-chip:hover, .ask-chip:focus-visible { background: oklch(0.76 0.146 76 / 12%); outline: none; }
+.convo-thread > li[data-note] { background: oklch(1 0 0 / 2%); }
+.convo-thread > li[data-from="REQUEST"] { justify-self: end; border-color: oklch(0.76 0.146 76 / 35%); background: oklch(0.76 0.146 76 / 5%); }
+.convo-go { justify-self: start; }
+.threads-project { display: grid; gap: 10px; position: sticky; top: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; }
+.threads-project h4 { margin: 0; font: 400 22px/1.2 "Cormorant Garamond", serif; }
+.tp-objective { margin: 0; font-size: 13px; line-height: 1.45; }
+.tp-threads { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.tp-threads li { display: grid; gap: 2px; font-size: 13px; }
+.tp-threads small { color: var(--muted-foreground); font-size: 11px; line-height: 1.35; }
+.tp-threads .link-button[aria-current] { color: var(--foreground); text-decoration: none; font-weight: 600; }
+@container (max-width: 940px) {
+  .threads-grid { grid-template-columns: minmax(220px, 270px) minmax(0, 1fr); }
+  .threads-project { grid-column: 2; position: static; }
+}
+@container (max-width: 720px) {
+  .threads-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .threads-side { position: static; max-height: none; overflow: visible; padding-right: 0; }
+  .threads-project { grid-column: 1; }
+  .threads-wrap[data-open="thread"] .threads-side { display: none; }
+  .threads-wrap[data-open="list"] .threads-main { display: none; }
+  .thread-back { display: inline-flex !important; }
+  .threads-head h2 { font-size: 34px; }
+  .threads-wrap { padding: 24px 0; }
+  .directive-detail-head { flex-direction: column; gap: 10px; }
+  .convo-write { grid-template-columns: minmax(0, 1fr); }
+}
+.threads-side > .new-request { justify-self: start; margin: 0; }

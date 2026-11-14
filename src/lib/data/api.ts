@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, PersonGuide, StepMaterials, TeamView, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, ConversationMessage, ThreadSummary, ThreadView, ThreadWait, WorkspaceView, ConversationView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, PersonGuide, StepMaterials, TeamView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 import { WAIT_LINE } from "../format";
 
@@ -114,9 +114,10 @@ const toAsset = (a: ApiAsset): Asset => ({
 type ApiPlan = {
   objective: string; scope: { in: string[]; out: string[] }; deliverables: PlanContent["deliverables"];
   successMetrics: Array<{ id: string; metric: string; baseline: string | null; target: string; measurement: string; window: string; dataSource: string }>;
-  tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; dependsOn: string[] }>;
+  tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; dependsOn: string[]; awaits?: string[] }>;
   milestones: Array<{ name: string; afterTasks: string[] }>; budget: { lowUsd: number; highUsd: number; confidence: number };
   risks: PlanContent["risks"]; assumptions: string[]; openContextNeeds: string[]; decisionPoints: Array<{ taskId?: string; description: string }>;
+  confirm?: Array<{ id: string; question: string; disposition: string; authority: PlanContent["to_confirm"][number]["authority"]; recommendation: { optionId: string; label: string; why: string | null } | null }>;
   phasing?: Array<{ taskId: string; upstream: string; reason: string }>;
   engagement?: { unstaffed?: string[]; exempt?: PlanContent["exempt"] };
 };
@@ -133,6 +134,33 @@ type ApiQuestion = {
   title: string; summary: string; detail?: string | null; options: Array<{ id: string; stepUp?: boolean }>; recommendation: { option: string; why: string } | null; deadline: string | null; createdAt: string;
   withTeam?: string[];
 };
+/** A message as v4 sends it (ADR-0077, ADR-0078), and as the screens read it. */
+type ApiMessage = {
+  id: string; from: ConversationMessage["from"]; text: string; at: string; mine: boolean;
+  answered?: Array<{ questionId: string; question: string; kind: ConversationMessage["answered"][number]["kind"]; chosen: string | null; yourWords: string }>;
+  noLongerAsked?: Array<{ questionId: string; question: string }>; separateAsks?: Array<{ ask: string; yourWords: string; name?: string; kind?: "FEATURE" | "NEW_PROJECT" }>;
+  findings?: ConversationMessage["findings"]; refused?: Array<{ questionId: string; why: string }>; changeIntentId?: string;
+  openedThread?: { threadId: string; title: string }; suggestedProject?: { name: string; yourWords: string };
+};
+const messageOf = (m: ApiMessage): ConversationMessage => ({
+  id: m.id, from: m.from, text: m.text, at: m.at, mine: m.mine,
+  answered: (m.answered ?? []).map((a) => ({ question_id: a.questionId, question: a.question, kind: a.kind, chosen: a.chosen, your_words: a.yourWords })),
+  no_longer_asked: (m.noLongerAsked ?? []).map((q) => ({ question_id: q.questionId, question: q.question })),
+  separate_asks: (m.separateAsks ?? []).map((x) => ({ ask: x.ask, your_words: x.yourWords, ...(x.name ? { name: x.name } : {}), kind: x.kind ?? "NEW_PROJECT" })),
+  findings: m.findings ?? [],
+  ...(m.refused ? { refused: m.refused.map((x) => ({ question_id: x.questionId, why: x.why })) } : {}),
+  ...(m.changeIntentId ? { change_intent_id: m.changeIntentId } : {}),
+  ...(m.openedThread ? { opened_thread: { thread_id: m.openedThread.threadId, title: m.openedThread.title } } : {}),
+  ...(m.suggestedProject ? { suggested_project: { name: m.suggestedProject.name, your_words: m.suggestedProject.yourWords } } : {}),
+});
+type ApiWait = { reason: ThreadWait["reason"]; threadId: string | null; proposalId?: string; version?: number };
+const waitOf = (w: ApiWait): ThreadWait => ({ reason: w.reason, thread_id: w.threadId, ...(w.proposalId ? { proposal_id: w.proposalId } : {}), ...(w.version !== undefined ? { version: w.version } : {}) });
+type ApiThreadSummary = { threadId: string; title: string; openedFromId: string | null; updatedAt: string; current: { intentId: string; status: ThreadSummary["current"]["status"] }; state: ThreadSummary["state"]; waitingFor?: ApiWait; needsYou: ThreadSummary["needs_you"]; lastMessage: { from: ConversationMessage["from"]; text: string; at: string } | null };
+const summaryOf = (t: ApiThreadSummary): ThreadSummary => ({
+  thread_id: t.threadId, title: t.title, opened_from_id: t.openedFromId, updated_at: t.updatedAt, current: { intent_id: t.current.intentId, status: t.current.status },
+  state: t.state, ...(t.waitingFor ? { waiting_for: waitOf(t.waitingFor) } : {}), needs_you: t.needsYou, last_message: t.lastMessage,
+});
+
 type ApiBrief = { id: string; organizationId: string; projectId: string | null; type: BriefType; audience: "CLIENT" | "AGENCY"; title: string; attentionLevel: number; compiledAt: string };
 type ApiCitation = { type: string; id?: string; ids?: string[]; path?: string; expect?: string | number; expectSum?: number };
 type ApiPrefs = { timezone: string; quietHours: { start: string; end: string } | null; minInterruptLevel: number; emailEnabled: boolean; digest: NotificationPrefs["digest"] };
@@ -149,14 +177,31 @@ const toQuestion = (q: ApiQuestion): Question => ({
   ...(q.withTeam ? { with_team: q.withTeam } : {}),
 });
 
+type ApiLedger = {
+  id: string; projectId: string; question: string; options: Array<{ id: string; label: string; tradeoff?: string | null }>;
+  recommendation: { optionId?: string; label?: string; why?: string | null } | null; state: LedgerDecision["state"]; resolution: LedgerDecision["resolution"];
+  selectedOption: { id: string; label: string } | null; disposition: LedgerDecision["disposition"]; authority: LedgerDecision["authority"]; holds: string[];
+  counsel?: { kind: Counsel["kind"]; asked: string; concern: string; evidence: Counsel["evidence"]; keepOptionId: string } | null;
+  createdAt: string; resolvedAt: string | null;
+};
+const toLedger = (d: ApiLedger): LedgerDecision => ({
+  id: d.id, project_id: d.projectId, question: d.question, options: d.options.map((o) => ({ id: o.id, label: o.label, tradeoff: o.tradeoff ?? null })),
+  recommendation: d.recommendation?.optionId && d.recommendation.label ? { option_id: d.recommendation.optionId, label: d.recommendation.label, why: d.recommendation.why ?? null } : null,
+  state: d.state, resolution: d.resolution, selected_option: d.selectedOption ? { id: d.selectedOption.id, label: d.selectedOption.label } : null,
+  disposition: d.disposition, authority: d.authority, holds: d.holds,
+  counsel: d.counsel ? { kind: d.counsel.kind, asked: d.counsel.asked, concern: d.counsel.concern, evidence: d.counsel.evidence, keep_option_id: d.counsel.keepOptionId } : null,
+  created_at: d.createdAt, resolved_at: d.resolvedAt,
+});
+
 const toPlan = (c: ApiPlan): PlanContent => ({
   objective: c.objective, scope_in: c.scope.in, scope_out: c.scope.out, deliverables: c.deliverables,
   success_metrics: c.successMetrics.map((m) => ({ id: m.id, metric: m.metric, baseline: m.baseline, target: m.target, measurement: m.measurement, window: m.window, data_source: m.dataSource })),
-  tasks: c.tasks.map((t) => ({ id: t.id, title: t.title, domain: t.domain, capability: t.capability, rigor: t.rigor, risk: t.risk, reversibility: t.reversibility, depends_on: t.dependsOn })),
+  tasks: c.tasks.map((t) => ({ id: t.id, title: t.title, domain: t.domain, capability: t.capability, rigor: t.rigor, risk: t.risk, reversibility: t.reversibility, depends_on: t.dependsOn, awaits: t.awaits ?? [] })),
   milestones: c.milestones.map((m) => ({ name: m.name, after_tasks: m.afterTasks })),
   budget: { low_usd: c.budget.lowUsd, high_usd: c.budget.highUsd, confidence: c.budget.confidence },
   risks: c.risks, assumptions: c.assumptions, open_context_needs: c.openContextNeeds,
   decision_points: c.decisionPoints.map((d) => ({ task_id: d.taskId ?? null, description: d.description })),
+  to_confirm: (c.confirm ?? []).map((x) => ({ id: x.id, question: x.question, recommendation: x.recommendation?.label ?? null, authority: x.authority, disposition: x.disposition })),
   phasing: (c.phasing ?? []).map((x) => ({ task_id: x.taskId, upstream: x.upstream, reason: x.reason })),
   unstaffed: c.engagement?.unstaffed ?? [], exempt: c.engagement?.exempt ?? [],
 });
@@ -331,8 +376,67 @@ export function createApiDataSource(): DataSource {
           delivery: v.delivery ? { outcome: v.delivery.outcome, taken_on: v.delivery.takenOn, items: v.delivery.items } : null,
         });
       },
+      async understanding(intentId) {
+        type V = {
+          round: number; at: string; current: boolean;
+          understood: { goal: string; desiredOutcome: string | null; objectives: string[]; constraints: string[] } | null;
+          found: { findings: UnderstandingVersion["found"]["findings"]; findingOut: Array<{ id: string; question: string }> };
+          recommend: UnderstandingVersion["recommend"]; lookedUp?: { searches: number; pages: number; flagged: number };
+        };
+        const r = await call<{ intentId: string; versions: V[]; stillNeedsYou: UnderstandingView["still_needs_you"] }>("GET", `/v1/intents/${encodeURIComponent(intentId)}/understanding`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        return ok({
+          intent_id: r.data.intentId,
+          versions: r.data.versions.map((v) => ({
+            round: v.round, at: v.at, current: v.current,
+            understood: v.understood ? { goal: v.understood.goal, desired_outcome: v.understood.desiredOutcome, objectives: v.understood.objectives, constraints: v.understood.constraints } : null,
+            found: { findings: v.found.findings, finding_out: v.found.findingOut },
+            recommend: v.recommend,
+            ...(v.lookedUp ? { looked_up: v.lookedUp } : {}),
+          })),
+          still_needs_you: r.data.stillNeedsYou,
+        });
+      },
+      async conversation(intentId) {
+        const r = await call<{ intentId: string; waitingForReply: boolean; messages: ApiMessage[] }>("GET", `/v1/intents/${encodeURIComponent(intentId)}/conversation`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        return ok({ intent_id: r.data.intentId, waiting_for_reply: r.data.waitingForReply, messages: r.data.messages.map(messageOf) });
+      },
+      async say(intentId, text) {
+        const r = await call<{ messageId: string; changeIntentId?: string }>("POST", `/v1/intents/${encodeURIComponent(intentId)}/messages`, { text });
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ change_intent_id: r.data.changeIntentId ?? null });
+      },
       async answerDelivery(intentId, answer, note) {
         return voidResult(await call("POST", `/v1/intents/${encodeURIComponent(intentId)}/delivery`, note?.trim() ? { answer, note: note.trim() } : { answer }));
+      },
+    },
+
+    threads: {
+      async workspace() {
+        const r = await call<{ organizations: Array<{ id: string; name: string; kind: WorkspaceView["organizations"][number]["kind"]; projects: Array<{ projectId: string; name: string; status: string; objective: string | null; updatedAt: string; threads: ApiThreadSummary[] }>; newProjects: Array<{ threadId: string; title: string; threads: ApiThreadSummary[] }> }> }>("GET", "/v1/workspace");
+        if (r.error || !r.data) return { data: null, error: r.error };
+        return ok({ organizations: r.data.organizations.map((o) => ({
+          id: o.id, name: o.name, kind: o.kind,
+          projects: o.projects.map((p) => ({ project_id: p.projectId, name: p.name, status: p.status, objective: p.objective, updated_at: p.updatedAt, threads: p.threads.map(summaryOf) })),
+          new_projects: o.newProjects.map((n) => ({ thread_id: n.threadId, title: n.title, threads: n.threads.map(summaryOf) })),
+        })) });
+      },
+      async read(threadId) {
+        const r = await call<{ threadId: string; organizationId: string; projectId: string | null; title: string; state: ThreadView["state"]; waitingFor?: ApiWait; openedFrom: { threadId: string; title: string | null } | null; current: { intentId: string; status: ThreadView["current"]["status"] }; requests: Array<{ intentId: string; status: ThreadView["current"]["status"]; text: string; at: string }>; waitingForReply: boolean; messages: ApiMessage[] }>("GET", `/v1/threads/${encodeURIComponent(threadId)}`);
+        if (r.error || !r.data) return { data: null, error: r.error };
+        const t = r.data;
+        return ok({
+          thread_id: t.threadId, organization_id: t.organizationId, project_id: t.projectId, title: t.title, state: t.state,
+          ...(t.waitingFor ? { waiting_for: waitOf(t.waitingFor) } : {}),
+          opened_from: t.openedFrom ? { thread_id: t.openedFrom.threadId, title: t.openedFrom.title } : null,
+          current: { intent_id: t.current.intentId, status: t.current.status },
+          requests: t.requests.map((q) => ({ intent_id: q.intentId, status: q.status, text: q.text, at: q.at })),
+          waiting_for_reply: t.waitingForReply, messages: t.messages.map(messageOf),
+        });
+      },
+      async say(threadId, text) {
+        const r = await call<{ messageId: string; changeIntentId?: string }>("POST", `/v1/threads/${encodeURIComponent(threadId)}/messages`, { text });
+        return r.error || !r.data ? { data: null, error: r.error } : ok({ change_intent_id: r.data.changeIntentId ?? null });
       },
     },
 
@@ -597,6 +701,14 @@ export function createApiDataSource(): DataSource {
       async decisions(projectId) {
         const r = await call<Array<{ proposalId: string; version: number; decision: DecisionEntry["decision"]; decidedByRole: DecisionEntry["decided_by_role"]; onBehalf: boolean; note: string | null; decidedAt: string }>>("GET", `/v1/projects/${projectId}/decisions`);
         return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map((d) => ({ proposal_id: d.proposalId, version: d.version, decision: d.decision, decided_by_role: d.decidedByRole, on_behalf: d.onBehalf, note: d.note, decided_at: d.decidedAt })));
+      },
+      async ledger(projectId) {
+        const r = await call<ApiLedger[]>("GET", `/v1/projects/${encodeURIComponent(projectId)}/ledger`);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data.map(toLedger));
+      },
+      async resolveDecision(decisionId, answer) {
+        const r = await call<ApiLedger>("POST", `/v1/decisions/${encodeURIComponent(decisionId)}/resolve`, answer);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(toLedger(r.data));
       },
       async delegations(projectId) {
         const r = await call<ApiDelegation[]>("GET", `/v1/projects/${projectId}/delegations`);

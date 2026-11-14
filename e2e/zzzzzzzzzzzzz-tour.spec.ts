@@ -62,7 +62,7 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Directive", exact: true }).click();
   // The work first; a new directive is a button, and the form can be put away (P6.21). A draft is never discarded unasked.
-  await expect(page.getByRole("button", { name: "New directive", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New project", exact: true })).toBeVisible();
   const composer = await newDirective(page);
   await composer.getByRole("button", { name: "Close without sending" }).click();
   await expect(page.getByLabel("New request")).toHaveCount(0);
@@ -72,8 +72,8 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   await expect(again.getByText("Discard what you wrote?")).toBeVisible();
   await again.getByRole("button", { name: "Discard" }).click();
   await expect(page.getByLabel("New request")).toHaveCount(0);
-  await expect(page.locator(".directive-row").first()).toBeVisible();
-  await shot(page, "The directive desk: requests sorted by what they need, for a client or for the agency itself");
+  await expect(page.locator(".thread-row").first()).toBeVisible();
+  await shot(page, "The directive desk: projects and their threads, for a client or for the agency itself");
 
   // brief desk
   await page.goto("/");
@@ -129,7 +129,7 @@ test("a client's room and everything in it", async ({ page }) => {
     ["Table", undefined, "Your projects"],
     ["Table", "Timeline", "TIMELINE"],
     ["Screen", undefined, "NEEDS YOUR SIGNATURE"],
-    ["Board", undefined, "YOUR REQUESTS"],
+    ["Board", undefined, "All threads"],
     ["Board", "Questions from the work", "Questions from the work"],
     ["Shelf", "Your library", "Your library"],
     ["Lamp", undefined, "Briefs"],
@@ -140,8 +140,8 @@ test("a client's room and everything in it", async ({ page }) => {
     await openClientDesk(page, desk, tab);
     await expect(page.getByText(expected, { exact: false }).first()).toBeVisible();
   }
-  await openClientDesk(page, "Board", "Your requests");
-  await shot(page, "A client's board: their requests, with the questions from the work on the next tab");
+  await openClientDesk(page, "Board", "Your projects");
+  await shot(page, "A client's board: their projects and threads, with the questions from the work on the next tab");
   await openClientDesk(page, "Table");
   await expectRoomHeldStill(page);
   await page.getByRole("tab", { name: /^Projects/ }).click();

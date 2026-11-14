@@ -1,4 +1,4 @@
-import type { ReasoningWait, ApprovalStatus, ArtifactStatus, ContextStatus, DecisionStatus, IntentStatus, PlanStatus, Project, ProjectStatus, RunStatus, ScanStatus, Task, TaskStatus } from "./model";
+import type { ApprovalStatus, ArtifactStatus, ContextStatus, DecisionState, IntentStatus, PlanStatus, Project, ProjectStatus, RunStatus, ScanStatus, Task, TaskStatus, ReasoningWait } from "./model";
 
 // Pure presentation helpers, copied from the preview's lib/v4.ts. No data access here.
 
@@ -24,18 +24,18 @@ export const reversibilityLabel = (n: number | null | undefined) => (n == null ?
  */
 export type Tone = "amber" | "green" | "red" | "slate";
 type Family = "waiting" | "done" | "refused" | "info";
-type AnyStatus = ProjectStatus | TaskStatus | ApprovalStatus | ArtifactStatus | DecisionStatus | ContextStatus | IntentStatus | PlanStatus | RunStatus | ScanStatus;
+type AnyStatus = ProjectStatus | TaskStatus | ApprovalStatus | ArtifactStatus | DecisionState | ContextStatus | IntentStatus | PlanStatus | RunStatus | ScanStatus;
 const FAMILY: Record<AnyStatus, Family> = {
   // Waiting on a person, or held until something arrives.
-  PROPOSED: "waiting", WAITING: "waiting", REQUESTED: "waiting", WAITING_FOR_HUMAN: "waiting", PAUSED: "waiting", BLOCKED: "waiting", MISSING: "waiting",
+  PROPOSED: "waiting", WAITING: "waiting", REQUESTED: "waiting", OPEN: "waiting", STALE: "waiting", PAUSED: "waiting", BLOCKED: "waiting", MISSING: "waiting",
   PARTIALLY_RECEIVED: "waiting", CLARIFYING: "waiting", SUBMITTED: "waiting", REVISION_REQUESTED: "waiting", PENDING_SCAN: "waiting", PENDING_UPLOAD: "waiting",
   // Done, or moving as it should.
-  ACTIVE: "done", DELIVERED: "done", MONITORING: "done", COMPLETED: "done", RUNNING: "done", GRANTED: "done", APPROVED: "done", FINAL: "done", ACCEPTED: "done",
+  ACTIVE: "done", DELIVERED: "done", MONITORING: "done", COMPLETED: "done", RUNNING: "done", GRANTED: "done", APPROVED: "done", FINAL: "done", DECIDED_BY_OWNER: "done", DECIDED_UNDER_DELEGATION: "done", HELD_ASSET: "done",
   RECEIVED: "done", VALIDATED: "done", UNDERSTOOD: "done", PLANNED: "done", CLEAN: "done",
   // Refused, failed, or unsafe.
   REJECTED: "refused", FAILED: "refused", INFECTED: "refused",
   // Information: where something is, with nothing asked of anyone.
-  INTAKE: "info", CANCELLED: "info", ARCHIVED: "info", PENDING: "info", READY: "info", EXPIRED: "info", DRAFT: "info", SUPERSEDED: "info", DEFERRED: "info",
+  INTAKE: "info", CANCELLED: "info", ARCHIVED: "info", PENDING: "info", READY: "info", EXPIRED: "info", DRAFT: "info", SUPERSEDED: "info",
   ASSUMED: "info", AWAITING_REASONING: "info",
 };
 const TONE: Record<Family, Tone> = { waiting: "amber", done: "green", refused: "red", info: "slate" };

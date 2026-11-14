@@ -31,7 +31,7 @@ test.beforeEach(() => forgetSignInRequests());
 test("a client sends a request with a file and a link, answers the questions, settles the materials, and the project opens", async ({ page }) => {
   await signIn(page, OWNER);
   await expect(page.getByRole("heading", { name: "The client room." })).toBeVisible();
-  await openClientDesk(page, "Board", /Your requests/);
+  await openClientDesk(page, "Board", /Your projects/);
 
   const composer = await newClientRequest(page);
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("We want a better website for our customers");
@@ -41,9 +41,11 @@ test("a client sends a request with a file and a link, answers the questions, se
   // The link goes to the library, the file stays with this project.
   await composer.getByLabel("Where it goes").nth(1).selectOption("ORGANIZATION");
   await composer.getByRole("button", { name: "Send request" }).click();
-  await expect(composer.getByRole("status")).toContainText("Received. A few questions");
+  // Sending opens the thread it started, on what it asks (v4 ADR-0078).
+  const thread = page.locator(".directive-detail");
+  await expect(thread.getByRole("status").first()).toContainText("Received. A few questions");
 
-  const card = page.locator(".intent-card", { hasText: "We want a better website" });
+  const card = thread.locator(".intent-card", { hasText: "We want a better website" });
   // The client reads where it stands in one line, then one question at a time with its place in the round (P6.20).
   // What v4 asks today: the direction (the request could be read either way), whether a duty brings Compliance in, and the result to aim at.
   await expect(card.locator('[data-stage="QUESTIONS"]')).toBeVisible();
@@ -72,7 +74,8 @@ test("a client sends a request with a file and a link, answers the questions, se
   await expect(card.locator(".cv-block").getByRole("heading", { name: "What we need from you" })).toHaveCount(0);
 
   // What we assumed instead of asking is shown, not hidden: the plan states it.
-  await expect(card.getByLabel("Plan").getByRole("heading", { name: "What we assumed" })).toBeVisible();
+  await thread.getByRole("tab", { name: /^The plan/ }).click();
+  await expect(thread.getByLabel("Plan").getByRole("heading", { name: "What we assumed" })).toBeVisible();
 
   // The project opened when the request was understood (on the table), and the link we sent to the library is there (on the shelf).
   await openClientDesk(page, "Table");
@@ -105,7 +108,7 @@ test("the CEO sends a directive for a client, answers its questions, and sees wh
   await composer.getByRole("button", { name: "Send request" }).click();
 
   // Sending opens the request it made.
-  const card = await openDirective(page, "Refresh the brand");
+  const card = await openDirective(page, "Refresh the brand", "What it asks");
   await expect(card.getByRole("status").first()).toContainText("Received.");
   await expect(card.locator(".directive-detail-head .pill")).toHaveText("NEEDS ANSWERS");
   await expect(card.getByText("Orbit · ")).toBeVisible();
@@ -123,7 +126,7 @@ test("the CEO sends a directive with no client: it is the agency's own work, and
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Rebuild our own portfolio site so that more founders book a call, by the end of March, with a budget of 3000");
   await composer.getByRole("button", { name: "Send request" }).click();
 
-  const card = await openDirective(page, "Rebuild our own portfolio site");
+  const card = await openDirective(page, "Rebuild our own portfolio site", "What it asks");
   await expect(card.getByText(/The agency's own work/)).toBeVisible();
   await answerEveryQuestion(card);
   await card.getByRole("tab", { name: /^The plan/ }).click();
@@ -140,11 +143,10 @@ test("the CEO sends a directive with no client: it is the agency's own work, and
   expect(org.kind).toBe("INTERNAL");
 
   // The filter shows it under the agency's own work.
-  await page.getByRole("button", { name: "ALL DIRECTIVES" }).click();
-  await page.getByRole("tab", { name: /^All/ }).click();
-  await page.getByLabel("Show directives for").selectOption({ label: "The agency's own work" });
-  await expect(page.locator(".directive-row", { hasText: "Rebuild our own portfolio site" })).toBeVisible();
-  await expect(page.locator(".directive-row", { hasText: "Refresh the brand" })).toHaveCount(0);
+  await page.getByRole("tab", { name: /^All threads/ }).click();
+  await page.getByLabel("Show work for").selectOption({ label: "The agency's own work" });
+  await expect(page.locator(".thread-row", { hasText: "Rebuild our own portfolio site" })).toBeVisible();
+  await expect(page.locator(".thread-row", { hasText: "Refresh the brand" })).toHaveCount(0);
 });
 
 test("a directive waiting for a model budget says so and counts as needing the CEO; one that names nothing to deliver says it was not checked (v4 ADR-0069)", async ({ page }) => {

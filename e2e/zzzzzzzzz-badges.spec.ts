@@ -49,7 +49,7 @@ test("a directive that is asking a question puts a count on the directive desk a
   await shot(page, "The office: a count on the places that need the CEO");
 
   await directive.click();
-  // The desk opens on "Needs you", and it lists exactly what the badge counted.
+  // The desk opens on "Needs you", and it lists exactly the threads the badge counted.
   await expect(page.getByRole("tab", { name: /^Needs you/ })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".directive-row")).toHaveCount(Number(badge));
+  await expect(page.locator(".thread-row")).toHaveCount(Number(badge));
 });

@@ -17,7 +17,12 @@ export type ContextStatus =
 export type AppRole = "owner" | "client" | "staff";
 export type ApprovalStatus = "REQUESTED" | "GRANTED" | "REJECTED" | "EXPIRED";
 export type ArtifactStatus = "DRAFT" | "PROPOSED" | "APPROVED" | "REJECTED" | "SUPERSEDED" | "FINAL";
-export type DecisionStatus = "PROPOSED" | "WAITING_FOR_HUMAN" | "ACCEPTED" | "REJECTED" | "DEFERRED" | "SUPERSEDED";
+/** Where a decision in a project's ledger stands (v4 ADR-0034). OPEN and STALE wait for someone; the rest are closed. */
+export type DecisionState = "OPEN" | "PROPOSED" | "DECIDED_BY_OWNER" | "DECIDED_UNDER_DELEGATION" | "HELD_ASSET" | "STALE" | "SUPERSEDED";
+/** How the owner answered the agency's recommendation (v4 ADR-0068): a choice against it releases nothing planned on it. */
+export type DecisionResolution = "ACCEPTED" | "REJECTED" | "DEFERRED";
+/** The kinds of decision only the owner may make, never assumed or made for them (v4 ADR-0068). */
+export type AuthorityKind = "RIGHTS" | "MONEY" | "PUBLIC_CLAIM" | "LEGAL_DUTY" | "COMMITMENT";
 export type TaskStatus = "PENDING" | "READY" | "RUNNING" | "WAITING" | "BLOCKED" | "FAILED" | "COMPLETED" | "CANCELLED";
 
 export type Project = {
@@ -64,7 +69,139 @@ export type Decision = {
   reversibility: number | null
   risk: number | null
   selected_option: string | null
-  status: DecisionStatus
+  state: DecisionState
+  resolution: DecisionResolution | null
+  authority: AuthorityKind | null
+};
+
+/**
+ * One decision a request left open, as the project's ledger holds it (v4 ADR-0068): what is asked, what the agency recommends,
+ * and which work waits for it. Approving the plan settles none of them; each is settled on its own.
+ */
+export type LedgerDecision = {
+  id: string
+  project_id: string
+  question: string
+  options: Array<{ id: string; label: string; tradeoff: string | null }>
+  recommendation: { option_id: string; label: string; why: string | null } | null
+  state: DecisionState
+  resolution: DecisionResolution | null
+  selected_option: { id: string; label: string } | null
+  /** ASK: the owner confirms it. BLOCK: the owner's alone. DISCOVER: the agency finds it out. */
+  disposition: "ASK" | "BLOCK" | "DISCOVER" | "PROCEED_WITH_ASSUMPTION" | null
+  authority: AuthorityKind | null
+  /** The domains whose work waits for it when no step names it. */
+  holds: string[]
+  /**
+   * v4 ADR-0073: set when this is the agency pushing back on what was asked. The work follows `keep_option_id` (the owner's ask)
+   * until they choose otherwise; taking the suggestion changes the plan.
+   */
+  counsel: Counsel | null
+  created_at: string
+  resolved_at: string | null
+};
+
+/** What a counsel's evidence rests on: what the owner said or holds, a source read, what follows from those, or judgment. */
+export type CounselEvidenceClass = "OBSERVED" | "VERIFIED" | "DERIVED" | "HYPOTHESIS";
+export type Counsel = {
+  kind: "BETTER_FIT" | "RISK" | "COST" | "MISSING"
+  asked: string
+  concern: string
+  evidence: Array<{ class: CounselEvidenceClass; says: string }>
+  keep_option_id: string
+};
+
+/**
+ * One understanding of a request (v4 ADR-0076 Decision 5), round by round, the last in force: what we understood, what we found
+ * (each finding with its source; `VERIFIED` only when its quote was in what the search returned), what we recommend, and what
+ * still needs the owner. `looked_up` is the agency's only.
+ */
+export type FindingClass = "VERIFIED" | "HYPOTHESIS";
+export type UnderstandingVersion = {
+  round: number
+  at: string
+  current: boolean
+  understood: { goal: string; desired_outcome: string | null; objectives: string[]; constraints: string[] } | null
+  found: {
+    findings: Array<{ says: string; about: string | null; source: { url: string; title: string; quote: string }; class: FindingClass }>
+    finding_out: Array<{ id: string; question: string }>
+  }
+  recommend: Array<{
+    id: string; question: string; recommended: string | null; why: string | null
+    standing: "OPEN" | "ANSWERED" | "ASSUMED" | "LEFT_TO_DECIDE" | "WITHDRAWN"; chosen: string | null
+    counsel: { asked: string; concern: string; evidence: Array<{ class: CounselEvidenceClass; says: string }> } | null
+  }>
+  looked_up?: { searches: number; pages: number; flagged: number } | undefined
+};
+/** Who wrote a message on a request's conversation (v4 ADR-0077). */
+export type ConversationSpeaker = "PERSON" | "AGENCY" | "PLATFORM";
+
+/** One message on a request's conversation. An agency reply says what the person's words settled, and anything kept apart. */
+export type ConversationMessage = {
+  id: string
+  from: ConversationSpeaker
+  text: string
+  at: string
+  mine: boolean
+  answered: Array<{ question_id: string; question: string; kind: "OPTION" | "TEXT" | "DEFAULT" | "LATER"; chosen: string | null; your_words: string }>
+  no_longer_asked: Array<{ question_id: string; question: string }>
+  separate_asks: Array<{ ask: string; your_words: string; name?: string | undefined; kind: "FEATURE" | "NEW_PROJECT" }>
+  findings: Array<{ says: string; source: { url: string; title: string; quote: string }; class: FindingClass }>
+  /** For the agency only: what the reader proposed and v4 did not apply, and why. */
+  refused?: Array<{ question_id: string; why: string }> | undefined
+  /** A message sent once the request was understood is taken as a change: the new request it opened. */
+  change_intent_id?: string | undefined
+  /** A platform note (v4 ADR-0078): a feature of the project the agency opened as its own thread. */
+  opened_thread?: { thread_id: string; title: string } | undefined
+  /** A platform note (v4 ADR-0078): a different project, offered back, started only when the person starts it. */
+  suggested_project?: { name: string; your_words: string } | undefined
+};
+
+/** The conversation on one request (v4 ADR-0077). `waiting_for_reply` while a message of the person's has not been read. */
+export type ConversationView = { intent_id: string; waiting_for_reply: boolean; messages: ConversationMessage[] };
+
+/** Where a thread stands for the person (v4 ADR-0078). WAITING always names what it waits for. */
+export type ThreadState = "NEEDS_YOU" | "WORKING" | "WAITING" | "DONE";
+export type ThreadWait = { reason: "PROJECT_NOT_OPEN" | "REVISION_OPEN"; thread_id: string | null; proposal_id?: string | undefined; version?: number | undefined };
+export type ThreadSummary = {
+  thread_id: string
+  title: string
+  opened_from_id: string | null
+  updated_at: string
+  current: { intent_id: string; status: IntentStatus }
+  state: ThreadState
+  waiting_for?: ThreadWait | undefined
+  needs_you: { questions: number; materials: number; decision: boolean }
+  last_message: { from: ConversationSpeaker; text: string; at: string } | null
+};
+/** What the person can see, as projects and their threads (v4 ADR-0078): their own organization for a client, every one for the CEO. */
+export type WorkspaceView = {
+  organizations: Array<{
+    id: string; name: string; kind: "AGENCY" | "CLIENT" | "INTERNAL"
+    projects: Array<{ project_id: string; name: string; status: string; objective: string | null; updated_at: string; threads: ThreadSummary[] }>
+    /** New projects still being understood: the first thread, and the feature threads opened from it. */
+    new_projects: Array<{ thread_id: string; title: string; threads: ThreadSummary[] }>
+  }>
+};
+/** One thread (v4 ADR-0078): every request made in it, the conversation across them, and where it stands. */
+export type ThreadView = {
+  thread_id: string
+  organization_id: string
+  project_id: string | null
+  title: string
+  state: ThreadState
+  waiting_for?: ThreadWait | undefined
+  opened_from: { thread_id: string; title: string | null } | null
+  current: { intent_id: string; status: IntentStatus }
+  requests: Array<{ intent_id: string; status: IntentStatus; text: string; at: string }>
+  waiting_for_reply: boolean
+  messages: ConversationMessage[]
+};
+
+export type UnderstandingView = {
+  intent_id: string
+  versions: UnderstandingVersion[]
+  still_needs_you: { questions: Array<{ id: string; question: string; why: string }>; decisions: Array<{ id: string; question: string; recommended: string | null }> }
 };
 
 export type Approval = {
@@ -214,13 +351,16 @@ export type PlanContent = {
   scope_out: string[]
   deliverables: Array<{ id: string; name: string; domain: string }>
   success_metrics: Array<{ id: string; metric: string; baseline: string | null; target: string; measurement: string; window: string; data_source: string }>
-  tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; depends_on: string[] }>
+  /** `awaits`: the open decisions a step waits for, by id (v4 ADR-0068). */
+  tasks: Array<{ id: string; title: string; domain: string; capability: string; rigor: string; risk: number; reversibility: number; depends_on: string[]; awaits: string[] }>
   milestones: Array<{ name: string; after_tasks: string[] }>
   budget: { low_usd: number; high_usd: number; confidence: number }
   risks: Array<{ risk: string; mitigation: string }>
   assumptions: string[]
   open_context_needs: string[]
   decision_points: Array<{ task_id: string | null; description: string }>
+  /** What is still to be decided, each with the recommendation (v4 ADR-0068). Approving the plan decides none of them. */
+  to_confirm: Array<{ id: string; question: string; recommendation: string | null; authority: AuthorityKind | null; disposition: string }>
   /** Steps the plan lets go ahead of a domain they would otherwise wait for, with the reason. For the CEO, not the client. */
   phasing: Array<{ task_id: string; upstream: string; reason: string }>
   /** Domains in the work with no capability yet: a person does their part. */

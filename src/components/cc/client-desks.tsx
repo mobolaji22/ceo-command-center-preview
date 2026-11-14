@@ -4,14 +4,14 @@ import { useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fmtAgo, fmtDate, label, statusTone } from "@/lib/format";
-import type { ClientData } from "@/lib/model";
+import type { ClientData, Intent } from "@/lib/model";
 import { Empty } from "./views";
 import { DeskFrame, firstFilled } from "./desk-frame";
 import { useDomains } from "@/lib/domains";
 import { FindBar, TextFind } from "./find-bar";
 import { useProjectFind, useRemembered, type FindOption } from "@/lib/find";
 import { Library } from "./library";
-import { ClientIntentList, Composer } from "./intents";
+import { ThreadsScreen } from "./threads";
 import { ProjectRoom, QuestionsList } from "./runs";
 import { BriefArchive, NotificationSettings } from "./briefs";
 import { StandingPermission } from "./standing";
@@ -79,22 +79,19 @@ export function DecisionsDesk({ data, isOwner, busy, msg, onDecide }: Common & {
   );
 }
 
-/** The pinboard: what the client has asked for, and what the work is asking back. */
+/**
+ * The pinboard: the client's projects and their threads (v4 ADR-0078), on the same screen the CEO has, and the questions from the
+ * work. A new project is a button that opens the form; v4 opens a thread for each feature it finds in what they write.
+ */
 export function RequestsDesk({ data, isOwner, organizationId, refresh, openQuestions, focusProject }: Common & { organizationId: string | undefined; refresh: () => void; openQuestions: number; focusProject?: string | undefined }) {
   // Opened for a project (a link from a question about it), the questions are what was asked for.
   const [tab, setTab] = useState<"requests" | "questions">(focusProject ? "questions" : "requests");
-  // What they must act on comes first (P6.21 P5): their requests and the questions in them. Writing a new one is a button that
-  // opens the form, not a form that fills the first screen; with nothing asked yet, the form is open.
-  const [writing, setWriting] = useState(data.intents.length === 0);
+  const theirs = (i: Intent) => isOwner && i.source === "CLIENT_INTENT";
+  const needs = data.intents.filter((i) => theirs(i) && (i.questions.length > 0 || i.materials.length > 0)).length;
   return (
-    <DeskFrame kind="board" eyebrow="ASKS, BOTH WAYS" title="Requests" line={`${data.intents.length} request${data.intents.length === 1 ? "" : "s"} · ${openQuestions} question${openQuestions === 1 ? "" : "s"} for you.`} tab={tab} onTab={setTab} tabs={[{ id: "requests", label: "Your requests", count: data.intents.length }, { id: "questions", label: "Questions from the work", count: openQuestions }]}>
-      {tab === "requests" && <>
-        {isOwner && organizationId && (writing
-          ? <><div className="section-label"><span>NEW REQUEST</span></div><Composer organizations={[]} fixedOrganizationId={organizationId} onSubmitted={() => refresh()} onClose={data.intents.length ? () => setWriting(false) : undefined} /></>
-          : <Button className="new-request" onClick={() => setWriting(true)}><Plus size={16} /> New request</Button>)}
-        <div className="section-label pd-label"><span>YOUR REQUESTS</span><span>{data.intents.length}</span></div>
-        <ClientIntentList intents={data.intents} canAnswer={(i) => isOwner && i.source === "CLIENT_INTENT"} refresh={refresh} empty="No requests yet." />
-      </>}
+    <DeskFrame kind="board" eyebrow="ASKS, BOTH WAYS" title="Requests" line={`${data.intents.length} request${data.intents.length === 1 ? "" : "s"} · ${openQuestions + needs} question${openQuestions + needs === 1 ? "" : "s"} for you.`} tab={tab} onTab={setTab} tabs={[{ id: "requests", label: "Your projects", count: needs }, { id: "questions", label: "Questions from the work", count: openQuestions }]}>
+      {tab === "requests" && <ThreadsScreen audience="client" intents={data.intents} organizations={[]} fixedOrganizationId={isOwner ? organizationId : undefined}
+        canWrite={theirs} needsMe={(i) => theirs(i) && (i.questions.length > 0 || i.materials.length > 0)} refresh={refresh} />}
       {tab === "questions" && <QuestionsList audience="client" onChanged={refresh} />}
     </DeskFrame>
   );

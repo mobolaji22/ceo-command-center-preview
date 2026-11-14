@@ -38,16 +38,20 @@ async function signIn(page: Page, email: string) {
   await page.waitForURL((u) => !u.pathname.startsWith("/auth"));
 }
 
+/** Sends a request and answers what it asks; returns its thread, open on the plan (v4 ADR-0078). */
 async function sendRequest(page: Page, text: string) {
-  await openClientDesk(page, "Board", /Your requests/);
+  await openClientDesk(page, "Board", /Your projects/);
   const composer = await newClientRequest(page);
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill(text);
   await composer.getByRole("button", { name: "Send request" }).click();
-  await expect(composer.getByRole("status")).toContainText("Received.");
+  const thread = await openDirective(page, text.slice(0, 30), "What it asks");
+  await expect(thread.getByRole("status").first()).toContainText("Received.");
   // v4 may ask before it plans; the questions are not what these tests are about.
-  const card = page.locator(".intent-card", { hasText: text.slice(0, 30) }).first();
+  const card = thread.locator(".intent-card", { hasText: text.slice(0, 30) }).first();
   await answerEveryQuestion(card);
   await expect(card.locator('[data-stage="PLAN_READY"]')).toBeVisible();
+  await thread.getByRole("tab", { name: /^The plan/ }).click();
+  return thread;
 }
 
 /** The high end of a price as the client reads it ("$1,840 to $2,208"). */
@@ -60,11 +64,7 @@ test.beforeEach(() => forgetSignInRequests());
 test("a client reads the plan, asks for a change, sees what changed, approves it, and takes the permission back", async ({ page }) => {
   priceTheAgency(CEO);
   await signIn(page, OWNER);
-  await sendRequest(page, ASK);
-
-  const card = page.locator(".intent-card", { hasText: "Redesign our online checkout" }).first();
-  await expect(card.locator('[data-stage="PLAN_READY"]')).toBeVisible();
-  const plan = card.getByLabel("Plan");
+  const plan = (await sendRequest(page, ASK)).getByLabel("Plan");
   await expect(plan.getByText("Version 1")).toBeVisible();
   await expect(plan.locator(".resolved-row .pill").first()).toHaveText("AWAITING A DECISION");
   // The plan says first what approving it does to the goal (v4 ADR-0063): the first approval confirms it.
@@ -124,9 +124,8 @@ test("a client reads the plan, asks for a change, sees what changed, approves it
 
 test("the CEO sees the plan but cannot decide it for the client until the client's owner allows it; then the client sees who decided", async ({ browser, page }) => {
   await signIn(page, OWNER);
-  await sendRequest(page, "Redesign our pricing page for our customers and write blog posts so that more visitors start a trial, by the end of April, with a budget of 4000");
-  const clientCard = page.locator(".intent-card", { hasText: "Redesign our pricing page" }).first();
-  await expect(clientCard.getByLabel("Plan").getByText("Version 1")).toBeVisible();
+  const clientThread = await sendRequest(page, "Redesign our pricing page for our customers and write blog posts so that more visitors start a trial, by the end of April, with a budget of 4000");
+  await expect(clientThread.getByLabel("Plan").getByText("Version 1")).toBeVisible();
 
   const ceoPage = await (await browser.newContext()).newPage();
   const openAsCeo = async () => {
@@ -154,8 +153,8 @@ test("the CEO sees the plan but cannot decide it for the client until the client
 
   // And the client sees it, in their own words.
   await page.reload();
-  await openClientDesk(page, "Board", /Your requests/);
-  const again = page.locator(".intent-card", { hasText: "Redesign our pricing page" }).first().getByLabel("Plan");
+  await openClientDesk(page, "Board", /Your projects/);
+  const again = (await openDirective(page, "Redesign our pricing page", "The plan")).getByLabel("Plan");
   await expect(again.locator(".plan-history")).toContainText("The agency's CEO, on your behalf");
   await expect(again.locator(".resolved-row .pill").first()).toHaveText("APPROVED");
   await ceoPage.context().close();

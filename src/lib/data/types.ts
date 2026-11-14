@@ -1,6 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, PersonGuide, GuideLogEntry, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, StepMaterials, TeamView } from "../model";
+import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, ThreadView, WorkspaceView, PersonGuide, GuideLogEntry, StepMaterials, TeamView } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -124,6 +124,27 @@ export interface DataSource {
     answerDelivery(intentId: string, answer: "DECLINE" | "TAKE_ON", note?: string): Promise<Result>;
     /** What the client reads about one request, ordered and trimmed by v4 (P6.20). */
     clientView(intentId: string): Promise<Result<ClientIntentView>>;
+    /** One understanding of a request, round by round: understood, found, recommended, still needs you (v4 ADR-0076). */
+    understanding(intentId: string): Promise<Result<UnderstandingView>>;
+    /** The conversation on a request: the person's messages and the agency's replies (v4 ADR-0077). */
+    conversation(intentId: string): Promise<Result<ConversationView>>;
+    /**
+     * Write on a request's conversation. v4 reads it with the request and the agency replies; it settles nothing by itself. Once
+     * the request is understood, the message is taken as a change, and `change_intent_id` is the new request.
+     */
+    say(intentId: string, text: string): Promise<Result<{ change_intent_id: string | null }>>;
+  };
+
+  /**
+   * Projects and their threads (v4 ADR-0078): the same screen for the client and the CEO. A project holds threads, each one line of
+   * conversation; v4 opens a thread for each feature it finds and offers anything outside the project back as a new project.
+   */
+  threads: {
+    /** What the person can see: their own organization for a client, every one for the CEO, as projects and new projects. */
+    workspace(): Promise<Result<WorkspaceView>>;
+    read(threadId: string): Promise<Result<ThreadView>>;
+    /** Write on a thread. It goes to the thread's current request; once that is understood, it starts a change in the same thread. */
+    say(threadId: string, text: string): Promise<Result<{ change_intent_id: string | null }>>;
   };
 
   /**
@@ -283,6 +304,13 @@ export interface DataSource {
     /** A request for a change is answered with the next version straight away. */
     decide(proposalId: string, decision: { action: "APPROVE" | "REQUEST_REVISION" | "REJECT"; note?: string }): Promise<Result<{ nextVersion: number | null }>>;
     decisions(projectId: string): Promise<Result<DecisionEntry[]>>;
+    /** What the project is still waiting on its owner to decide, and what was decided, open first (v4 ADR-0068). */
+    ledger(projectId: string): Promise<Result<LedgerDecision[]>>;
+    /**
+     * Settles one open decision: an option (the recommended one confirms it and releases the work that waited; another releases
+     * nothing until the plan is revised), or "later", which keeps it open. Only the decision's owner may; v4 refuses anyone else.
+     */
+    resolveDecision(decisionId: string, answer: { optionId: string } | { defer: true }): Promise<Result<LedgerDecision>>;
     delegations(projectId: string): Promise<Result<DelegationView[]>>;
     /** The project's goal, its earlier versions, and what approving each waiting plan would do to it (v4 ADR-0063). */
     objective(projectId: string): Promise<Result<ProjectObjectiveView>>;
