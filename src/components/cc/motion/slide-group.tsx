@@ -22,17 +22,26 @@ export function SlideGroup({ active, variant = "line", className, children, ...r
       if (!chosen) { row.style.setProperty("--slide-on", "0"); return; }
       const a = row.getBoundingClientRect();
       const b = chosen.getBoundingClientRect();
+      // Measured in the row's own scrolled content, so the mark stays under its tab when a narrow row scrolls sideways.
+      const width = Math.max(row.scrollWidth, row.clientWidth);
+      const height = Math.max(row.scrollHeight, row.clientHeight);
+      const left = b.left - a.left - row.clientLeft + row.scrollLeft;
+      const top = b.top - a.top - row.clientTop + row.scrollTop;
       row.style.setProperty("--slide-on", "1");
-      row.style.setProperty("--slide-l", `${b.left - a.left}px`);
-      row.style.setProperty("--slide-r", `${a.right - b.right}px`);
-      row.style.setProperty("--slide-t", `${b.top - a.top}px`);
-      row.style.setProperty("--slide-b", `${a.bottom - b.bottom}px`);
+      row.style.setProperty("--slide-w", `${width}px`);
+      row.style.setProperty("--slide-h", `${height}px`);
+      row.style.setProperty("--slide-l", `${left}px`);
+      row.style.setProperty("--slide-r", `${width - left - b.width}px`);
+      row.style.setProperty("--slide-t", `${top}px`);
+      row.style.setProperty("--slide-b", `${height - top - b.height}px`);
     };
     place();
     // The first placement is not a move: the highlight starts where the choice already is, and only later changes travel.
     const ready = requestAnimationFrame(() => row.setAttribute("data-ready", ""));
     const watch = new ResizeObserver(place);
     watch.observe(row);
+    // A choice that changes width (its count rolled over to two digits) moves the mark without the row changing size.
+    for (const child of row.children) watch.observe(child);
     return () => { cancelAnimationFrame(ready); watch.disconnect(); };
   }, [active]);
   return (

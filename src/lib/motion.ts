@@ -6,12 +6,12 @@ import { useSyncExternalStore } from "react";
  * Motion vocabulary for the agency. Durations and easings live in CSS (src/app/motion.css) so the stylesheet
  * and the scripts that wait on it agree; this file holds the few numbers scripts need, and the reduced-motion switch.
  *
- * Three layers (see .lovable/plan/the-living-agency-visual-and-interaction-plan):
- *   feedback   ~130ms  hover / focus / press
- *   threshold  ~300ms  a doorway: corridor <-> room, office <-> desk
- *   reveal     ~380ms  the destination settling in once it is legible
+ * Three layers (see .lovable/plan/the-living-agency-visual-and-interaction-plan), on the signature kit's durations:
+ *   feedback   150ms  hover / focus / press
+ *   threshold  280ms  a doorway: corridor <-> room, office <-> desk
+ *   reveal     280ms  the destination settling in once it is legible
  */
-export const THRESHOLD_MS = 300;
+export const THRESHOLD_MS = 280;
 
 /** Which way a scene was entered. "none" is the first paint, which never animates. */
 export type SceneDir = "none" | "forward" | "back" | "next" | "prev" | "side";
@@ -96,9 +96,13 @@ export function motionIsOff(): boolean {
  * (`view-transition-name`) from its old place to its new one, so a row that moved slides, one that left fades, and a thing
  * that became another thing grows into it. Where the browser has no View Transitions, or motion is off, the change is simply
  * made. `change` must apply the new state synchronously (wrap a React state update in `flushSync`).
+ *
+ * The browser makes the change a frame later, after its first photograph, so the promise says when it has been made. Anything
+ * that must follow the change (the answer from the API replacing "recording" with "recorded") waits for it; otherwise a quick
+ * answer lands first and the change then writes over it.
  */
-export function carry(change: () => void): void {
-  const doc = typeof document === "undefined" ? undefined : (document as Document & { startViewTransition?: (cb: () => void) => unknown });
-  if (!doc?.startViewTransition || motionIsOff()) { change(); return; }
-  doc.startViewTransition(change);
+export function carry(change: () => void): Promise<void> {
+  const doc = typeof document === "undefined" ? undefined : (document as Document & { startViewTransition?: (cb: () => void) => { updateCallbackDone: Promise<void> } });
+  if (!doc?.startViewTransition || motionIsOff()) { change(); return Promise.resolve(); }
+  return doc.startViewTransition(change).updateCallbackDone;
 }

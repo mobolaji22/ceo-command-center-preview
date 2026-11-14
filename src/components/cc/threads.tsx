@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CornerDownRight, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { ClientIntentCard, Composer, INTENT_STATUS_WORDS, IntentCard, intentTone
 import { MessageItem } from "./conversation";
 import { PlanPanel } from "./plans";
 import { Empty } from "./views";
+import { ActionButton, Presence, RollingNumber, SlideGroup } from "./motion";
 
 type Org = { id: string; name: string; kind?: "CLIENT" | "INTERNAL" | undefined };
 type Part = "talk" | "asks" | "plan";
@@ -118,13 +119,13 @@ export function ThreadsScreen({ audience, intents, organizations, fixedOrganizat
         {audience === "agency" && <label className="directive-filter">FOR<select aria-label="Show work for" value={forOrg} onChange={(e) => setForOrg(e.target.value)}>
           <option value="*">Everyone</option><option value="INTERNAL">The agency&apos;s own work</option>
           {clients.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>}
-        <div className="desk-tabs" role="tablist">
+        <SlideGroup active={only} className="desk-tabs" role="tablist">
           <Button role="tab" aria-selected={only === "all"} variant="ghost" className={only === "all" ? "tab active" : "tab"} onClick={() => setOnly("all")}>All threads</Button>
-          <Button role="tab" aria-selected={only === "needs"} variant="ghost" className={only === "needs" ? "tab active" : "tab"} onClick={() => setOnly("needs")}>Needs you{needCount ? <span className="tab-count">{needCount}</span> : null}</Button>
-        </div>
+          <Button role="tab" aria-selected={only === "needs"} variant="ghost" className={only === "needs" ? "tab active" : "tab"} onClick={() => setOnly("needs")}>Needs you{needCount ? <span className="tab-count"><RollingNumber value={needCount} /></span> : null}</Button>
+        </SlideGroup>
         {loading ? <p className="convo-sub">Loading…</p> : shownGroups.length === 0
           ? <Empty title={only === "needs" ? "Nothing needs you here." : "No projects yet."}>{only === "needs" ? "Questions and materials asked of you arrive here." : mayStart ? "Start one with New project." : null}</Empty>
-          : shownGroups.map((g) => <section key={g.key} className="thread-group" aria-label={g.name}>
+          : shownGroups.map((g, gi) => <section key={`${only}:${g.key}`} className="thread-group rise-in" style={{ "--i": gi } as CSSProperties} aria-label={g.name}>
               <h4><span>{g.isNew ? "New project" : g.name}</span><small>{audience === "agency" ? `${forName(g.org)} · ` : ""}{g.isNew ? "being understood" : label(g.status ?? "")}</small></h4>
               {g.threads.map((t) => { const w = stateWord(t.state, needs(t), audience); return <button key={t.thread_id} type="button" className="thread-row" data-state={w.state} data-feature={t.opened_from_id ? "" : undefined} aria-current={openedId === t.thread_id || undefined} onClick={() => open(t.thread_id)}>
                 <span className="tr-title">{t.opened_from_id && <CornerDownRight size={12} aria-hidden="true" />}{t.title}</span>
@@ -161,7 +162,6 @@ function ThreadDetail({ threadId, summary, group, audience, intent, part, setPar
   const ds = useDataSource();
   const [view, setView] = useState<ThreadView | null>(null);
   const [draft, setDraft] = useState("");
-  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -179,14 +179,15 @@ function ThreadDetail({ threadId, summary, group, audience, intent, part, setPar
   const may = intent ? canWrite(intent) : false;
   const send = async () => {
     const text = draft.trim();
-    if (!text) return;
-    setBusy(true); setMsg(null);
+    if (!text) return {};
+    setMsg(null);
     const r = await ds.threads.say(threadId, text);
-    setBusy(false);
-    if (r.error) { setMsg(r.error.message); return; }
+    // The reason is said on the screen in its own words (below); the button only shows that it did not go through.
+    if (r.error) { setMsg(r.error.message); return { error: r.error.message }; }
     setDraft("");
     if (r.data?.change_intent_id) setMsg("This thread's request is already understood, so we've taken your message as a change to the plan.");
     setTick((n) => n + 1); onChanged();
+    return {};
   };
   const startProject = async (s: { name: string; your_words: string }) => {
     if (!intent) return;
@@ -213,10 +214,10 @@ function ThreadDetail({ threadId, summary, group, audience, intent, part, setPar
       {intent && <span className={`pill ${intentTone(intent.status)}`}>{(INTENT_STATUS_WORDS[intent.status] ?? label(intent.status)).toUpperCase()}</span>}</div>
     {notice && <p className="mmsg directive-notice" role="status">{notice}</p>}
     {state && <p className="thread-wait" role="status">{state}</p>}
-    <div className="desk-tabs" role="tablist">
+    <SlideGroup active={part} className="desk-tabs" role="tablist">
       {(["talk", "asks", "plan"] as const).map((t) => <Button key={t} role="tab" aria-selected={part === t} variant="ghost" className={part === t ? "tab active" : "tab"} disabled={t === "plan" && !intent?.project_id} onClick={() => setPart(t)}>
-        {t === "talk" ? "Conversation" : t === "asks" ? "What it asks" : "The plan"}{t === "asks" && asks ? <span className="tab-count">{asks}</span> : null}</Button>)}
-    </div>
+        {t === "talk" ? "Conversation" : t === "asks" ? "What it asks" : "The plan"}{t === "asks" && asks ? <span className="tab-count"><RollingNumber value={asks} /></span> : null}</Button>)}
+    </SlideGroup>
 
     {part === "talk" && <section className="convo thread-convo" aria-label="Conversation in this thread">
       {(asks > 0 || deciding) && <div className="thread-asking" role="group" aria-label={`Waiting on ${whose}`}>
@@ -230,14 +231,14 @@ function ThreadDetail({ threadId, summary, group, audience, intent, part, setPar
         {[...view.requests.map((r, n) => ({ at: r.at, request: { ...r, n } })), ...view.messages.map((m) => ({ at: m.at, message: m }))]
           .sort((a, b) => a.at.localeCompare(b.at))
           .map((x) => "request" in x && x.request
-            ? <li key={`r-${x.request.intent_id}`} data-from="REQUEST"><span className="convo-who">{x.request.n === 0 ? (view.opened_from ? `In your words, from "${view.opened_from.title ?? "another thread"}"` : "The request") : "A change"}<small>{fmtAgo(x.request.at)}</small></span><p>{x.request.text}</p></li>
+            ? <li key={`r-${x.request.intent_id}`} className="rise-in" data-from="REQUEST"><span className="convo-who">{x.request.n === 0 ? (view.opened_from ? `In your words, from "${view.opened_from.title ?? "another thread"}"` : "The request") : "A change"}<small>{fmtAgo(x.request.at)}</small></span><p>{x.request.text}</p></li>
             : "message" in x && x.message ? <MessageItem key={x.message.id} m={x.message} canWrite={may} onOpenThread={onOpenThread} onStartProject={(s) => void startProject(s)} /> : null)}
       </ol>}
-      {waiting && <p className="convo-sub" role="status">The agency will reply here.</p>}
+      {waiting && <Presence label="The agency will reply here" className="convo-sub" />}
       {msg && <p className="mmsg" role="status">{msg}</p>}
       {may && <div className="convo-write">
         <textarea aria-label="Your message" rows={2} placeholder="Ask why, correct us, or tell us more in your own words…" value={draft} onChange={(e) => setDraft(e.target.value)} />
-        <Button disabled={busy || !draft.trim()} onClick={() => void send()}>Send</Button>
+        <ActionButton disabled={!draft.trim()} doneLabel="Sent" workingLabel="Sending" run={send}>Send</ActionButton>
       </div>}
     </section>}
 
@@ -261,7 +262,7 @@ function ProjectPanel({ group, openId, titleOf, word, onOpen }: { group: Group; 
     {group.isNew
       ? <p className="convo-sub">Being understood. It becomes a project once we know what it is for; its threads start then.</p>
       : group.objective && <p className="tp-objective">{group.objective}</p>}
-    <div className="section-label"><span>THREADS</span><span>{group.threads.length}</span></div>
+    <div className="section-label"><span>THREADS</span><span><RollingNumber value={group.threads.length} /></span></div>
     <ul className="tp-threads">{group.threads.map((t) => <li key={t.thread_id}>
       <button type="button" className="link-button" aria-current={t.thread_id === openId || undefined} onClick={() => onOpen(t.thread_id)}>{t.title}</button>
       <span className="thread-state" data-state={word(t).state}>{word(t).word}</span>

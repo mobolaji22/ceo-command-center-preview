@@ -4,21 +4,24 @@
  * The only existing rules it overrides are the old door-card grid look, which the hall replaces (those were !important,
  * so the overrides below are scoped under .hall to win on specificity).
  *
- * Layers: feedback ~130ms, threshold ~300ms, reveal ~380ms. Everything that travels or loops is switched off at the bottom
+ * Layers: feedback 150ms, threshold and reveal 280ms (the kit's fast and base); the small answers inside a screen are in micro.css. Everything that travels or loops is switched off at the bottom
  * for prefers-reduced-motion; location and state are then conveyed by the same markup without movement.
  */
 
 :root {
   --ease-out: cubic-bezier(0.22, 0.8, 0.24, 1);
+  /* For space that opens or closes (a row leaving a list): it starts gently, so what follows it is led and not yanked. */
+  --ease-move: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-in: cubic-bezier(0.5, 0, 0.75, 0);
-  --t-feedback: 130ms;
-  --t-threshold: 300ms;
-  --t-reveal: 380ms;
-  /* The small answers inside a screen (micro.css): three durations and one spring, the same as the agency's signature kit.
-     The spring is a curve, not a library: it overshoots by about 8% and settles. */
+  /* Three durations and one spring for everything that moves, the same as the agency's signature kit. The spring is a curve,
+     not a library: it overshoots by about 8% and settles. */
   --dur-fast: 150ms;
   --dur-base: 280ms;
   --dur-slow: 600ms;
+  /* The layers of travel, in those durations: an answer to a press, a doorway, the destination settling in. */
+  --t-feedback: var(--dur-fast);
+  --t-threshold: var(--dur-base);
+  --t-reveal: var(--dur-base);
   --spring: linear(0, 0.08 4%, 0.262 8%, 0.475 12%, 0.676 16%, 0.84 20%, 0.981 25%, 1.056 30%, 1.082 35%, 1.078 40%, 1.055 46%, 1.029 52%, 1.004 60%, 0.993 70%, 0.995 80%, 0.998 90%, 1);
 }
 
@@ -188,8 +191,8 @@
 
 
 /* ---- object to surface: a desk opens out of the thing you pressed and folds back into it ------------ */
-.scene[data-origin].scene-forward { animation: scene-emerge 300ms var(--ease-out) both; }
-.scene[data-origin].scene-back { animation: scene-recede 300ms var(--ease-out) both; }
+.scene[data-origin].scene-forward { animation: scene-emerge var(--t-threshold) var(--ease-out) both; }
+.scene[data-origin].scene-back { animation: scene-recede var(--t-threshold) var(--ease-out) both; }
 @keyframes scene-emerge { from { opacity: 0.15; transform: scale(0.9); } to { opacity: 1; transform: none; } }
 @keyframes scene-recede { from { opacity: 0.15; transform: scale(1.08); } to { opacity: 1; transform: none; } }
 /* the place name in the header changes with the place: it settles in rather than swapping silently */

@@ -9,21 +9,29 @@
  */
 
 /* ---- rolling number ------------------------------------------------------------------------ */
-.roll { display: inline-block; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.roll { display: inline-block; position: relative; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .roll-row { display: inline-flex; }
-/* inline-flex, so the slot can hide its strip and still sit on the text's baseline */
+/* inline-flex, so the slot can hide its strip and still sit on the text's baseline; the digits are generated, never page text */
 .roll-slot { display: inline-flex; flex-direction: column; height: 1.2em; overflow: hidden; }
-.roll-strip { display: flex; flex-direction: column; transition: transform var(--dur-slow) var(--spring); will-change: transform; }
-.roll-strip > span, .roll-sign { display: block; height: 1.2em; line-height: 1.2em; text-align: center; }
+.roll-slot::before { content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"; flex: none; display: block; white-space: pre; line-height: 1.2em; text-align: center; transform: translateY(calc(var(--d, 0) * -10%)); transition: transform var(--dur-slow) var(--spring); }
+.roll-sign { display: inline-block; height: 1.2em; line-height: 1.2em; }
+.roll-sign::before { content: attr(data-c); white-space: pre; }
 
 /* ---- sliding highlight --------------------------------------------------------------------- */
 .slide-group { position: relative; isolation: isolate; }
-.slide-mark { position: absolute; inset: 0; pointer-events: none; opacity: var(--slide-on, 0); }
+.slide-mark { position: absolute; left: 0; top: 0; width: var(--slide-w, 100%); height: var(--slide-h, 100%); pointer-events: none; opacity: var(--slide-on, 0); }
 .slide-group[data-ready] > .slide-mark { transition: clip-path var(--dur-base) var(--spring), opacity var(--dur-fast) linear; }
-.slide-line > .slide-mark { z-index: 1; background: var(--primary); clip-path: inset(calc(100% - 2px) var(--slide-r, 50%) 0 var(--slide-l, 50%)); }
+/* the underline lies on the chosen tab's own bottom edge (where its border was), on whichever line the tab wrapped to */
+.slide-line > .slide-mark { z-index: 1; background: var(--primary); clip-path: inset(calc(100% - 2px - var(--slide-b, 0px)) var(--slide-r, 50%) var(--slide-b, 0px) var(--slide-l, 50%)); }
 .slide-pill > .slide-mark { z-index: -1; background: oklch(0.76 0.146 76 / 14%); clip-path: inset(var(--slide-t, 0) var(--slide-r, 50%) var(--slide-b, 0) var(--slide-l, 50%) round 3px); }
 /* inside a sliding row the highlight is the row's, so a tab does not draw its own underline as well */
-.command-center .slide-group .tab::after { display: none; }
+.command-center .slide-group .tab.active::after { transform: scaleX(0); }
+/* Desks whose tabs are objects, not an underlined row: a monitor's pill takes the sliding mark; a ledger's ribbons and a shelf's
+   spines keep their own look and have no mark. */
+.surface-screen .desk-tabs.slide-group > .slide-mark { z-index: 0; background: oklch(0.76 0.146 76 / 16%); clip-path: inset(var(--slide-t, 0px) var(--slide-r, 50%) var(--slide-b, 0px) var(--slide-l, 50%) round 999px); }
+.surface-screen .desk-tabs.slide-group .tab { position: relative; z-index: 1; }
+.surface-screen .desk-tabs.slide-group .tab.active { background: none; }
+.ledger-left .desk-tabs.slide-group > .slide-mark, .surface-shelf .desk-tabs.slide-group > .slide-mark { display: none; }
 
 /* ---- a button that reports ----------------------------------------------------------------- */
 .action-btn { position: relative; display: inline-grid; place-items: center; }
@@ -81,6 +89,12 @@
 .strike { background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 0 1px; transition: background-size var(--dur-base) var(--ease-out), opacity var(--dur-base) linear; }
 .strike[data-done] { background-size: 100% 1px; opacity: 0.55; }
 
+/* a line that reports what the ledger was asked: recorded (a drawn tick), or refused */
+.told-done { display: inline-flex; align-items: center; gap: 7px; color: var(--foreground); }
+.told-done .tick { color: oklch(0.78 0.14 157); }
+.told-refused { color: oklch(0.82 0.1 25); }
+.contract-actions .presence { font-size: inherit; }
+
 /* ---- carried changes (lib/motion `carry`): named things travel, the rest of the page simply changes ---- */
 ::view-transition { pointer-events: none; }
 ::view-transition-old(root) { display: none; }
@@ -88,9 +102,32 @@
 ::view-transition-group(*) { animation-duration: var(--dur-base); animation-timing-function: var(--ease-out); }
 ::view-transition-old(*) { animation-duration: var(--dur-fast); }
 
+/* ---- lists that close ranks (motion/ranks.tsx) ----------------------------------------------
+   The row's own space closes or opens (one grid track, 1fr to 0fr), so everything below it, in the list and on the page,
+   travels with it. This is the one place layout itself moves: a snapshot can slide the rows, but it leaves the rest of
+   the page to jump, and a list is small enough for the cost not to show. */
+.ranks { list-style: none; margin: 0; padding: 0; }
+.ranks-item { display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--dur-base) var(--ease-move); }
+.ranks-in { min-height: 0; overflow: hidden; transition: opacity var(--dur-base) var(--ease-out), translate var(--dur-slow) var(--spring); }
+/* leaving: it lets go first (fades and gives a little), and the space closes behind it */
+.ranks-item[data-leaving] { grid-template-rows: 0fr; }
+.ranks-item[data-leaving] > .ranks-in { opacity: 0; translate: 12px 0; transition: opacity var(--dur-fast) linear, translate var(--dur-base) var(--ease-out); }
+/* arriving: the space opens, and the row rises into it and settles */
+@starting-style {
+  .ranks-item[data-fresh] { grid-template-rows: 0fr; }
+  .ranks-item[data-fresh] > .ranks-in { opacity: 0; translate: 0 14px; }
+}
+.ranks-item[data-fresh] > .ranks-in { animation: ranks-arrive var(--dur-slow) var(--ease-out); }
+@keyframes ranks-arrive { from { background-color: oklch(0.76 0.146 76 / 14%); } to { background-color: transparent; } }
+
+/* ---- an open desk costs the room behind it nothing: figures there change without rolling ---- */
+[inert] .roll-slot::before, html[data-desk-open] .topbar .roll-slot::before { transition: none; }
+[inert] .count-bump { animation: none; }
+:not(.ranks-item)[inert] .ranks-item, :not(.ranks-item)[inert] .ranks-in { transition: none; animation: none; }
+
 /* ---- reduced motion, and the Motion switch: same states, no travel ------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  .roll-strip, .slide-group[data-ready] > .slide-mark, .action-face, .meter i, .dial-fill, .strike { transition: none !important; }
-  .action-working i, .action-btn, .tick path, .presence-dots i, .confirm-note, .rise-in, .count-bump { animation: none !important; }
+  .roll-slot::before, .slide-group[data-ready] > .slide-mark, .action-face, .meter i, .dial-fill, .strike, .ranks-item, .ranks-in { transition: none !important; }
+  .action-working i, .action-btn, .tick path, .presence-dots i, .confirm-note, .rise-in, .count-bump, .ranks-in { animation: none !important; }
 }
 :root[data-motion="off"] *, :root[data-motion="off"] *::before, :root[data-motion="off"] *::after { animation: none !important; transition: none !important; }

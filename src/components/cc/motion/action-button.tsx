@@ -17,10 +17,13 @@ const HOLD_MS = 1600;
  * error, so an approval or a signature reads as made only once v4 has made it. Its faces are stacked in one cell, so the button is
  * as wide as its widest word and nothing beside it moves; it keeps focus while it works (it is marked busy rather than disabled), and says each outcome to assistive tech.
  *
+ * While it reports, the caller's own `disabled` does not dim it (sending a message empties the box it was sent from, which would
+ * otherwise grey out the very tick that says it was sent); it still cannot be pressed.
+ *
  * `onDone` runs once the tick has been seen, which is where the caller moves on (refresh the list, close the panel).
  * `onFailed` hands the caller the reason, to show in the screen's own words beside the button.
  */
-export function ActionButton({ run, children, doneLabel, workingLabel = "Working", onDone, onFailed, stay = false, className, disabled, ...rest }: {
+export function ActionButton({ run, children, doneLabel, workingLabel = "Working", onDone, onFailed, stay = false, hold = HOLD_MS, className, disabled, ...rest }: {
   run: () => Promise<ActionResult>;
   doneLabel: string;
   workingLabel?: string;
@@ -29,6 +32,8 @@ export function ActionButton({ run, children, doneLabel, workingLabel = "Working
   onFailed?: ((why: string) => void) | undefined;
   /** Keep showing "done" (the thing can only be done once, such as a signature). */
   stay?: boolean;
+  /** How long the tick is shown before `onDone`. Shorter where the thing itself then leaves (a row of a list). */
+  hold?: number;
   children: ReactNode;
 } & Omit<ButtonProps, "onClick" | "children">) {
   const [phase, setPhase] = useState<Phase>("idle");
@@ -39,6 +44,7 @@ export function ActionButton({ run, children, doneLabel, workingLabel = "Working
 
   const press = async () => {
     if (phase === "working" || (phase === "done" && stay)) return;
+    if (disabled) return;
     window.clearTimeout(timer.current);
     setWhy(null);
     setPhase("working");
@@ -52,14 +58,14 @@ export function ActionButton({ run, children, doneLabel, workingLabel = "Working
     if (!alive.current) return;
     if (error) { setWhy(error); setPhase("failed"); onFailed?.(error); return; }
     setPhase("done");
-    timer.current = window.setTimeout(() => { onDone?.(); if (alive.current && !stay) setPhase("idle"); }, HOLD_MS);
+    timer.current = window.setTimeout(() => { onDone?.(); if (alive.current && !stay) setPhase("idle"); }, hold);
   };
 
   // The button keeps its name whatever it shows, so it can always be found and asked for by that name; what it is doing is
   // said beside it, as a status, and never becomes part of the name.
   return (
     <>
-      <Button {...rest} className={`action-btn${className ? ` ${className}` : ""}`} data-phase={phase} aria-busy={phase === "working" || undefined} aria-disabled={phase === "working" || disabled || undefined} disabled={disabled} title={why ?? rest.title} onClick={() => void press()}>
+      <Button {...rest} className={`action-btn${className ? ` ${className}` : ""}`} data-phase={phase} aria-busy={phase === "working" || undefined} aria-disabled={phase === "working" || disabled || undefined} disabled={disabled && phase !== "working" && phase !== "done"} title={why ?? rest.title} onClick={() => void press()}>
         <span className="action-face action-idle">{children}</span>
         <span className="action-face action-working" aria-hidden="true"><i /><i /><i /></span>
         <span className="action-face action-done" aria-hidden="true">{phase === "done" && <Tick />} {doneLabel}</span>

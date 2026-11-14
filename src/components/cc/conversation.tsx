@@ -96,7 +96,7 @@ type ItemProps = {
 /** One message of a conversation. */
 export function MessageItem({ m, canWrite, onStartSeparately, onOpenThread, onStartProject }: { m: ConversationMessage } & ItemProps) {
   const inThread = Boolean(onOpenThread);
-  return <li data-from={m.from} data-note={m.opened_thread ? "thread" : m.suggested_project ? "project" : undefined}>
+  return <li className="rise-in" data-from={m.from} data-note={m.opened_thread ? "thread" : m.suggested_project ? "project" : undefined}>
       <span className="convo-who">{m.from === "AGENCY" ? "The agency" : m.from === "PLATFORM" ? "Note" : m.mine ? "You" : "The client"}<small>{fmtAgo(m.at)}</small></span>
       <p>{m.text}</p>
       {m.opened_thread && onOpenThread && <Button variant="outline" size="sm" className="convo-go" onClick={() => onOpenThread(m.opened_thread!.thread_id)}>Open &ldquo;{m.opened_thread.title}&rdquo;</Button>}

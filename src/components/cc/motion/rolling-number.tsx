@@ -1,12 +1,14 @@
-"use client";
+import type { CSSProperties } from "react";
 
-const DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const DIGITS = "0123456789";
 
 /**
  * A figure whose digits roll to their new value instead of swapping (a count, a total, a time). Each digit is a strip of 0 to 9
  * moved by a transform, so a change costs no layout and an interrupted roll simply turns towards the newest value. Slots are
- * keyed from the right, so the units stay the units when the figure gains or loses a digit. Anything that is not a digit (a
- * currency sign, a comma, a colon) is shown as written. Assistive tech reads the whole value once, not ten digits per slot.
+ * keyed from the right, so the units stay the units when the figure gains or loses a digit.
+ *
+ * The strips are drawn by the stylesheet (generated content), not written into the page: the only text here is the value
+ * itself, once. So the figure reads, copies, is found and is tested as the plain value, and assistive tech hears it once.
  */
 export function RollingNumber({ value, className }: { value: number | string; className?: string | undefined }) {
   const text = String(value);
@@ -18,14 +20,9 @@ export function RollingNumber({ value, className }: { value: number | string; cl
         {chars.map((c, i) => {
           const key = chars.length - i;
           const d = DIGITS.indexOf(c);
-          if (d < 0) return <span key={`s${key}`} className="roll-sign">{c}</span>;
-          return (
-            <span key={`d${key}`} className="roll-slot">
-              <span className="roll-strip" style={{ transform: `translateY(${d * -10}%)` }}>
-                {DIGITS.map((n) => <span key={n}>{n}</span>)}
-              </span>
-            </span>
-          );
+          return d < 0
+            ? <span key={`s${key}`} className="roll-sign" data-c={c} />
+            : <span key={`d${key}`} className="roll-slot" style={{ "--d": d } as CSSProperties} />;
         })}
       </span>
     </span>

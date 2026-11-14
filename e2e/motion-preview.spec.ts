@@ -37,10 +37,16 @@ test.describe("motion preview", () => {
     await expect(page.getByRole("alert").filter({ hasText: "Nothing was signed" })).toBeVisible();
 
     // A dealt-with item leaves once its tick has been seen, and the count follows.
-    const rows = page.locator(".mo-queue li");
+    // The row that is closing up is out of reach and unannounced, so the list reads as three while it does.
+    const rows = page.locator(".mo-queue").getByRole("listitem");
     await expect(rows).toHaveCount(4);
     await rows.first().getByRole("button").click();
     await expect(rows).toHaveCount(3, { timeout: 6000 });
+    await expect(page.locator(".mo-queue .ranks-item")).toHaveCount(3);
+    // A new one opens its own space at the foot.
+    await page.getByRole("button", { name: /A NEW ONE ARRIVES/ }).click();
+    await expect(rows).toHaveCount(4);
+    await expect(rows.last()).toContainText("Review the proposal draft");
 
     await page.getByRole("button", { name: /Copy the link/ }).click();
     await expect(page.locator(".confirm-note")).toHaveText(/Link copied/);

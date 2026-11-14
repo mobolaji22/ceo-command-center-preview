@@ -4,7 +4,7 @@ import { useState } from "react";
 import { flushSync } from "react-dom";
 import { ArrowLeft, Check, Link2, Minus, Plus, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ActionButton, Meter, Presence, Ring, RollingNumber, SlideGroup, Tick, confirm } from "@/components/cc/motion";
+import { ActionButton, Meter, Presence, Ranks, Ring, RollingNumber, SlideGroup, Tick, confirm } from "@/components/cc/motion";
 import { carry, setMotionPref, useMotionPref } from "@/lib/motion";
 import "./preview.css";
 
@@ -111,10 +111,9 @@ export default function MotionPreview() {
 
       <Card n="06" title="Lists that close ranks" job="When an item is dealt with it leaves, and the rest slide up to take its place. A new one arrives at the foot.">
         <div className="section-label"><span>WAITING ON YOU</span><span><RollingNumber value={String(queue.length).padStart(2, "0")} /></span></div>
-        <ul className="mo-queue">{queue.map((a) => <li key={a.id} style={{ viewTransitionName: `q-${a.id}` }}><div><b>{a.title}</b><small>{a.project}</small></div>
-          <ActionButton size="sm" className="approve-btn" doneLabel="Approved" workingLabel="Approving" stay run={() => wait(800)} onDone={() => carry(() => flushSync(() => setQueue((q) => q.filter((x) => x.id !== a.id))))}>Approve</ActionButton></li>)}
-          {queue.length === 0 && <li className="mo-empty rise-in">Nothing waits on you.</li>}</ul>
-        <Button variant="ghost" className="inline-arrow" onClick={() => carry(() => flushSync(() => { setMade((n) => n + 1); setQueue((q) => [...q, { id: `n${made}`, title: "Review the proposal draft", project: "A new prospect" }]); }))}><Plus size={14} /> A NEW ONE ARRIVES</Button>
+        <Ranks className="mo-queue" items={queue} keyOf={(a) => a.id} empty="Nothing waits on you.">{(a) => <div className="mo-queue-row"><div><b>{a.title}</b><small>{a.project}</small></div>
+          <ActionButton size="sm" className="approve-btn" doneLabel="Approved" workingLabel="Approving" stay hold={650} run={() => wait(800)} onDone={() => setQueue((q) => q.filter((x) => x.id !== a.id))}>Approve</ActionButton></div>}</Ranks>
+        <Button variant="ghost" className="inline-arrow" onClick={() => { setMade((n) => n + 1); setQueue((q) => [...q, { id: `n${made}`, title: "Review the proposal draft", project: "A new prospect" }]); }}><Plus size={14} /> A NEW ONE ARRIVES</Button>
       </Card>
 
       <Card n="07" title="Someone is at work" job="While the agency writes its reply, the thread shows it, so a wait reads as work and not as a stall.">
