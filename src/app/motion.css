@@ -14,6 +14,12 @@
   --t-feedback: 130ms;
   --t-threshold: 300ms;
   --t-reveal: 380ms;
+  /* The small answers inside a screen (micro.css): three durations and one spring, the same as the agency's signature kit.
+     The spring is a curve, not a library: it overshoots by about 8% and settles. */
+  --dur-fast: 150ms;
+  --dur-base: 280ms;
+  --dur-slow: 600ms;
+  --spring: linear(0, 0.08 4%, 0.262 8%, 0.475 12%, 0.676 16%, 0.84 20%, 0.981 25%, 1.056 30%, 1.082 35%, 1.078 40%, 1.055 46%, 1.029 52%, 1.004 60%, 0.993 70%, 0.995 80%, 0.998 90%, 1);
 }
 
 /* ---- scenes: how a screen arrives ---------------------------------------------------------- */
