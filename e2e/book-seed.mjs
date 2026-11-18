@@ -9,6 +9,7 @@ const root = process.cwd();
 const { PrismaClient } = createRequire(`${root}/package.json`)("@prisma/client");
 const { packRegistry } = await import(`${root}/packages/packs/src/index.ts`);
 const { BOOK_CHAPTER_WRITERS } = await import(`${root}/packages/contracts/src/index.ts`);
+const { raiseStrategyDecision } = await import(`${root}/packages/runs/src/strategy-decision.ts`);
 // Which domain writes each chapter is v4's to say; this only asks.
 const writerOf = (capability) => Object.entries(BOOK_CHAPTER_WRITERS).find(([, c]) => c === capability)[0];
 
@@ -71,10 +72,27 @@ const kit = {
   open_items: [],
 };
 const research = JSON.parse(readFileSync(`${root}/tests/fixtures/golden-seeds/research-orbit-competitors.json`, "utf8"));
+// What we recommend (ADR-0084): Strategy's options for the roastery, one recommended; v4 puts it to the owner in the ledger.
+const strategy = {
+  decision: "What should the shop lead with, so that more first-time buyers subscribe?",
+  objective: "More subscriptions from people who first buy a single bag.",
+  diagnosis: {
+    summary: "The roastery roasts weekly and dates every bag; first-time buyers cannot see that before they order. The market research is still a draft, so how often rivals show roast dates is not yet known.",
+    evidence: [{ statement: "The roastery roasts weekly in small batches.", owner_words: "roasted weekly in small batches", epistemic: { status: "FACT", epistemicClass: "ASKED" } }],
+  },
+  options: [
+    { id: "o1", label: "Lead with this week's roast date", kind: "change", what_it_is: "Every product page opens on the date the coffee in stock was roasted.", rests_on: [], gains: ["Freshness a buyer can read."], costs: ["The date is updated after every roast."], risks: ["A missed update shows an old date."], reversibility: "easy", smallest_test: { what: "Show the roast date on the three best sellers for a month.", measure: "Single bags that become subscriptions.", go_on_if: "More of them subscribe than last month." } },
+    { id: "o2", label: "Lead with a first-bag discount", kind: "change", what_it_is: "The shop opens on a discount for a first subscription.", rests_on: [], gains: ["A familiar reason to try."], costs: ["Margin on every first bag."], risks: ["Buyers who leave when the discount ends."], reversibility: "costly", smallest_test: { what: "Offer it to one in two first-time buyers for a month.", measure: "Subscriptions still active after two months.", go_on_if: "Retention matches full-price subscribers." } },
+    { id: "o3", label: "Keep the shop as it is for now", kind: "keep_as_is", what_it_is: "Change nothing about what the shop leads with.", rests_on: [], gains: ["No new work."], costs: ["First-time buyers still cannot see freshness."], risks: ["A rival shows roast dates first."], reversibility: "easy", smallest_test: { what: "Ask ten subscribers why they subscribed.", measure: "How many mention freshness.", go_on_if: "Fewer than three do." } },
+  ],
+  recommendation: { option_id: "o1", why: "The roast date is what makes this roastery different, it costs only an update after each roast, and it is easy to undo. A discount costs margin and teaches buyers to wait for one.", would_change_it: ["No change in subscriptions after a month of dated pages."], confidence: { level: "medium", basis: "The difference is the owner's own; how buyers respond is untested." } },
+  not_doing: [{ what: "Discounting every bag.", why: "It hides the difference the roastery has." }],
+  open_items: [],
+};
 
 try {
   const registry = packRegistry();
-  for (const [capability, output] of [["brand-direction", direction], ["brand-kit", kit], ["research", research]]) {
+  for (const [capability, output] of [["brand-direction", direction], ["brand-kit", kit], ["research", research], ["strategy", strategy]]) {
     const check = registry.outputSchemaOf(capability).validator.safeParse(output);
     if (!check.success) throw new Error(`${capability}: ${JSON.stringify(check.error.issues.slice(0, 3))}`);
   }
@@ -91,6 +109,9 @@ try {
   } });
   const run = await db.run.create({ data: { organizationId: project.organizationId, projectId: project.id, proposalId: plan.id, planVersion: version, status: "COMPLETED", endedAt: new Date() } });
   const done = (capability, outputs) => ({ projectId: project.id, runId: run.id, planTaskId: capability, title: capability, domain: writerOf(capability), capability, status: "COMPLETED", outputs, completedAt: new Date() });
-  await db.task.createMany({ data: [done("brand-direction", direction), done("brand-kit", kit), done("research", research)] });
+  await db.task.createMany({ data: [done("brand-direction", direction), done("brand-kit", kit), done("research", research), done("strategy", strategy)] });
+  // As the engine does when a strategy step completes: its recommendation goes to the owner as one ledger decision.
+  const step = await db.task.findFirstOrThrow({ where: { runId: run.id, capability: "strategy" } });
+  await db.$transaction((tx) => raiseStrategyDecision(tx, run, step, strategy, "e2e"));
   console.log(JSON.stringify({ projectId: project.id, projectName: project.name }));
 } finally { await db.$disconnect(); }

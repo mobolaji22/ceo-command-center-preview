@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import { fmtDate } from "@/lib/format";
 import {
-  COMPETITOR_WORDS, FOUNDATION_WORDS, IMPLICATION_HEADINGS, STATUS_WORDS, STORY_PARTS, areaWords, channelWords, findingsFor, lensWords,
-  type BrandBookView, type ClientBookView, type KeptBrand, type MarketReportView,
+  COMPETITOR_WORDS, FOUNDATION_WORDS, IMPLICATION_HEADINGS, OPTION_KIND_WORDS, REVERSIBILITY_WORDS, STATUS_WORDS, STORY_PARTS, areaWords, channelWords, findingsFor, knownWords, lensWords,
+  type BrandBookView, type ClientBookView, type EpistemicClass, type EpistemicStatus, type KeptBrand, type MarketReportView, type StrategyChapterView,
 } from "@/lib/deliverables/v4";
+import { isSampleBook } from "@/lib/deliverables/samples";
 import type { OwnerData } from "@/lib/model";
 import { useDomains } from "@/lib/domains";
 import { projectsIn } from "./corridor";
@@ -24,8 +25,9 @@ import { useStepUp } from "./step-up";
  * may propose keeping the brand for the client's next projects; the client's owner decides that here. "Save as PDF" lays every released
  * chapter out for print from this same view, so the file a reader keeps never says something the screen does not.
  */
-type Chapter = "brand" | "kit" | "market" | "business";
-const CHAPTERS: Record<Chapter, string> = { brand: "The brand", kit: "Selling it", market: "The market", business: "What it means for you" };
+// The recommendation comes first (v4 ADR-0084): the answer the owner acts on, then the brand, then the evidence behind both.
+type Chapter = "recommend" | "brand" | "kit" | "market" | "business";
+const CHAPTERS: Record<Chapter, string> = { recommend: "What we recommend", brand: "The brand", kit: "Selling it", market: "The market", business: "What it means for you" };
 
 export type BookReader = "AGENCY" | "CLIENT_OWNER" | "CLIENT_MEMBER";
 
@@ -74,18 +76,22 @@ export function Book({ projectId, reader, title }: { projectId: string; reader: 
   if (q.isError) return <p className="case-none">{(q.error as Error).message}</p>;
   const book: ClientBookView | null | undefined = q.data;
   if (!book) return <Empty title="No chapter of this book is ready yet.">Each chapter appears here once it has passed its checks.</Empty>;
-  const chapters = (Object.keys(CHAPTERS) as Chapter[]).filter((c) => (c === "brand" || c === "kit" ? book.brand : book.market));
+  const chapters = (Object.keys(CHAPTERS) as Chapter[]).filter((c) => (c === "recommend" ? book.strategy : c === "brand" || c === "kit" ? book.brand : book.market));
   const open = chapter && chapters.includes(chapter) ? chapter : chapters[0];
   const no = (c: Chapter) => String(chapters.indexOf(c) + 1).padStart(2, "0");
   const body = (c: Chapter | undefined) => <>
+    {c === "recommend" && book.strategy && <StrategyChapter chapter={book.strategy} projectId={projectId} reader={reader} />}
     {c === "brand" && book.brand && <BrandChapter brand={book.brand} projectId={projectId} reader={reader} />}
     {c === "kit" && book.brand && <KitChapter brand={book.brand} />}
     {c === "market" && book.market && <MarketChapter report={book.market} />}
     {c === "business" && book.market && <BusinessChapter report={book.market} />}
   </>;
   const toCome = book.toCome.length > 0 && <ul className="book-to-come" aria-label="Still to come">{book.toCome.map((t) => <li key={t.part}>{t.why}</li>)}</ul>;
+  // The demo's sample is made up; it says so wherever it is read or printed, so nobody reviews it as v4's work.
+  const sample = isSampleBook(book) && <p className="book-sample" role="note"><b>Sample layout, not a v4 run.</b> Every name, source and check in this book is made up to show how a book is laid out.</p>;
   return (
     <article className="book" aria-label="The book">
+      {sample}
       {toCome}
       {chapters.length > 0 && <div className="book-bar">
         <nav className="book-chapters" role="tablist" aria-label="Chapters">
@@ -97,7 +103,7 @@ export function Book({ projectId, reader, title }: { projectId: string; reader: 
       {printing && createPortal(
         <Printing.Provider value={true}>
           <article className="book book-print" aria-label="The book, for printing">
-            <header className="book-cover"><p className="book-written">The book</p><h1>{title ?? "The book"}</h1>{toCome}</header>
+            <header className="book-cover"><p className="book-written">The book</p><h1>{title ?? "The book"}</h1>{sample}{toCome}</header>
             {chapters.map((c) => <section key={c} className="book-print-chapter"><h2><span className="book-chapter-no">{no(c)}</span>{CHAPTERS[c]}</h2>{body(c)}</section>)}
           </article>
         </Printing.Provider>,
@@ -109,9 +115,86 @@ export function Book({ projectId, reader, title }: { projectId: string; reader: 
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) =>
   <section className="book-section"><h3>{title}</h3>{children}</section>;
-const Known = ({ status }: { status: keyof typeof STATUS_WORDS }) => <span className={`book-known known-${status.toLowerCase()}`}>{STATUS_WORDS[status]}</span>;
+/** How a statement is known: where it came from when v4 says ("You told us", "Checked"), with how well it is known beside it for the curious. */
+const Known = ({ status, epistemicClass }: { status: EpistemicStatus; epistemicClass?: EpistemicClass | undefined }) =>
+  <span className={`book-known known-${status.toLowerCase()}`} title={epistemicClass ? `Counted as: ${STATUS_WORDS[status]}` : undefined}>{knownWords(status, epistemicClass)}</span>;
 const Checks = ({ lines }: { lines: string[] }) => lines.length ? <footer className="book-checks"><b>How this was checked</b><ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul></footer> : null;
 const written = (completedAt: string) => <p className="book-written">Written {fmtDate(completedAt)}</p>;
+
+type Support = StrategyChapterView["diagnosis"]["evidence"][number];
+/** One claim and where it came from: the owner's words quoted, or the findings it rests on. */
+const Claim = ({ s }: { s: Support }) => <li>{s.statement} <Known status={s.status} epistemicClass={s.epistemicClass} />
+  {s.ownerWords ? <small>In your words: “{s.ownerWords}”</small> : s.findingIds.length > 0 ? <small>From the market research: {s.findingIds.join(", ")}</small> : null}
+</li>;
+const CONFIDENCE_WORDS = { low: "Low", medium: "Medium", high: "High" } as const;
+
+/**
+ * What we recommend (v4 ADR-0084): the options side by side, the one the agency would choose and why, and the owner's decision.
+ * v4 writes every word and decides who may answer; the owner answers here through the ledger, and the plan follows the answer.
+ */
+function StrategyChapter({ chapter, projectId, reader }: { chapter: StrategyChapterView; projectId: string; reader: BookReader }) {
+  const ds = useDataSource();
+  const qc = useQueryClient();
+  const printing = useContext(Printing);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const recommended = chapter.options.find((o) => o.id === chapter.recommendation.optionId);
+  const decision = chapter.ownerDecision;
+  const open = decision && (decision.state === "OPEN" || decision.state === "STALE");
+  const chosen = decision?.chosenOptionId ? chapter.options.find((o) => o.id === decision.chosenOptionId) : undefined;
+  const answer = async (optionId: string) => {
+    if (!decision) return;
+    setBusy(true); setMsg(null);
+    const r = await ds.plans.resolveDecision(decision.id, { optionId });
+    setBusy(false);
+    if (r.error) { setMsg(r.error.message); return; }
+    setMsg(optionId === chapter.recommendation.optionId ? "Confirmed. The work goes on with it." : "Recorded as your choice. We will revise the plan to it.");
+    void qc.invalidateQueries({ queryKey: ["book", projectId] });
+  };
+  return <div className="book-chapter">
+    {written(chapter.source.completedAt)}
+    <header className="book-lead">
+      <p className="book-written">We recommend</p>
+      <p className="book-statement">{recommended?.label ?? chapter.recommendation.optionId}</p>
+      <p>{chapter.recommendation.why}</p>
+      <small>Confidence: {CONFIDENCE_WORDS[chapter.recommendation.confidence.level]}. {chapter.recommendation.confidence.basis}</small>
+    </header>
+    <Section title="The decision"><p>{chapter.question}</p><small>It serves: {chapter.objective}</small></Section>
+    <Section title="What we found">
+      <p>{chapter.diagnosis.summary}</p>
+      {chapter.diagnosis.evidence.length > 0 && <ul className="book-list">{chapter.diagnosis.evidence.map((e) => <Claim key={e.statement} s={e} />)}</ul>}
+    </Section>
+    <Section title="The options, side by side">
+      <div className="book-options">{chapter.options.map((o) => <article key={o.id} className={o.id === chapter.recommendation.optionId ? "book-option recommended" : "book-option"} aria-label={o.label}>
+        <h4>{o.label}{o.id === chapter.recommendation.optionId && <span className="book-known known-fact">Recommended</span>}{OPTION_KIND_WORDS[o.kind] && <span className="book-known">{OPTION_KIND_WORDS[o.kind]}</span>}</h4>
+        <p>{o.whatItIs}</p>
+        {o.restsOn.length > 0 && <ul className="book-list">{o.restsOn.map((r) => <Claim key={r.statement} s={r} />)}</ul>}
+        <dl className="book-pairs">
+          {o.gains.length > 0 && <div><dt>Gains</dt><dd>{o.gains.join(" ")}</dd></div>}
+          {o.costs.length > 0 && <div><dt>Costs</dt><dd>{o.costs.join(" ")}</dd></div>}
+          {o.risks.length > 0 && <div><dt>Risks</dt><dd>{o.risks.join(" ")}</dd></div>}
+          <div><dt>Undoing it</dt><dd>{REVERSIBILITY_WORDS[o.reversibility]}</dd></div>
+        </dl>
+        <p className="book-test"><b>The smallest test.</b> {o.smallestTest.what} <small>Measure: {o.smallestTest.measure} Go on if: {o.smallestTest.goOnIf}</small></p>
+      </article>)}</div>
+    </Section>
+    {chapter.recommendation.wouldChangeIt.length > 0 && <Section title="What would change our recommendation"><ul className="book-list">{chapter.recommendation.wouldChangeIt.map((w) => <li key={w}>{w}</li>)}</ul></Section>}
+    {chapter.notDoing.length > 0 && <Section title="What we would not do now"><ul className="book-list">{chapter.notDoing.map((n) => <li key={n.what}>{n.what}<small>{n.why}</small></li>)}</ul></Section>}
+    {chapter.openQuestions.length > 0 && <Section title="Questions only you can answer"><ul className="book-list">{chapter.openQuestions.map((q) => <li key={q}>{q}</li>)}</ul></Section>}
+    <aside className="book-keep book-decide" aria-label="Your decision">
+      <h3>Your decision</h3>
+      {!decision ? <p>This recommendation has not been put to you as a decision yet.</p>
+        : open ? <>
+          <p role="status">{reader === "CLIENT_OWNER" ? "This is yours to decide. The work goes on with our recommendation until you choose." : "Waiting for the client's owner to decide. The work goes on with the recommendation meanwhile."}</p>
+          {reader === "CLIENT_OWNER" && !printing && <div className="book-keep-actions">
+            {chapter.options.map((o) => <Button key={o.id} variant={o.id === chapter.recommendation.optionId ? "default" : "outline"} className={o.id === chapter.recommendation.optionId ? "approve-btn" : undefined} disabled={busy} onClick={() => void answer(o.id)}>{o.id === chapter.recommendation.optionId ? `Go with: ${o.label}` : o.label}</Button>)}
+          </div>}
+        </>
+        : <p role="status">{chosen ? `${reader === "CLIENT_OWNER" ? "You chose" : "The owner chose"}: ${chosen.label}${decision.decidedAt ? ` (${fmtDate(decision.decidedAt)})` : ""}.` : "This decision was replaced by a newer recommendation."}</p>}
+      {msg && <p className="mmsg" role="status">{msg}</p>}
+    </aside>
+  </div>;
+}
 
 function BrandChapter({ brand, projectId, reader }: { brand: BrandBookView; projectId: string; reader: BookReader }) {
   return <div className="book-chapter">
@@ -119,7 +202,7 @@ function BrandChapter({ brand, projectId, reader }: { brand: BrandBookView; proj
     <header className="book-lead">
       <p className="book-statement">{brand.position.statement}</p>
       <p>{brand.position.difference}</p>
-      <p className="book-proof"><b>Why it is true.</b> {brand.position.reasonToBelieve} <Known status={brand.position.status} /></p>
+      <p className="book-proof"><b>Why it is true.</b> {brand.position.reasonToBelieve} <Known status={brand.position.status} epistemicClass={brand.position.epistemicClass} /></p>
       {brand.position.signatureDevice && <p className="book-proof"><b>What people will recognise.</b> {brand.position.signatureDevice}</p>}
     </header>
     <Section title="Who it is for"><p>{brand.audienceStatement}</p></Section>
@@ -174,7 +257,7 @@ function Evidence({ report, ids }: { report: MarketReportView; ids: readonly str
   const printing = useContext(Printing);
   if (!found.length) return null;
   return <details className="book-evidence" open={printing || undefined}><summary>The evidence ({found.length})</summary>
-    <ul>{found.map((f) => <li key={f.id}>{f.claim} <Known status={f.status} /><small>Confidence {f.confidence.level}: {f.confidence.basis} · as of {f.asOf}{f.sources[0] ? ` · ${f.sources.map((s) => s.locator).join("; ")}` : ""}</small></li>)}</ul>
+    <ul>{found.map((f) => <li key={f.id}>{f.claim} <Known status={f.status} epistemicClass={f.epistemicClass} /><small>Confidence {f.confidence.level}: {f.confidence.basis} · as of {f.asOf}{f.sources[0] ? ` · ${f.sources.map((s) => s.locator).join("; ")}` : ""}</small></li>)}</ul>
   </details>;
 }
 
@@ -211,7 +294,7 @@ function BusinessChapter({ report }: { report: MarketReportView }) {
       const these = reading.implications.filter((i) => i.kind === kind);
       return these.length ? <Section key={kind} title={IMPLICATION_HEADINGS[kind]}>
         {these.map((i) => <div key={i.statement} className="book-implication">
-          <p>{i.statement} <Known status={i.status} /></p>
+          <p>{i.statement} <Known status={i.status} epistemicClass={i.epistemicClass} /></p>
           <small>{lensWords(i.lens)} · What would change it: {i.wouldChangeIt}</small>
           <Evidence report={report} ids={i.findingIds} />
         </div>)}

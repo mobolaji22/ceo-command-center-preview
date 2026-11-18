@@ -1,10 +1,15 @@
-import type { BrandBookView, ClientBookView, MarketReportView } from "./v4";
+import type { BrandBookView, ClientBookView, MarketReportView, StrategyChapterView } from "./v4";
 
 /**
- * The demo's book for Northwind Bakery's storefront project: the Brand book and the Market report for Northwind Bakery's storefront project, shaped exactly as v4 serves them. They exist
- * so the documents can be designed with no backend; v4 writes the real ones from a run's checked outputs.
+ * The demo's book for Northwind Bakery's storefront project: the Brand book and the Market report, shaped exactly as v4 serves them. They
+ * exist so the documents can be designed with no backend; v4 writes the real ones from a run's checked outputs. Every name, source and
+ * check in them is made up, so the book labels itself a sample (the 2026-11-18 review scored this placeholder as if it were v4's work).
  */
-const source = (taskId: string, schemaId: string, completedAt: string) => ({ runId: "run-demo-1", taskId, schemaId, completedAt });
+/** The run every sample chapter names. No v4 run has this id, so a book that names it is the sample, never a client's. */
+export const SAMPLE_RUN_ID = "run-demo-1";
+/** Whether a book is this sample: its names, sources and checks are made up, and it must say so wherever it is shown or printed. */
+export const isSampleBook = (book: ClientBookView) => [book.strategy?.source, book.brand?.source, book.market?.source].some((s) => s?.runId === SAMPLE_RUN_ID);
+const source = (taskId: string, schemaId: string, completedAt: string) => ({ runId: SAMPLE_RUN_ID, taskId, schemaId, completedAt });
 
 function sampleBrandBook(audience: BrandBookView["audience"], completedAt: string): BrandBookView {
   return {
@@ -151,6 +156,63 @@ function sampleMarketReport(audience: MarketReportView["audience"], completedAt:
   };
 }
 
+/** The ledger row the sample recommendation puts to the owner (v4 ADR-0084); the demo's ledger holds it under this id. */
+export const SAMPLE_STRATEGY_DECISION_ID = "ld-strategy";
+
+function sampleStrategy(audience: StrategyChapterView["audience"], completedAt: string): StrategyChapterView {
+  const said = (statement: string, ownerWords: string) => ({ statement, findingIds: [], ownerWords, status: "FACT" as const, epistemicClass: "ASKED" as const });
+  const found = (statement: string, findingIds: string[], status: "FACT" | "INFERRED", epistemicClass: "OBSERVED" | "DERIVED") => ({ statement, findingIds, status, epistemicClass });
+  return {
+    kind: "RECOMMENDATION",
+    audience,
+    source: source("t-strategy", "pack:STRATEGY/strategy.output/1", completedAt),
+    question: "What should the new storefront lead with, so that more people buy midweek?",
+    objective: "More weekday sales, without adding a bake the week cannot pay for.",
+    diagnosis: {
+      summary: "Weekdays are the weakest part of Northwind's week, and neither nearby bakery shows when its bread was baked. Three bakes a day already happen, so showing them costs little. What is not known is how many neighbours buy bread midweek at all.",
+      evidence: [
+        said("The 3 o'clock bake runs every weekday.", "we bake at seven, eleven and three"),
+        found("Neither nearby bakery shows a bake time.", ["f-2"], "FACT", "OBSERVED"),
+        found("Midweek is the weakest part of the week.", ["f-4"], "INFERRED", "DERIVED"),
+      ],
+    },
+    options: [
+      {
+        id: "o1", label: "Lead with today's bake times", kind: "change",
+        whatItIs: "The storefront opens on what came out of the oven today and when, with the next bake counting down.",
+        restsOn: [found("No rival shows a bake time.", ["f-2"], "FACT", "OBSERVED")],
+        gains: ["A reason to come midweek that no nearby bakery offers."], costs: ["The times are updated after every bake."], risks: ["A late bake breaks the promise in public."],
+        reversibility: "easy",
+        smallestTest: { what: "Chalk the next bake time on the window for four weeks.", measure: "Weekday loaves sold after 3pm.", goOnIf: "Afternoon sales rise for three weeks running." },
+      },
+      {
+        id: "o2", label: "Lead with the weekend range", kind: "change",
+        whatItIs: "The storefront opens on the Saturday cakes and specials that already sell best.",
+        restsOn: [found("Saturday is the busiest day.", ["f-4"], "INFERRED", "DERIVED")],
+        gains: ["Shows the shop at its best."], costs: ["Does nothing for the weak weekdays."], risks: ["Saturday sells out already, so more interest may only mean more disappointed customers."],
+        reversibility: "easy",
+        smallestTest: { what: "Feature one weekend special online for two weekends.", measure: "Pre-orders for it.", goOnIf: "Pre-orders cover the extra bake." },
+      },
+      {
+        id: "o3", label: "Keep the storefront as it is for now", kind: "keep_as_is",
+        whatItIs: "Refresh the look and leave what it leads with unchanged.",
+        restsOn: [], gains: ["No new daily work."], costs: ["The weekday gap stays as it is."], risks: ["A rival could be the first to show bake times."],
+        reversibility: "easy",
+        smallestTest: { what: "Ask twenty weekday customers what brought them in.", measure: "How many mention freshness or timing.", goOnIf: "Fewer than a quarter do." },
+      },
+    ],
+    recommendation: {
+      optionId: "o1",
+      why: "Bake times answer the gap the evidence points to: nobody nearby offers them, and the bakes already happen. It costs a chalkboard to test and is easy to undo. The weekend range plays to a day that already sells out, and keeping things as they are leaves the weekday gap open.",
+      wouldChangeIt: ["Afternoon sales flat after four weeks of the chalkboard.", "A rival starting to show bake times first."],
+      confidence: { level: "medium", basis: "The gap is seen on the street; how many neighbours buy midweek is not yet known." },
+    },
+    notDoing: [{ what: "Adding a fourth bake.", why: "It costs a bake before the test shows midweek demand is there." }],
+    ownerDecision: { id: SAMPLE_STRATEGY_DECISION_ID, state: "OPEN", chosenOptionId: null, decidedAt: null },
+    openQuestions: ["Can the 3 o'clock bake run on Saturdays too, or only on weekdays?"],
+  };
+}
+
 export function sampleBook(audience: ClientBookView["audience"], completedAt: string): ClientBookView {
-  return { kind: "BOOK", audience, brand: sampleBrandBook(audience, completedAt), market: sampleMarketReport(audience, completedAt), toCome: [] };
+  return { kind: "BOOK", audience, strategy: sampleStrategy(audience, completedAt), brand: sampleBrandBook(audience, completedAt), market: sampleMarketReport(audience, completedAt), toCome: [] };
 }

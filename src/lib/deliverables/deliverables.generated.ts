@@ -5,6 +5,224 @@ export type Deliverable = ClientBookView;
 export interface ClientBookView {
   kind: "BOOK";
   audience: "AGENCY" | "CLIENT";
+  strategy: {
+    kind: "RECOMMENDATION";
+    audience: "AGENCY" | "CLIENT";
+    source: {
+      runId: string;
+      taskId: string;
+      schemaId: string;
+      completedAt: string;
+    };
+    question: string;
+    objective: string;
+    diagnosis: {
+      summary: string;
+      /**
+       * @maxItems 12
+       */
+      evidence: {
+        statement: string;
+        /**
+         * @maxItems 20
+         */
+        findingIds: string[];
+        ownerWords?: string;
+        status: "FACT" | "INFERRED" | "ASSUMPTION" | "UNKNOWN" | "CONFLICT";
+        epistemicClass?:
+          | "OBSERVED"
+          | "VERIFIED"
+          | "ASKED"
+          | "DERIVED"
+          | "ESTIMATED"
+          | "FORECAST"
+          | "SCENARIO"
+          | "ASSUMPTION"
+          | "HYPOTHESIS"
+          | "UNKNOWN"
+          | "CONTRADICTED";
+      }[];
+    };
+    /**
+     * @minItems 2
+     * @maxItems 4
+     */
+    options: [
+      {
+        id: string;
+        label: string;
+        kind: "change" | "keep_as_is" | "not_yet";
+        whatItIs: string;
+        /**
+         * @maxItems 8
+         */
+        restsOn: {
+          statement: string;
+          /**
+           * @maxItems 20
+           */
+          findingIds: string[];
+          ownerWords?: string;
+          status: "FACT" | "INFERRED" | "ASSUMPTION" | "UNKNOWN" | "CONFLICT";
+          epistemicClass?:
+            | "OBSERVED"
+            | "VERIFIED"
+            | "ASKED"
+            | "DERIVED"
+            | "ESTIMATED"
+            | "FORECAST"
+            | "SCENARIO"
+            | "ASSUMPTION"
+            | "HYPOTHESIS"
+            | "UNKNOWN"
+            | "CONTRADICTED";
+        }[];
+        /**
+         * @maxItems 60
+         */
+        gains: string[];
+        /**
+         * @maxItems 60
+         */
+        costs: string[];
+        /**
+         * @maxItems 60
+         */
+        risks: string[];
+        reversibility: "easy" | "costly" | "hard";
+        smallestTest: {
+          what: string;
+          measure: string;
+          goOnIf: string;
+        };
+      },
+      {
+        id: string;
+        label: string;
+        kind: "change" | "keep_as_is" | "not_yet";
+        whatItIs: string;
+        /**
+         * @maxItems 8
+         */
+        restsOn: {
+          statement: string;
+          /**
+           * @maxItems 20
+           */
+          findingIds: string[];
+          ownerWords?: string;
+          status: "FACT" | "INFERRED" | "ASSUMPTION" | "UNKNOWN" | "CONFLICT";
+          epistemicClass?:
+            | "OBSERVED"
+            | "VERIFIED"
+            | "ASKED"
+            | "DERIVED"
+            | "ESTIMATED"
+            | "FORECAST"
+            | "SCENARIO"
+            | "ASSUMPTION"
+            | "HYPOTHESIS"
+            | "UNKNOWN"
+            | "CONTRADICTED";
+        }[];
+        /**
+         * @maxItems 60
+         */
+        gains: string[];
+        /**
+         * @maxItems 60
+         */
+        costs: string[];
+        /**
+         * @maxItems 60
+         */
+        risks: string[];
+        reversibility: "easy" | "costly" | "hard";
+        smallestTest: {
+          what: string;
+          measure: string;
+          goOnIf: string;
+        };
+      },
+      ...{
+        id: string;
+        label: string;
+        kind: "change" | "keep_as_is" | "not_yet";
+        whatItIs: string;
+        /**
+         * @maxItems 8
+         */
+        restsOn: {
+          statement: string;
+          /**
+           * @maxItems 20
+           */
+          findingIds: string[];
+          ownerWords?: string;
+          status: "FACT" | "INFERRED" | "ASSUMPTION" | "UNKNOWN" | "CONFLICT";
+          epistemicClass?:
+            | "OBSERVED"
+            | "VERIFIED"
+            | "ASKED"
+            | "DERIVED"
+            | "ESTIMATED"
+            | "FORECAST"
+            | "SCENARIO"
+            | "ASSUMPTION"
+            | "HYPOTHESIS"
+            | "UNKNOWN"
+            | "CONTRADICTED";
+        }[];
+        /**
+         * @maxItems 60
+         */
+        gains: string[];
+        /**
+         * @maxItems 60
+         */
+        costs: string[];
+        /**
+         * @maxItems 60
+         */
+        risks: string[];
+        reversibility: "easy" | "costly" | "hard";
+        smallestTest: {
+          what: string;
+          measure: string;
+          goOnIf: string;
+        };
+      }[]
+    ];
+    recommendation: {
+      optionId: string;
+      why: string;
+      /**
+       * @maxItems 60
+       */
+      wouldChangeIt: string[];
+      confidence: {
+        level: "low" | "medium" | "high";
+        basis: string;
+      };
+    };
+    /**
+     * @maxItems 6
+     */
+    notDoing: {
+      what: string;
+      why: string;
+    }[];
+    ownerDecision: {
+      id: string;
+      state: "OPEN" | "PROPOSED" | "DECIDED_BY_OWNER" | "DECIDED_UNDER_DELEGATION" | "HELD_ASSET" | "STALE" | "SUPERSEDED";
+      chosenOptionId: string | null;
+      decidedAt: string | null;
+    } | null;
+    /**
+     * @maxItems 60
+     */
+    openQuestions: string[];
+  } | null;
   brand: {
     kind: "BRAND_BOOK";
     audience: "AGENCY" | "CLIENT";
@@ -350,10 +568,10 @@ export interface ClientBookView {
     checks: string[];
   } | null;
   /**
-   * @maxItems 2
+   * @maxItems 3
    */
   toCome: {
-    part: "BRAND" | "MARKET";
+    part: "STRATEGY" | "BRAND" | "MARKET";
     why: string;
   }[];
 }

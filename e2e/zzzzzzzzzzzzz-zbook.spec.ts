@@ -5,8 +5,8 @@ import { evidence } from "./evidence";
 import { openClientDesk } from "./client-room";
 
 /**
- * The client's book (dev-playbook-v4 ADR-0053, ADR-0054). A Brand run has finished on the client's newest project: a position chosen,
- * Content's kit written, and Market's research still drafted. The CEO reads the whole book in the Brand room, the drafted market
+ * The client's book (dev-playbook-v4 ADR-0053, ADR-0054, ADR-0084). A Brand run has finished on the client's newest project: Strategy's
+ * recommendation put to the owner, a position chosen, Content's kit written, and Market's research still drafted. The CEO reads the whole book in the Brand room, the drafted market
  * chapter with its banner, and proposes keeping the brand. The client's owner reads the brand chapters in their Library, is told the
  * market chapters are still to come, and keeps the brand, confirming who they are. What each may read and do is v4's to decide.
  * Runs after the Workshop journey (which adds the newest project), before the phone pass.
@@ -41,6 +41,12 @@ test("the CEO reads the whole book in the Brand room, the drafted market chapter
   const picker = desk.getByLabel("Project");
   if (await picker.count()) await picker.selectOption({ label: story.projectName });
   const book = desk.getByRole("article", { name: "The book" });
+  // ADR-0084: the recommendation comes first, and the agency sees it waiting for the client's owner.
+  await expect(chapter(book, /What we recommend/)).toHaveAttribute("aria-selected", "true");
+  await expect(book.locator(".book-statement").first()).toHaveText("Lead with this week's roast date");
+  await expect(book.getByRole("article", { name: "Keep the shop as it is for now" })).toBeVisible();
+  await expect(book.getByRole("complementary", { name: "Your decision" })).toContainText("Waiting for the client's owner to decide.");
+  await chapter(book, /The brand/).click();
   await expect(book.locator(".book-statement").first()).toHaveText("The roastery that prints the roast date on every bag.");
   await expect(book.getByRole("heading", { name: "The story" })).toBeVisible();
 
@@ -67,6 +73,12 @@ test("the client's owner reads the brand chapters, is told the market is still t
   if (await picker.count()) await picker.selectOption({ label: story.projectName });
   const book = desk.getByRole("article", { name: "The book" });
   await expect(book.getByRole("list", { name: "Still to come" })).toContainText("The market chapters arrive once the research is complete and judged sufficient.");
+  // The owner decides what the agency recommends (ADR-0084): choosing another option is recorded as theirs.
+  const decide = book.getByRole("complementary", { name: "Your decision" });
+  await expect(decide).toContainText("This is yours to decide.");
+  await decide.getByRole("button", { name: "Keep the shop as it is for now" }).click();
+  await expect(decide.getByRole("status").first()).toContainText("You chose: Keep the shop as it is for now");
+  await chapter(book, /The brand/).click();
   await expect(chapter(book, /The market/)).toHaveCount(0);
   await expect(chapter(book, /Selling it/)).toBeVisible();
 

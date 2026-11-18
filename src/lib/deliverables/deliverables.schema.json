@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "dpb:deliverables/2",
+  "$id": "dpb:deliverables/3",
   "title": "Deliverable",
   "anyOf": [
     {
@@ -16,6 +16,465 @@
           "enum": [
             "AGENCY",
             "CLIENT"
+          ]
+        },
+        "strategy": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "RECOMMENDATION"
+                },
+                "audience": {
+                  "type": "string",
+                  "enum": [
+                    "AGENCY",
+                    "CLIENT"
+                  ]
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "runId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "taskId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "schemaId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "runId",
+                    "taskId",
+                    "schemaId",
+                    "completedAt"
+                  ],
+                  "additionalProperties": false
+                },
+                "question": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1200
+                },
+                "objective": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1200
+                },
+                "diagnosis": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "evidence": {
+                      "maxItems": 12,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "statement": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          },
+                          "findingIds": {
+                            "maxItems": 20,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "ownerWords": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "FACT",
+                              "INFERRED",
+                              "ASSUMPTION",
+                              "UNKNOWN",
+                              "CONFLICT"
+                            ]
+                          },
+                          "epistemicClass": {
+                            "type": "string",
+                            "enum": [
+                              "OBSERVED",
+                              "VERIFIED",
+                              "ASKED",
+                              "DERIVED",
+                              "ESTIMATED",
+                              "FORECAST",
+                              "SCENARIO",
+                              "ASSUMPTION",
+                              "HYPOTHESIS",
+                              "UNKNOWN",
+                              "CONTRADICTED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "statement",
+                          "findingIds",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "summary",
+                    "evidence"
+                  ],
+                  "additionalProperties": false
+                },
+                "options": {
+                  "minItems": 2,
+                  "maxItems": 4,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "change",
+                          "keep_as_is",
+                          "not_yet"
+                        ]
+                      },
+                      "whatItIs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "restsOn": {
+                        "maxItems": 8,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "statement": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            },
+                            "findingIds": {
+                              "maxItems": 20,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "ownerWords": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1200
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "FACT",
+                                "INFERRED",
+                                "ASSUMPTION",
+                                "UNKNOWN",
+                                "CONFLICT"
+                              ]
+                            },
+                            "epistemicClass": {
+                              "type": "string",
+                              "enum": [
+                                "OBSERVED",
+                                "VERIFIED",
+                                "ASKED",
+                                "DERIVED",
+                                "ESTIMATED",
+                                "FORECAST",
+                                "SCENARIO",
+                                "ASSUMPTION",
+                                "HYPOTHESIS",
+                                "UNKNOWN",
+                                "CONTRADICTED"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "statement",
+                            "findingIds",
+                            "status"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "gains": {
+                        "maxItems": 60,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        }
+                      },
+                      "costs": {
+                        "maxItems": 60,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        }
+                      },
+                      "risks": {
+                        "maxItems": 60,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        }
+                      },
+                      "reversibility": {
+                        "type": "string",
+                        "enum": [
+                          "easy",
+                          "costly",
+                          "hard"
+                        ]
+                      },
+                      "smallestTest": {
+                        "type": "object",
+                        "properties": {
+                          "what": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          },
+                          "measure": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          },
+                          "goOnIf": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 1200
+                          }
+                        },
+                        "required": [
+                          "what",
+                          "measure",
+                          "goOnIf"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "label",
+                      "kind",
+                      "whatItIs",
+                      "restsOn",
+                      "gains",
+                      "costs",
+                      "risks",
+                      "reversibility",
+                      "smallestTest"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "recommendation": {
+                  "type": "object",
+                  "properties": {
+                    "optionId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "why": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1200
+                    },
+                    "wouldChangeIt": {
+                      "maxItems": 60,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      }
+                    },
+                    "confidence": {
+                      "type": "object",
+                      "properties": {
+                        "level": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        },
+                        "basis": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        }
+                      },
+                      "required": [
+                        "level",
+                        "basis"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "optionId",
+                    "why",
+                    "wouldChangeIt",
+                    "confidence"
+                  ],
+                  "additionalProperties": false
+                },
+                "notDoing": {
+                  "maxItems": 6,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "what": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      },
+                      "why": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1200
+                      }
+                    },
+                    "required": [
+                      "what",
+                      "why"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "ownerDecision": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "OPEN",
+                            "PROPOSED",
+                            "DECIDED_BY_OWNER",
+                            "DECIDED_UNDER_DELEGATION",
+                            "HELD_ASSET",
+                            "STALE",
+                            "SUPERSEDED"
+                          ]
+                        },
+                        "chosenOptionId": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "decidedAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "state",
+                        "chosenOptionId",
+                        "decidedAt"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "openQuestions": {
+                  "maxItems": 60,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1200
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "audience",
+                "source",
+                "question",
+                "objective",
+                "diagnosis",
+                "options",
+                "recommendation",
+                "notDoing",
+                "ownerDecision",
+                "openQuestions"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "brand": {
@@ -1451,7 +1910,7 @@
           ]
         },
         "toCome": {
-          "maxItems": 2,
+          "maxItems": 3,
           "type": "array",
           "items": {
             "type": "object",
@@ -1459,6 +1918,7 @@
               "part": {
                 "type": "string",
                 "enum": [
+                  "STRATEGY",
                   "BRAND",
                   "MARKET"
                 ]
@@ -1480,6 +1940,7 @@
       "required": [
         "kind",
         "audience",
+        "strategy",
         "brand",
         "market",
         "toCome"
