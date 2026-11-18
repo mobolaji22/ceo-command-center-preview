@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, type HTMLAttributes, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type HTMLAttributes, type ReactNode, type RefObject } from "react";
 
 const CHOSEN = '[aria-selected="true"], [aria-pressed="true"], [aria-checked="true"], [aria-current]';
 
@@ -12,8 +12,8 @@ const CHOSEN = '[aria-selected="true"], [aria-pressed="true"], [aria-checked="tr
  *
  * `active` is whatever identifies the choice; the highlight is measured again when it changes and when the row is resized.
  */
-export function SlideGroup({ active, variant = "line", className, children, ...rest }: { active: string | number | null | undefined; variant?: "line" | "pill"; children: ReactNode } & HTMLAttributes<HTMLDivElement>) {
-  const ref = useRef<HTMLDivElement>(null);
+export function SlideGroup({ active, variant = "line", as: Tag = "div", className, children, ...rest }: { active: string | number | null | undefined; variant?: "line" | "pill"; /** The element it is: a list of sections is a `nav`. */ as?: "div" | "nav"; children: ReactNode } & HTMLAttributes<HTMLElement>) {
+  const ref = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     const row = ref.current;
     if (!row) return;
@@ -45,9 +45,9 @@ export function SlideGroup({ active, variant = "line", className, children, ...r
     return () => { cancelAnimationFrame(ready); watch.disconnect(); };
   }, [active]);
   return (
-    <div ref={ref} className={`slide-group slide-${variant}${className ? ` ${className}` : ""}`} {...rest}>
+    <Tag ref={ref as RefObject<HTMLDivElement>} className={`slide-group slide-${variant}${className ? ` ${className}` : ""}`} {...rest}>
       <i aria-hidden="true" className="slide-mark" />
       {children}
-    </div>
+    </Tag>
   );
 }

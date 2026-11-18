@@ -4,8 +4,8 @@ import { useState } from "react";
 import { flushSync } from "react-dom";
 import { ArrowLeft, Check, Link2, Minus, Plus, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ActionButton, Meter, Presence, Ranks, Ring, RollingNumber, SlideGroup, Tick, confirm } from "@/components/cc/motion";
-import { carry, setMotionPref, useMotionPref } from "@/lib/motion";
+import { ActionButton, Meter, MotionChoice, Presence, Ranks, Ring, RollingNumber, SlideGroup, Tick, confirm } from "@/components/cc/motion";
+import { carry } from "@/lib/motion";
 import "./preview.css";
 
 /**
@@ -37,7 +37,6 @@ function Card({ n, title, job, children }: { n: string; title: string; job: stri
 }
 
 export default function MotionPreview() {
-  const pref = useMotionPref();
 
   const [waiting, setWaiting] = useState(3);
   const [spend, setSpend] = useState(1284.5);
@@ -63,10 +62,7 @@ export default function MotionPreview() {
         <h1>The small answers<span className="period">.</span></h1>
         <p>Nine things the Command Center will do when something changes. Press everything. Nothing here touches real records.</p>
       </div>
-      <SlideGroup active={pref} variant="pill" className="mo-seg" role="group" aria-label="Motion">
-        <Button variant="ghost" aria-pressed={pref === "system"} onClick={() => setMotionPref("system")}>Follow my device</Button>
-        <Button variant="ghost" aria-pressed={pref === "off"} onClick={() => setMotionPref("off")}>Motion off</Button>
-      </SlideGroup>
+      <MotionChoice />
     </header>
 
     <div className="mo-grid">

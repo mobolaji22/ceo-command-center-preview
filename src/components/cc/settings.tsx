@@ -10,6 +10,7 @@ import { RIGORS, type FeeScope, type FeesView, type OwnerData, type Rigor, type 
 import { NotificationSettings } from "./briefs";
 import { Orgs, People } from "./manage";
 import { StandingPermission } from "./standing";
+import { MotionChoice, SlideGroup } from "./motion";
 import { useStepUp } from "./step-up";
 
 /**
@@ -17,8 +18,8 @@ import { useStepUp } from "./step-up";
  * what v4 holds and sends what the CEO changes; v4 validates, prices and audits (INV-27). Changing money (the fee, a rate, the
  * spending envelope) asks for a fresh emailed code first, and nothing changes until it is right.
  */
-type Section = "Pricing" | "Model spend" | "How the agency runs" | "Notifications" | "People and access" | "Your sessions";
-const SECTIONS: Section[] = ["Pricing", "Model spend", "How the agency runs", "Notifications", "People and access", "Your sessions"];
+type Section = "Pricing" | "Model spend" | "How the agency runs" | "Notifications" | "People and access" | "Your sessions" | "Motion";
+const SECTIONS: Section[] = ["Pricing", "Model spend", "How the agency runs", "Notifications", "People and access", "Your sessions", "Motion"];
 
 const usd = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
 const RIGOR_WORDS: Record<Rigor, string> = { light: "Light", standard: "Standard", strict: "Strict", critical: "Critical" };
@@ -29,9 +30,9 @@ export function SettingsView({ data, refresh }: { data: OwnerData; refresh: () =
     <div className="settings" data-desk="settings">
       <h2 className="settings-title">Settings</h2>
       <div className="settings-body">
-        <nav className="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Settings">
+        <SlideGroup as="nav" active={section} variant="pill" className="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Settings">
           {SECTIONS.map((s) => <button key={s} type="button" role="tab" aria-selected={section === s} className={section === s ? "active" : ""} onClick={() => setSection(s)}>{s}</button>)}
-        </nav>
+        </SlideGroup>
         <div className="settings-pane" role="tabpanel" aria-label={section}>
           {section === "Pricing" && <Pricing data={data} />}
           {section === "Model spend" && <ModelSpend />}
@@ -39,10 +40,20 @@ export function SettingsView({ data, refresh }: { data: OwnerData; refresh: () =
           {section === "Notifications" && <><h3>Notifications</h3><p className="settings-lead">How and when you are told. The same settings are on your phone.</p><NotificationSettings /></>}
           {section === "People and access" && <Access data={data} refresh={refresh} />}
           {section === "Your sessions" && <Sessions />}
+          {section === "Motion" && <MotionSection />}
         </div>
       </div>
     </div>
   );
+}
+
+/** Movement on screen: each person's own choice, on this device. Nothing about it is sent to the agency. */
+function MotionSection() {
+  return <>
+    <h3>Motion</h3>
+    <p className="settings-lead">Screens answer what you do with small movements: an underline that slides to the tab you chose, figures that roll, a list that closes up when something leaves it. Motion off keeps every change and drops the movement. This choice is kept on this device only.</p>
+    <MotionChoice />
+  </>;
 }
 
 /** A query against one settings read, refetched after a change. */
@@ -259,21 +270,22 @@ function Sessions() {
  * A client's Settings (P6.21 D4): how they are told, the permission they have given the agency (each part can be taken back), and
  * where they are signed in. No pricing and nothing about other organizations. The same forms as on their lamp's desk.
  */
-type ClientSection = "Notifications" | "Permissions you have given" | "Your sessions";
+type ClientSection = "Notifications" | "Permissions you have given" | "Your sessions" | "Motion";
 export function ClientSettingsView({ isOwner, organizationId, projectIds }: { isOwner: boolean; organizationId: string | undefined; projectIds: string[] }) {
-  const sections: ClientSection[] = isOwner && organizationId ? ["Notifications", "Permissions you have given", "Your sessions"] : ["Notifications", "Your sessions"];
+  const sections: ClientSection[] = isOwner && organizationId ? ["Notifications", "Permissions you have given", "Your sessions", "Motion"] : ["Notifications", "Your sessions", "Motion"];
   const [section, setSection] = useState<ClientSection>("Notifications");
   return (
     <div className="settings" data-desk="settings">
       <h2 className="settings-title">Settings</h2>
       <div className="settings-body">
-        <nav className="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Settings">
+        <SlideGroup as="nav" active={section} variant="pill" className="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Settings">
           {sections.map((s) => <button key={s} type="button" role="tab" aria-selected={section === s} className={section === s ? "active" : ""} onClick={() => setSection(s)}>{s}</button>)}
-        </nav>
+        </SlideGroup>
         <div className="settings-pane" role="tabpanel" aria-label={section}>
           {section === "Notifications" && <><h3>Notifications</h3><p className="settings-lead">How and when the agency tells you things.</p><NotificationSettings /></>}
           {section === "Permissions you have given" && organizationId && <><h3>Permissions you have given</h3><p className="settings-lead">What the agency may do for you without asking first. You can take any of it back.</p><StandingPermission organizationId={organizationId} projectIds={projectIds} /></>}
           {section === "Your sessions" && <Sessions />}
+          {section === "Motion" && <MotionSection />}
         </div>
       </div>
     </div>

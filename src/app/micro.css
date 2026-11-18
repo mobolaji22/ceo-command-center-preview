@@ -33,6 +33,17 @@
 .surface-screen .desk-tabs.slide-group .tab.active { background: none; }
 .ledger-left .desk-tabs.slide-group > .slide-mark, .surface-shelf .desk-tabs.slide-group > .slide-mark { display: none; }
 
+/* a tab row's own underline (a border on the chosen tab) gives way to the sliding one */
+.command-center .slide-group .tab.active { border-color: transparent !important; }
+/* Settings' list of sections: one highlight that slides from section to section */
+.settings-nav.slide-group > .slide-mark { z-index: -1; background: oklch(0.76 0.146 76 / 12%); clip-path: inset(var(--slide-t, 0px) var(--slide-r, 50%) var(--slide-b, 0px) var(--slide-l, 50%) round 3px); }
+.settings-nav.slide-group button.active { background: transparent; box-shadow: none; }
+
+/* ---- the Motion switch --------------------------------------------------------------------- */
+.motion-choice { display: inline-flex; padding: 4px; border: 1px solid var(--border); border-radius: 4px; background: oklch(0.14 0.006 270 / 60%); }
+.motion-choice button { height: 36px; padding: 0 16px; color: var(--muted-foreground); font-size: 12px; font-weight: 600; background: none !important; }
+.motion-choice button[aria-pressed="true"] { color: var(--primary); }
+
 /* ---- a button that reports ----------------------------------------------------------------- */
 .action-btn { position: relative; display: inline-grid; place-items: center; }
 .action-face { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; opacity: 0; translate: 0 7px; transition: opacity var(--dur-fast) linear, translate var(--dur-base) var(--spring); }

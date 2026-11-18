@@ -215,10 +215,8 @@
 .case-head small, .case-none { color: var(--muted-foreground); font-size: 11px; }
 .case-budget-line { font-size: 12px; color: var(--muted-foreground); }
 .case-budget-line b { color: var(--foreground); font-weight: 600; }
-.case-meter { height: 5px; margin-top: 8px; background: oklch(1 0 0 / 7%); border-radius: 3px; overflow: hidden; }
-.case-meter i { display: block; height: 100%; background: oklch(0.78 0.14 157); }
-.case-meter i.high { background: var(--primary); }
-.case-meter i.full { background: oklch(0.65 0.2 25); }
+/* the bar itself is the shared Meter (micro.css): it eases to a new level and changes colour near the limit */
+.case-meter { margin-top: 8px; }
 .case-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--border); }
 .case-step { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--border); }
 .case-step b { display: block; font-size: 13px; font-weight: 500; }

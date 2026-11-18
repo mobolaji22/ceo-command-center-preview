@@ -3,7 +3,7 @@
 import { BriefArchive, NotificationSettings, PhoneBriefs } from "./briefs";
 import { GovernancePanel, PlanDecisionLedger } from "./ledger";
 import { CaseFileToggle, PhoneQuestions, Standing } from "./runs";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, ArrowDownRight, ArrowLeft, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, Plus, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,14 +44,14 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
   const exceptions = pending.length + blocked.length;
   return <div className="computer-frame">
     <div className="computer-body"><div className="computer-heading"><div><div className="eyebrow gold">THE ORGANIZATIONAL NERVOUS SYSTEM</div><h2>Operating overview<span className="period">.</span></h2><p>{data.projects.length} projects · {data.tasks.length} tasks · {data.decisions.length} decisions on record.</p></div><div className="system-time"><Radio size={15} /> {ds.kind === "api" ? "LIVE FROM DEVPLAYBOOK V4" : "DEMO FIXTURES"}</div></div>
-      <div className="computer-tabs" role="tablist">{["Cases & Engagements", "Decision Ledger", "Security/Gov"].map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</div>
-      {tab === "Cases & Engagements" && <div className="computer-content"><div className="section-label"><span>ACTIVE DOSSIERS</span><span>{pad(active.length)} IN MOTION</span></div>
+      <SlideGroup active={tab} className="computer-tabs" role="tablist">{["Cases & Engagements", "Decision Ledger", "Security/Gov"].map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</SlideGroup>
+      {tab === "Cases & Engagements" && <div className="computer-content"><div className="section-label"><span>ACTIVE DOSSIERS</span><span><RollingNumber value={pad(active.length)} /> IN MOTION</span></div>
         {data.projects.length > 0 && <FindBar find={find} shown={find.results.length} showDept onOnly={() => { const only = find.results[0]; if (only) { if (pending.some((a) => a.project_id === only.id)) openContracts(only.id); else openManage(only.id); } }} extra={<select className="find-select" aria-label="Show" value={scope} onChange={(e) => setScope(e.target.value as "ACTIVE" | "CLOSED" | "ALL")}><option value="ACTIVE">In motion</option><option value="CLOSED">Finished</option><option value="ALL">Everything</option></select>} />}
         {active.length === 0 && scope === "ACTIVE" ? <Empty title="No active projects yet.">Projects begin when a request or a directive is sent. Open the Directive desk to send one.</Empty> : find.results.length === 0 ? <Empty title="No project matches.">Try fewer words, another scope, or clear the filters.</Empty> :
         <div className="dossier-list">{find.results.map((p, i) => {
           const hasPending = pending.some((a) => a.project_id === p.id);
           // The whole row opens the project (its name is the link, stretched over the row); the case file keeps its own button.
-          return <div key={p.id} className="dossier-row with-case"><span className="row-index">{pad(i + 1)}</span><div><button type="button" className="row-link" aria-label={`Open ${p.name}${hasPending ? ", awaiting your review" : ""}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><b><Marked text={p.name} q={find.q} /></b></button><small>{p.domains.length ? p.domains.map(nameOf).join(" · ") : "No department"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /></div>;
+          return <div key={p.id} className="dossier-row with-case rise-in" style={{ "--i": Math.min(i, 8) } as CSSProperties}><span className="row-index">{pad(i + 1)}</span><div><button type="button" className="row-link" aria-label={`Open ${p.name}${hasPending ? ", awaiting your review" : ""}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><b><Marked text={p.name} q={find.q} /></b></button><small>{p.domains.length ? p.domains.map(nameOf).join(" · ") : "No department"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /></div>;
         })}</div>}
         <div className="computer-lower"><div><div className="section-label">SIGNAL HEALTH</div><h3>{exceptions === 0 ? "Steady. Nothing needs you." : `Steady, with ${exceptions} exception${exceptions > 1 ? "s" : ""}.`}</h3><p>{pending.length} approval{pending.length === 1 ? "" : "s"} awaiting signature · {blocked.length} blocked or failed task{blocked.length === 1 ? "" : "s"}.</p></div><Button variant="ghost" className="inline-arrow" onClick={openBrief}>VIEW EXECUTIVE BRIEF <ArrowRight size={16} /></Button></div></div>}
       {tab === "Decision Ledger" && <div className="computer-content"><div className="section-label"><span>DECISION LEDGER</span><span>TRACEABLE BY DESIGN</span></div>
@@ -90,17 +90,17 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
       <div className="phone-app-head"><span className="phone-app-logo">D/</span><span className="pill amber">● AGENCY PULSE CHANNEL</span></div>
       <div className="phone-greeting">Good {hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}, {auth.user?.displayName ?? "there"}.</div>
       <h3>Executive<br />Attention<span className="period">.</span></h3>
-      <div className="phone-meta">{now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "long" }).toUpperCase()} <span>{pad(pending.length + blocked.length + asking.length)} ITEMS NEED YOU</span></div>
+      <div className="phone-meta">{now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "long" }).toUpperCase()} <span><RollingNumber value={pad(pending.length + blocked.length + asking.length)} /> ITEMS NEED YOU</span></div>
       <div className="phone-card brief-card"><div className="phone-card-top"><Sparkles size={16} /><span>DAILY EXECUTIVE BRIEF</span><ArrowRight size={15} /></div><p>What happened while I was away?</p><Button variant="ghost" className="phone-card-link" onClick={openBrief}>READ YOUR BRIEF <ArrowRight size={14} /></Button></div>
-      <div className="phone-section-title">Decisions Requiring<br />CEO Signature <span>{pad(pending.length)}</span></div>
+      <div className="phone-section-title">Decisions Requiring<br />CEO Signature <span><RollingNumber value={pad(pending.length)} /></span></div>
       {pending.length === 0 ? <div className="phone-info"><Check size={15} /><span>Nothing awaiting signature<small>You're clear</small></span></div> :
-        pending.slice(0, 3).map((a) => <Button key={a.id} variant="ghost" className="phone-decision" onClick={() => openContracts(a.project_id)}><span>{a.title}<small>{projectName(data, a.project_id)}</small><span className="risk-badges"><em>{riskLabel(a.risk)} risk</em><em>{reversibilityLabel(a.reversibility)} reversibility</em></span></span><ArrowRight size={16} /></Button>)}
-      {asking.length > 0 && <><div className="phone-section-title small-title">Questions On Your Directives <span>{pad(asking.length)}</span></div>
+        pending.slice(0, 3).map((a, n) => <Button key={a.id} variant="ghost" className="phone-decision rise-in" style={{ "--i": n } as CSSProperties} onClick={() => openContracts(a.project_id)}><span>{a.title}<small>{projectName(data, a.project_id)}</small><span className="risk-badges"><em>{riskLabel(a.risk)} risk</em><em>{reversibilityLabel(a.reversibility)} reversibility</em></span></span><ArrowRight size={16} /></Button>)}
+      {asking.length > 0 && <><div className="phone-section-title small-title">Questions On Your Directives <span><RollingNumber value={pad(asking.length)} /></span></div>
         {asking.slice(0, 2).map((i) => <div key={i.id} className="phone-info"><CircleAlert size={15} /><span>{i.questions[0]?.question}<small>{i.text.slice(0, 60)}</small></span></div>)}</>}
       <PhoneQuestions open={openContracts} />
       <PhoneBriefs open={openBrief} />
       <PhoneSettings />
-      <div className="phone-section-title small-title">Exceptions Detected <span>{pad(blocked.length)}</span></div>
+      <div className="phone-section-title small-title">Exceptions Detected <span><RollingNumber value={pad(blocked.length)} /></span></div>
       {blocked.length === 0 ? <div className="phone-info"><Check size={15} /><span>No blocked work<small>All tasks flowing</small></span></div> :
         blocked.slice(0, 2).map((t) => <div key={t.id} className="phone-info"><CircleAlert size={15} /><span>{t.title}<small>{label(t.status)} · {projectName(data, t.project_id)}</small></span></div>)}
       <div className="phone-section-title small-title">Nervous System Activity</div>
