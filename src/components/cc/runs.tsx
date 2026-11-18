@@ -11,6 +11,7 @@ import type { OwnerData, Question, RunStatus, RunTask } from "@/lib/model";
 import { PlanPanel } from "./plans";
 import { ProjectGoal } from "./objective";
 import { DirectionsFor } from "./workshop/directions";
+import { Meter, RollingNumber } from "./motion";
 import { useStepUp } from "./step-up";
 
 /**
@@ -117,8 +118,8 @@ export function CaseFile({ projectId, audience, canControl, onChanged }: { proje
 
     <div className="case-budget" aria-label="Budget used">
       {budget && budget.approved_usd !== null ? <>
-        <div className="case-budget-line"><b>{money(budget.used_usd)}</b> of {money(budget.approved_usd)} approved{pct !== null ? ` (${pct}%)` : ""}</div>
-        <div className="case-meter" role="progressbar" aria-label="Share of the approved budget used" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, pct ?? 0)}><i className={pct !== null && pct >= 100 ? "full" : pct !== null && pct >= 80 ? "high" : ""} style={{ width: `${Math.min(100, pct ?? 0)}%` }} /></div>
+        <div className="case-budget-line"><b><RollingNumber value={money(budget.used_usd)} /></b> of {money(budget.approved_usd)} approved{pct !== null ? ` (${pct}%)` : ""}</div>
+        <Meter className="case-meter" label="Share of the approved budget used" value={Math.min(100, pct ?? 0)} tone={pct !== null && pct >= 100 ? "full" : pct !== null && pct >= 80 ? "high" : undefined} />
       </> : <div className="case-budget-line">No budget approved.</div>}
     </div>
 

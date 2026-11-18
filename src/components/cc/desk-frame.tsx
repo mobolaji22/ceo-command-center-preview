@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { RollingNumber, SlideGroup } from "./motion";
 
 /**
  * The surface a desk is worked on. Each object in a room has the surface that object would have: the wall is a corkboard, the
@@ -19,13 +20,13 @@ export type DeskKind = "cork" | "board" | "calendar" | "desk" | "table" | "scree
 
 export function DeskFrame<T extends string>({ kind, eyebrow, title, line, tabs, tab, onTab, aside, above, children }: { kind: DeskKind; bar?: string; eyebrow: string; title: string; line?: ReactNode; tabs: { id: T; label: string; count?: number }[]; tab: T; onTab: (t: T) => void; aside?: ReactNode; /** Sits on the surface just above the content (the table's folder tabs). */ above?: ReactNode; children: ReactNode }) {
   const tabRow = tabs.length > 1 && (
-    <div className="desk-tabs" role="tablist">
+    <SlideGroup active={tab} className="desk-tabs" role="tablist">
       {tabs.map((t) => (
         <Button key={t.id} role="tab" aria-selected={tab === t.id} variant="ghost" className={tab === t.id ? "tab active" : "tab"} onClick={() => onTab(t.id)}>
-          {t.label}{t.count ? <span className="tab-count">{t.count}</span> : null}
+          {t.label}{t.count ? <span className="tab-count"><RollingNumber value={t.count} /></span> : null}
         </Button>
       ))}
-    </div>
+    </SlideGroup>
   );
   const heading = (
     <header className="desk-heading">

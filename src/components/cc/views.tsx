@@ -3,7 +3,7 @@
 import { BriefArchive, NotificationSettings, PhoneBriefs } from "./briefs";
 import { GovernancePanel, PlanDecisionLedger } from "./ledger";
 import { CaseFileToggle, PhoneQuestions, Standing } from "./runs";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, ArrowDownRight, ArrowLeft, ArrowRight, Check, ChevronDown, CircleAlert, FileText, LockKeyhole, Plus, Radio, Send, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import { useDomains } from "@/lib/domains";
 import { FindBar, Marked } from "./find-bar";
 import { useProjectFind, useRemembered } from "@/lib/find";
 import { isFreeKey, useSingleKeys, useWindowKeys } from "@/lib/shortcuts";
+import { flushSync } from "react-dom";
+import { carry } from "@/lib/motion";
+import { ActionButton, Presence, RollingNumber, SlideGroup, Tick } from "./motion";
 
 /** `refresh` reads the records again; it returns a promise that settles once they have arrived. */
 type Common = { data: OwnerData; refresh: () => unknown };
@@ -41,14 +44,14 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
   const exceptions = pending.length + blocked.length;
   return <div className="computer-frame">
     <div className="computer-body"><div className="computer-heading"><div><div className="eyebrow gold">THE ORGANIZATIONAL NERVOUS SYSTEM</div><h2>Operating overview<span className="period">.</span></h2><p>{data.projects.length} projects · {data.tasks.length} tasks · {data.decisions.length} decisions on record.</p></div><div className="system-time"><Radio size={15} /> {ds.kind === "api" ? "LIVE FROM DEVPLAYBOOK V4" : "DEMO FIXTURES"}</div></div>
-      <div className="computer-tabs" role="tablist">{["Cases & Engagements", "Decision Ledger", "Security/Gov"].map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</div>
-      {tab === "Cases & Engagements" && <div className="computer-content"><div className="section-label"><span>ACTIVE DOSSIERS</span><span>{pad(active.length)} IN MOTION</span></div>
+      <SlideGroup active={tab} className="computer-tabs" role="tablist">{["Cases & Engagements", "Decision Ledger", "Security/Gov"].map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</SlideGroup>
+      {tab === "Cases & Engagements" && <div className="computer-content"><div className="section-label"><span>ACTIVE DOSSIERS</span><span><RollingNumber value={pad(active.length)} /> IN MOTION</span></div>
         {data.projects.length > 0 && <FindBar find={find} shown={find.results.length} showDept onOnly={() => { const only = find.results[0]; if (only) { if (pending.some((a) => a.project_id === only.id)) openContracts(only.id); else openManage(only.id); } }} extra={<select className="find-select" aria-label="Show" value={scope} onChange={(e) => setScope(e.target.value as "ACTIVE" | "CLOSED" | "ALL")}><option value="ACTIVE">In motion</option><option value="CLOSED">Finished</option><option value="ALL">Everything</option></select>} />}
         {active.length === 0 && scope === "ACTIVE" ? <Empty title="No active projects yet.">Projects begin when a request or a directive is sent. Open the Directive desk to send one.</Empty> : find.results.length === 0 ? <Empty title="No project matches.">Try fewer words, another scope, or clear the filters.</Empty> :
         <div className="dossier-list">{find.results.map((p, i) => {
           const hasPending = pending.some((a) => a.project_id === p.id);
           // The whole row opens the project (its name is the link, stretched over the row); the case file keeps its own button.
-          return <div key={p.id} className="dossier-row with-case"><span className="row-index">{pad(i + 1)}</span><div><button type="button" className="row-link" aria-label={`Open ${p.name}${hasPending ? ", awaiting your review" : ""}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><b><Marked text={p.name} q={find.q} /></b></button><small>{p.domains.length ? p.domains.map(nameOf).join(" · ") : "No department"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /></div>;
+          return <div key={p.id} className="dossier-row with-case rise-in" style={{ "--i": Math.min(i, 8) } as CSSProperties}><span className="row-index">{pad(i + 1)}</span><div><button type="button" className="row-link" aria-label={`Open ${p.name}${hasPending ? ", awaiting your review" : ""}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><b><Marked text={p.name} q={find.q} /></b></button><small>{p.domains.length ? p.domains.map(nameOf).join(" · ") : "No department"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /></div>;
         })}</div>}
         <div className="computer-lower"><div><div className="section-label">SIGNAL HEALTH</div><h3>{exceptions === 0 ? "Steady. Nothing needs you." : `Steady, with ${exceptions} exception${exceptions > 1 ? "s" : ""}.`}</h3><p>{pending.length} approval{pending.length === 1 ? "" : "s"} awaiting signature · {blocked.length} blocked or failed task{blocked.length === 1 ? "" : "s"}.</p></div><Button variant="ghost" className="inline-arrow" onClick={openBrief}>VIEW EXECUTIVE BRIEF <ArrowRight size={16} /></Button></div></div>}
       {tab === "Decision Ledger" && <div className="computer-content"><div className="section-label"><span>DECISION LEDGER</span><span>TRACEABLE BY DESIGN</span></div>
@@ -87,17 +90,17 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
       <div className="phone-app-head"><span className="phone-app-logo">D/</span><span className="pill amber">● AGENCY PULSE CHANNEL</span></div>
       <div className="phone-greeting">Good {hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}, {auth.user?.displayName ?? "there"}.</div>
       <h3>Executive<br />Attention<span className="period">.</span></h3>
-      <div className="phone-meta">{now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "long" }).toUpperCase()} <span>{pad(pending.length + blocked.length + asking.length)} ITEMS NEED YOU</span></div>
+      <div className="phone-meta">{now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "long" }).toUpperCase()} <span><RollingNumber value={pad(pending.length + blocked.length + asking.length)} /> ITEMS NEED YOU</span></div>
       <div className="phone-card brief-card"><div className="phone-card-top"><Sparkles size={16} /><span>DAILY EXECUTIVE BRIEF</span><ArrowRight size={15} /></div><p>What happened while I was away?</p><Button variant="ghost" className="phone-card-link" onClick={openBrief}>READ YOUR BRIEF <ArrowRight size={14} /></Button></div>
-      <div className="phone-section-title">Decisions Requiring<br />CEO Signature <span>{pad(pending.length)}</span></div>
+      <div className="phone-section-title">Decisions Requiring<br />CEO Signature <span><RollingNumber value={pad(pending.length)} /></span></div>
       {pending.length === 0 ? <div className="phone-info"><Check size={15} /><span>Nothing awaiting signature<small>You're clear</small></span></div> :
-        pending.slice(0, 3).map((a) => <Button key={a.id} variant="ghost" className="phone-decision" onClick={() => openContracts(a.project_id)}><span>{a.title}<small>{projectName(data, a.project_id)}</small><span className="risk-badges"><em>{riskLabel(a.risk)} risk</em><em>{reversibilityLabel(a.reversibility)} reversibility</em></span></span><ArrowRight size={16} /></Button>)}
-      {asking.length > 0 && <><div className="phone-section-title small-title">Questions On Your Directives <span>{pad(asking.length)}</span></div>
+        pending.slice(0, 3).map((a, n) => <Button key={a.id} variant="ghost" className="phone-decision rise-in" style={{ "--i": n } as CSSProperties} onClick={() => openContracts(a.project_id)}><span>{a.title}<small>{projectName(data, a.project_id)}</small><span className="risk-badges"><em>{riskLabel(a.risk)} risk</em><em>{reversibilityLabel(a.reversibility)} reversibility</em></span></span><ArrowRight size={16} /></Button>)}
+      {asking.length > 0 && <><div className="phone-section-title small-title">Questions On Your Directives <span><RollingNumber value={pad(asking.length)} /></span></div>
         {asking.slice(0, 2).map((i) => <div key={i.id} className="phone-info"><CircleAlert size={15} /><span>{i.questions[0]?.question}<small>{i.text.slice(0, 60)}</small></span></div>)}</>}
       <PhoneQuestions open={openContracts} />
       <PhoneBriefs open={openBrief} />
       <PhoneSettings />
-      <div className="phone-section-title small-title">Exceptions Detected <span>{pad(blocked.length)}</span></div>
+      <div className="phone-section-title small-title">Exceptions Detected <span><RollingNumber value={pad(blocked.length)} /></span></div>
       {blocked.length === 0 ? <div className="phone-info"><Check size={15} /><span>No blocked work<small>All tasks flowing</small></span></div> :
         blocked.slice(0, 2).map((t) => <div key={t.id} className="phone-info"><CircleAlert size={15} /><span>{t.title}<small>{label(t.status)} · {projectName(data, t.project_id)}</small></span></div>)}
       <div className="phone-section-title small-title">Nervous System Activity</div>
@@ -129,36 +132,49 @@ export function ContractsView({ data, refresh, focusProjectId, focusApprovalId, 
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // Where the last thing asked of the ledger stands, so the line that reports it can show it: being recorded, recorded, refused.
+  const [told, setTold] = useState<Told>(null);
   // Start the text from the record whenever the tab or the authorization changes (adjusted during render, not in an effect).
   const draftFor = `${tab}:${a?.id ?? ""}`;
   const [textFor, setTextFor] = useState(draftFor);
   if (textFor !== draftFor) { setTextFor(draftFor); setText(tab === "Modify Constraints & Scope" ? a?.constraints ?? "" : tab === "Request Evidence" ? a?.evidence_request ?? "" : ""); }
 
   const run = async (fn: () => PromiseLike<{ error: { message: string } | null }>, done: string) => {
-    setBusy(true); setMsg(null);
+    setBusy(true); setMsg(null); setTold(null);
     const { error } = await fn();
-    if (error) { setMsg(error.message); setBusy(false); return; }
-    setMsg(done); setBusy(false); refresh();
+    setBusy(false);
+    if (error) { setMsg(error.message); setTold("refused"); return { error: error.message }; }
+    setMsg(done); setTold("recorded"); refresh();
+    return {};
   };
   const resolve = async (approved: boolean) => {
     if (!a) return;
     const { id, title } = a;
     const verb = approved ? "approved" : "rejected";
-    setArmed(null);
-    setSent((s) => new Set(s).add(id));
-    setSelectedId(ordered.find((x) => x.id !== id)?.id ?? null);
-    setMsg(`Recording “${title}” as ${verb}…`);
-    const { error } = await ds.commands.resolveApproval(id, approved);
+    // The decided one leaves the queue and the rest close ranks, as one move (lib/motion `carry`).
+    const left = carry(() => flushSync(() => {
+      setArmed(null);
+      setSent((s) => new Set(s).add(id));
+      setSelectedId(ordered.find((x) => x.id !== id)?.id ?? null);
+      setMsg(`Recording “${title}” as ${verb}…`);
+      setTold("recording");
+    }));
+    // Sent at once, not after the move; the answer is only shown once the move has been made, so it is never written over.
+    const [{ error }] = await Promise.all([ds.commands.resolveApproval(id, approved), left]);
     if (error) {
-      setSent((s) => { const n = new Set(s); n.delete(id); return n; });
-      setSelectedId(id);
-      setMsg(`“${title}” was not ${verb}: ${error.message}`);
+      void carry(() => flushSync(() => {
+        setSent((s) => { const n = new Set(s); n.delete(id); return n; });
+        setSelectedId(id);
+        setMsg(`“${title}” was not ${verb}: ${error.message}`);
+        setTold("refused");
+      }));
       return;
     }
     setMsg(`“${title}” ${verb} and recorded in the governance ledger.`);
+    setTold("recorded");
     refresh();
   };
-  const select = (id: string) => { setSelectedId(id); setTab("Contract Review"); setMsg(null); setArmed(null); };
+  const select = (id: string) => { setSelectedId(id); setTab("Contract Review"); setMsg(null); setTold(null); setArmed(null); };
 
   // Captured before the desk's own keys, so Escape lets go of an armed decision instead of closing the desk.
   useWindowKeys((e) => {
@@ -183,17 +199,17 @@ export function ContractsView({ data, refresh, focusProjectId, focusApprovalId, 
 
   const resolved = data.approvals.filter((x) => x.status !== "REQUESTED").slice(0, 6);
   if (!a) return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span></div>
-    <div className="contract-body">{msg && <p className="mmsg" role="status">{msg}</p>}<Empty title="No authorizations awaiting your signature.">New approval requests appear here as soon as they're raised.</Empty>
+    <div className="contract-body">{msg && <p className="mmsg" role="status"><ToldLine told={told} text={msg} /></p>}<Empty title="No authorizations awaiting your signature.">New approval requests appear here as soon as they're raised.</Empty>
     {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}{more}</div></div>;
 
   const evidence = data.evidence.filter((e) => e.approval_id === a.id || (!e.approval_id && e.project_id === a.project_id));
   const projectRef = `DPL-AC-${a.id.slice(0, 4).toUpperCase()}`;
 
   return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span><span className="protocol-id">{projectRef}</span></div>
-    {ordered.length > 1 && <div className="approval-queue">{ordered.map((x, i) => <button key={x.id} className={x.id === a.id ? "active" : ""} onClick={() => select(x.id)}><span>{pad(i + 1)}</span>{x.title}</button>)}</div>}
-    {ds.capabilities.approvalNotes && <div className="contract-tabs" role="tablist">{(["Contract Review", "Modify Constraints & Scope", "Request Evidence"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>{t}</Button>)}</div>}
+    {ordered.length > 1 && <div className="approval-queue">{ordered.map((x, i) => <button key={x.id} className={x.id === a.id ? "active" : ""} style={{ viewTransitionName: carriedName("approval", x.id) }} onClick={() => select(x.id)}><span>{pad(i + 1)}</span>{x.title}</button>)}</div>}
+    {ds.capabilities.approvalNotes && <SlideGroup active={tab} className="contract-tabs" role="tablist">{(["Contract Review", "Modify Constraints & Scope", "Request Evidence"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>{t}</Button>)}</SlideGroup>}
     <div className="contract-body"><div className="classification"><span><LockKeyhole size={15} /> CLASSIFICATION: {label(a.target_type).toUpperCase()} · {projectName(data, a.project_id).toUpperCase()}</span><strong>{a.requires_client ? "CLIENT & CEO APPROVAL" : "CEO APPROVAL REQUIRED"}</strong></div>
-      {tab === "Contract Review" && <><div className="contract-columns"><div className="contract-main"><div className="eyebrow gold">01 / PROPOSED ACTION</div><h2>{a.title}<span className="period">.</span></h2>{a.recommendation && <p className="contract-lead">{a.recommendation}</p>}<div className="contract-rule" /><div className="eyebrow gold">02 / ORGANIZATIONAL REASONING</div><p className="reasoning">{a.reason}</p>
+      {tab === "Contract Review" && <><div key={a.id} className="contract-columns rise-in"><div className="contract-main"><div className="eyebrow gold">01 / PROPOSED ACTION</div><h2>{a.title}<span className="period">.</span></h2>{a.recommendation && <p className="contract-lead">{a.recommendation}</p>}<div className="contract-rule" /><div className="eyebrow gold">02 / ORGANIZATIONAL REASONING</div><p className="reasoning">{a.reason}</p>
         {a.consequences && <><div className="eyebrow gold">03 / CONSEQUENCES</div><p className="reasoning">{a.consequences}</p></>}
         {a.constraints && <p className="reasoning"><b>Your constraints:</b> {a.constraints}</p>}
         {a.evidence_request && <p className="reasoning"><b>Evidence requested:</b> {a.evidence_request}</p>}
@@ -203,22 +219,35 @@ export function ContractsView({ data, refresh, focusProjectId, focusApprovalId, 
         <div className="contract-actions" data-armed={armed ?? undefined}>
           <span role="status">{armed
             ? <>Press <kbd>Enter</kbd> to {armed} &ldquo;{a.title}&rdquo;, or <kbd>Esc</kbd> to let go.</>
-            : <><b className="contract-stakes">{riskLabel(a.risk)} risk · {reversibilityLabel(a.reversibility)} reversibility</b>{msg ?? "Review the evidence before resolving this authorization."}{single && <span className="contract-keys" aria-hidden="true"><kbd>A</kbd> approve <kbd>R</kbd> reject{ordered.length > 1 && <> <kbd>J</kbd><kbd>K</kbd> next</>}</span>}</>}</span>
+            : <><b className="contract-stakes">{riskLabel(a.risk)} risk · {reversibilityLabel(a.reversibility)} reversibility</b>{msg ? <ToldLine told={told} text={msg} /> : "Review the evidence before resolving this authorization."}{single && <span className="contract-keys" aria-hidden="true"><kbd>A</kbd> approve <kbd>R</kbd> reject{ordered.length > 1 && <> <kbd>J</kbd><kbd>K</kbd> next</>}</span>}</>}</span>
           <div><Button variant="outline" className="reject-btn" disabled={busy} data-armed={armed === "reject" || undefined} onClick={() => resolve(false)}>Reject proposal</Button><Button className="approve-btn" disabled={busy} data-armed={armed === "approve" || undefined} onClick={() => resolve(true)}><Check size={16} /> Approve authorization</Button></div>
         </div></>}
       {tab !== "Contract Review" && <div className="tab-pane"><div className="eyebrow gold">{tab === "Request Evidence" ? "ASK FOR CLARITY" : "CONTROL THE BOUNDARIES"}</div><h2>{tab === "Request Evidence" ? "Request evidence" : "Shape the scope"}<span className="period">.</span></h2><p>{tab === "Request Evidence" ? "Ask the organization to substantiate a part of this proposal before you decide." : "Specify the limits that must be met before authorization proceeds."}</p>
         <textarea aria-label={tab} value={text} maxLength={4000} onChange={(e) => setText(e.target.value)} placeholder={tab === "Request Evidence" ? "What additional evidence would help you make this decision?" : "e.g. Limit the discovery phase to 60 days…"} />
-        {msg && <p>{msg}</p>}
-        <Button className="approve-btn" disabled={busy || !text.trim()} onClick={() => tab === "Request Evidence"
+        {msg && <p role="status"><ToldLine told={told} text={msg} /></p>}
+        <ActionButton className="approve-btn" disabled={!text.trim()} doneLabel={tab === "Request Evidence" ? "Recorded" : "Saved"} workingLabel="Recording" run={() => tab === "Request Evidence"
           ? run(() => ds.commands.requestApprovalEvidence(a.id, text.trim()), "Evidence request recorded.")
-          : run(() => ds.commands.setApprovalConstraints(a.id, text.trim()), "Constraints saved.")}>{tab === "Request Evidence" ? "Record request" : "Save constraints"} <ArrowRight size={16} /></Button></div>}
+          : run(() => ds.commands.setApprovalConstraints(a.id, text.trim()), "Constraints saved.")}>{tab === "Request Evidence" ? "Record request" : "Save constraints"} <ArrowRight size={16} /></ActionButton></div>}
       {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}
       {more}
     </div></div>;
 }
 
+/** Where something asked of the ledger stands: being recorded, recorded, or refused. */
+type Told = "recording" | "recorded" | "refused" | null;
+
+/** The line that reports it: dots while the ledger is being written, a drawn tick once it has been, the plain reason if it was refused. */
+function ToldLine({ told, text }: { told: Told; text: string }) {
+  if (told === "recording") return <Presence quiet label={text} />;
+  if (told === "recorded") return <span key={text} className="told-done rise-in"><Tick size={13} /> {text}</span>;
+  return <span key={text} className={told === "refused" ? "told-refused rise-in" : undefined}>{text}</span>;
+}
+
+/** A name the browser can carry an element by (lib/motion `carry`): letters, digits, dashes and underscores only. */
+const carriedName = (kind: string, id: string) => `${kind}-${id.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+
 function ResolvedList({ data, items }: { data: OwnerData; items: Approval[] }) {
-  return <div className="resolved-list"><div className="section-label"><span>RECENTLY RESOLVED</span><span>{items.length}</span></div>{items.map((x) => <div key={x.id} className="resolved-row"><span>{x.title}<small>{projectName(data, x.project_id)} · {fmtDate(x.resolved_at)}</small></span><span className={`pill ${statusTone(x.status)}`}>{label(x.status).toUpperCase()}</span></div>)}</div>;
+  return <div className="resolved-list"><div className="section-label"><span>RECENTLY RESOLVED</span><span><RollingNumber value={items.length} /></span></div>{items.map((x) => <div key={x.id} className="resolved-row"><span>{x.title}<small>{projectName(data, x.project_id)} · {fmtDate(x.resolved_at)}</small></span><span className={`pill ${statusTone(x.status)}`}>{label(x.status).toUpperCase()}</span></div>)}</div>;
 }
 
 /**

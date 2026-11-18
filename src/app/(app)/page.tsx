@@ -28,6 +28,7 @@ import { RoomKeys, type KeyBinding, type PaletteCommand } from "@/components/cc/
 import { readPlace, usePlaceFromHistory, writePlace, type Place } from "@/lib/place";
 import { setLighting, useLighting } from "@/lib/lighting";
 import { label } from "@/lib/format";
+import { RollingNumber } from "@/components/cc/motion";
 
 
 const CEO_DESKS = ["computer", "phone", "contracts", "directive", "brief", "manage", "settings"] as const;
@@ -153,7 +154,7 @@ export default function Index() {
   ];
 
   return <main className={`command-center ${focus ? "focus-mode" : ""}`}>
-    <TopBar who="CEO" center={<><span className="live-dot" /> SYSTEM ONLINE <span className="topbar-divider" /> {pending} AWAITING SIGNATURE</>} date={today} initials={initials} onSettings={() => openView("settings")} onSignOut={signOut} onSearch={() => setPalette(true)} onKeys={() => setKeySheet(true)} />
+    <TopBar who="CEO" center={<><span className="live-dot" /> SYSTEM ONLINE <span className="topbar-divider" /> <span><RollingNumber value={pending} /> AWAITING SIGNATURE</span></>} date={today} initials={initials} onSettings={() => openView("settings")} onSignOut={signOut} onSearch={() => setPalette(true)} onKeys={() => setKeySheet(true)} />
     <RoomKeys commands={commands} bindings={bindings} palette={palette} setPalette={setPalette} sheet={keySheet} setSheet={setKeySheet}
       notes={[{ title: "In Contracts", keys: [{ keys: ["J", "K"], label: "Next or previous authorization" }, { keys: ["A"], label: "Approve (then Enter to confirm)" }, { keys: ["R"], label: "Reject (then Enter to confirm)" }] }]} />
 

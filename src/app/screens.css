@@ -215,10 +215,8 @@
 .case-head small, .case-none { color: var(--muted-foreground); font-size: 11px; }
 .case-budget-line { font-size: 12px; color: var(--muted-foreground); }
 .case-budget-line b { color: var(--foreground); font-weight: 600; }
-.case-meter { height: 5px; margin-top: 8px; background: oklch(1 0 0 / 7%); border-radius: 3px; overflow: hidden; }
-.case-meter i { display: block; height: 100%; background: oklch(0.78 0.14 157); }
-.case-meter i.high { background: var(--primary); }
-.case-meter i.full { background: oklch(0.65 0.2 25); }
+/* the bar itself is the shared Meter (micro.css): it eases to a new level and changes colour near the limit */
+.case-meter { margin-top: 8px; }
 .case-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--border); }
 .case-step { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--border); }
 .case-step b { display: block; font-size: 13px; font-weight: 500; }
@@ -543,6 +541,7 @@ html[data-lighting="day"] .pill.slate { color: oklch(0.42 0.035 250); background
 .thread-wait { margin: -8px 0 16px; font-size: 12px; color: var(--muted-foreground); }
 .thread-convo { gap: 12px; margin-top: 0; }
 .thread-asking { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border: 1px solid oklch(0.76 0.146 76 / 30%); border-radius: 10px; background: oklch(0.76 0.146 76 / 6%); }
+.thread-asking:empty { display: none; }
 .ask-chip { padding: 5px 11px; border: 1px solid oklch(0.76 0.146 76 / 40%); border-radius: 999px; background: none; color: var(--foreground); font-size: 12px; line-height: 1.3; text-align: left; cursor: pointer; }
 .ask-chip:hover, .ask-chip:focus-visible { background: oklch(0.76 0.146 76 / 12%); outline: none; }
 .convo-thread > li[data-note] { background: oklch(1 0 0 / 2%); }

@@ -14,6 +14,7 @@ import "@fontsource/dm-sans/700.css";
 import "./globals.css";
 import "./screens.css";
 import "./motion.css";
+import "./micro.css";
 import "./desks.css";
 import "./day.css";
 import "./workshop.css";

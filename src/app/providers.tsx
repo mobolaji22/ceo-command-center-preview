@@ -6,6 +6,8 @@ import { DataSourceProvider, useDataSource } from "@/lib/data";
 import { isFixturesChange } from "@/lib/data/fixtures";
 import { DemoBanner } from "@/components/demo-banner";
 import { applyLighting } from "@/lib/lighting";
+import { applyMotionPref } from "@/lib/motion";
+import { ConfirmHost } from "@/components/cc/motion";
 
 /**
  * How often what is on screen is read again while the tab is visible ("LIVE LEDGER"). The API has no stream yet, so every screen
@@ -20,12 +22,15 @@ export function Providers({ children }: { children: ReactNode }) {
   // Bring a stored "day" onto <html> after hydration; night is the server render, so nothing mismatches.
   useEffect(() => {
     try { applyLighting(localStorage.getItem("cc-lighting") === "day" ? "day" : "night"); } catch { applyLighting("night"); }
+    // The same for the person's own motion switch: "off" stills everything (lib/motion).
+    try { applyMotionPref(localStorage.getItem("cc-motion") === "off" ? "off" : "system"); } catch { applyMotionPref("system"); }
   }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <DataSourceProvider>
         {children}
         <DemoBanner />
+        <ConfirmHost />
         <DemoLiveRefresh />
       </DataSourceProvider>
     </QueryClientProvider>

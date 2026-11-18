@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSingleKeys } from "@/lib/shortcuts";
 import { LitImage } from "./lit-image";
 import type { LitArt } from "./room-art";
+import { RollingNumber, useRaised } from "./motion";
 
 export type Spot<K extends string = string> = {
   id: K;
@@ -192,7 +193,7 @@ export function OfficeStage<K extends string>({
           onClick={() => enter(s.id)}
         >
           <span className="hotspot-center" />
-          {s.count ? <><span className="hotspot-badge" aria-hidden="true">{s.count > 9 ? "9+" : s.count}</span><span id={`hotspot-note-${s.id}`} className="sr-only">{s.countNote}</span></> : null}
+          {s.count ? <><CountBadge className="hotspot-badge" count={s.count} /><span id={`hotspot-note-${s.id}`} className="sr-only">{s.countNote}</span></> : null}
         </Button>
       ))}
       {spot && (
@@ -224,7 +225,7 @@ export function OfficeStage<K extends string>({
         {spots.map((s) => <button key={s.id} type="button" className="spot-bar-item" data-return-focus={lastActed === s.id || undefined} disabled={actionDisabled?.(s.id) ?? false}
           aria-label={s.label} aria-describedby={s.count ? `spot-note-${s.id}` : undefined} onClick={() => { const at = centreOf(s.id); setLastActed(s.id); onAct(s.id, at); }}>
           <s.icon size={18} aria-hidden="true" /><span>{s.label}</span>
-          {s.count ? <><span className="spot-bar-count" aria-hidden="true">{s.count > 9 ? "9+" : s.count}</span><span id={`spot-note-${s.id}`} className="sr-only">{s.countNote}</span></> : null}
+          {s.count ? <><CountBadge className="spot-bar-count" count={s.count} /><span id={`spot-note-${s.id}`} className="sr-only">{s.countNote}</span></> : null}
         </button>)}
       </nav> : <div className="scene-bottom">
         <div className="hotspot-status"><span className="pulse-dot" /> HOTSPOTS ACTIVE <span className="status-separator">/</span><span className="status-list">{statusList}</span></div>
@@ -233,3 +234,13 @@ export function OfficeStage<K extends string>({
     </div>
   );
 }
+
+/**
+ * How many things wait at an object. The figure rolls when it changes, and the badge gives one small bump when it went up, so a
+ * new arrival is noticed without anything flashing. Decorative: the count is said to assistive tech by the note beside it.
+ */
+function CountBadge({ count, className }: { count: number; className: string }) {
+  const rises = useRaised(count);
+  return <span key={rises} className={rises ? `${className} count-bump` : className} aria-hidden="true">{count > 9 ? "9+" : <RollingNumber value={count} />}</span>;
+}
+
