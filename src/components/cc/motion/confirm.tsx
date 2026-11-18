@@ -37,7 +37,9 @@ export function ConfirmHost() {
     return () => { window.clearTimeout(go); window.clearTimeout(gone); };
   }, [note]);
   return (
-    <div className="confirm-host" role="status" aria-live="polite">
+    // A live region, always present so what arrives in it is read out, but not a "status": a screen's own status line stays
+    // the one status on it, and this host is empty almost all the time.
+    <div className="confirm-host" aria-live="polite" aria-atomic="true">
       {note && <p key={note.id} className="confirm-note" data-leaving={leaving === note.id || undefined}><Tick size={14} /> {note.text}</p>}
     </div>
   );
