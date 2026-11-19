@@ -2,7 +2,8 @@
 // with an approved design (v4 ADR-0081 Decision 13: Media plays the approved words, never writes them): a completed generate-copy
 // task whose units give short words for every content slot of the chosen direction's frames. The words are checked against the
 // pack's own output schema first, so the deck the studio reads is one v4 would accept from a real run.
-// Usage: tsx copy-seed.mjs <projectId>
+// With --script it also writes the deck's script group (v4 ADR-0085 Decision 4): three lines for an explainer to say, in order.
+// Usage: tsx copy-seed.mjs <projectId> [--script]
 import { createRequire } from "node:module";
 const root = process.cwd();
 const { PrismaClient } = createRequire(`${root}/package.json`)("@prisma/client");
@@ -11,7 +12,9 @@ const { renderFrame, contentRefOf } = await import(`${root}/packages/rendering/s
 const { objectStorageFromEnv } = await import(`${root}/packages/assets/src/storage-config.ts`);
 const { packRegistry } = await import(`${root}/packages/packs/src/index.ts`);
 
-const [projectId] = process.argv.slice(2);
+const [projectId] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const withScript = process.argv.includes("--script");
+const SCRIPT = ["You say what you need.", "The agency plans and builds it.", "And checks every step."];
 const db = new PrismaClient();
 try {
   const storage = objectStorageFromEnv(process.env, { secret: "e2e", port: "4100" });
@@ -52,6 +55,7 @@ try {
     }
   } finally { await browser.close(); }
   const units = keys.map((key, i) => ({ unit_id: `u${i + 1}`, key, key_group: "home", purpose: key, text: words.get(key), claim_refs: [] }));
+  if (withScript) units.push(...SCRIPT.map((text, i) => ({ unit_id: `s${i + 1}`, key: `explainer_line_${i + 1}`, key_group: "script", purpose: `explainer line ${i + 1}`, text, claim_refs: [] })));
   const outputs = { units, open_items: [] };
   const check = packRegistry().outputSchemaOf("generate-copy").validator.safeParse(outputs);
   if (!check.success) throw new Error(`the stand-in copy deck is not one v4 accepts: ${JSON.stringify(check.error.issues.slice(0, 3))}`);

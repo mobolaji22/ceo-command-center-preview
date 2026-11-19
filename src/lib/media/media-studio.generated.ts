@@ -256,4 +256,1769 @@ export interface MediaStudioView {
       }[];
     }[];
   }[];
+  storyboards: {
+    id: string;
+    storyboard: {
+      schemaVersion: "1";
+      storyboardId: string;
+      projectId: string;
+      tenantId: string;
+      revision: number;
+      status: "DRAFT" | "IN_REVIEW" | "APPROVED";
+      design: {
+        documentId: string;
+        revision: number;
+      };
+      /**
+       * @minItems 1
+       * @maxItems 200
+       */
+      scenes: [
+        {
+          id: string;
+          label: string;
+          width: number;
+          height: number;
+          rootNodeId: string;
+          /**
+           * @minItems 1
+           * @maxItems 2000
+           */
+          nodeIds: [string, ...string[]];
+        },
+        ...{
+          id: string;
+          label: string;
+          width: number;
+          height: number;
+          rootNodeId: string;
+          /**
+           * @minItems 1
+           * @maxItems 2000
+           */
+          nodeIds: [string, ...string[]];
+        }[]
+      ];
+      /**
+       * @minItems 1
+       * @maxItems 5000
+       */
+      nodes: [
+        {
+          id: string;
+          role: string;
+          type: string;
+          parentId: string | null;
+          /**
+           * @maxItems 500
+           */
+          children: string[];
+          content?: unknown;
+          geometry: {
+            intent: string | null;
+            box: {
+              x: number;
+              y: number;
+              w: number;
+              h: number;
+            } | null;
+          };
+          layout: {
+            arrange: ("stack" | "row" | "grid" | "layers" | "scroll-x") | null;
+            /**
+             * @maxItems 12
+             */
+            columns: number[];
+            gap: string | null;
+            column: number | null;
+            span: number;
+            layer: {
+              position: "flow" | "overlap" | "pinned" | "sticky";
+              z: number;
+            };
+            bleed: boolean;
+            pin: {
+              sectionId: string;
+              x: number;
+              y: number;
+            } | null;
+          };
+          style: {
+            fill:
+              | (
+                  | {
+                      token: string;
+                    }
+                  | {
+                      hex: string;
+                    }
+                  | {
+                      linear: {
+                        angle: number;
+                        /**
+                         * @minItems 2
+                         * @maxItems 8
+                         */
+                        stops: [
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          ...{
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          }[]
+                        ];
+                      };
+                    }
+                  | {
+                      radial: {
+                        x: number;
+                        y: number;
+                        /**
+                         * @minItems 2
+                         * @maxItems 8
+                         */
+                        stops: [
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          ...{
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          }[]
+                        ];
+                      };
+                    }
+                  | {
+                      image: {
+                        slot: string;
+                        fit: "cover" | "contain";
+                      };
+                    }
+                )
+              | null;
+            stroke:
+              | (
+                  | {
+                      token: string;
+                    }
+                  | {
+                      hex: string;
+                    }
+                )
+              | null;
+            radius: string | null;
+            opacity: number;
+            /**
+             * @maxItems 4
+             */
+            shadows: {
+              x: number;
+              y: number;
+              blur: number;
+              spread: number;
+              colour:
+                | {
+                    token: string;
+                  }
+                | {
+                    hex: string;
+                  };
+              opacity: number;
+            }[];
+            blur: number;
+            blend: "normal" | "multiply" | "screen" | "overlay" | "soft-light" | "difference";
+            rotate: number;
+            scale: number;
+          };
+          text: {
+            style: string;
+            colour:
+              | {
+                  token: string;
+                }
+              | {
+                  hex: string;
+                };
+            align: "left" | "center" | "right";
+            size: number | null;
+            decorative: boolean;
+          } | null;
+          /**
+           * @maxItems 5
+           */
+          motion: {
+            trigger: "load" | "enter-view" | "scroll" | "hover" | "press";
+            /**
+             * @minItems 2
+             * @maxItems 10
+             */
+            keyframes: [
+              {
+                at: number;
+                opacity?: number;
+                x?: number;
+                y?: number;
+                scale?: number;
+                rotate?: number;
+                reveal?: number;
+              },
+              {
+                at: number;
+                opacity?: number;
+                x?: number;
+                y?: number;
+                scale?: number;
+                rotate?: number;
+                reveal?: number;
+              },
+              ...{
+                at: number;
+                opacity?: number;
+                x?: number;
+                y?: number;
+                scale?: number;
+                rotate?: number;
+                reveal?: number;
+              }[]
+            ];
+            timing:
+              | {
+                  token: string;
+                }
+              | {
+                  durationMs: number;
+                  easing: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+                };
+            reducedMotion: "static" | "fade" | "shorter";
+          }[];
+          mediaSlotRef: string | null;
+          scene: {
+            camera: {
+              fov: number;
+              /**
+               * @minItems 3
+               * @maxItems 3
+               */
+              position: never[];
+              /**
+               * @minItems 3
+               * @maxItems 3
+               */
+              target: never[];
+            };
+            /**
+             * @minItems 1
+             * @maxItems 6
+             */
+            lights: [
+              {
+                kind: "ambient" | "directional" | "point";
+                colour:
+                  | {
+                      token: string;
+                    }
+                  | {
+                      hex: string;
+                    };
+                intensity: number;
+                position: never[] | null;
+              },
+              ...{
+                kind: "ambient" | "directional" | "point";
+                colour:
+                  | {
+                      token: string;
+                    }
+                  | {
+                      hex: string;
+                    };
+                intensity: number;
+                position: never[] | null;
+              }[]
+            ];
+            /**
+             * @maxItems 40
+             */
+            primitives: {
+              id: string;
+              shape: "box" | "sphere" | "plane" | "torus" | "cylinder" | "cone";
+              /**
+               * @minItems 3
+               * @maxItems 3
+               */
+              size: never[];
+              /**
+               * @minItems 3
+               * @maxItems 3
+               */
+              position: never[];
+              /**
+               * @minItems 3
+               * @maxItems 3
+               */
+              rotation: never[];
+              colour:
+                | {
+                    token: string;
+                  }
+                | {
+                    hex: string;
+                  };
+              metalness: number;
+              roughness: number;
+            }[];
+            modelSlot: string | null;
+            interaction: "none" | "orbit" | "scroll" | "hover";
+            fallback:
+              | {
+                  slot: string;
+                }
+              | {
+                  fill:
+                    | {
+                        token: string;
+                      }
+                    | {
+                        hex: string;
+                      }
+                    | {
+                        linear: {
+                          angle: number;
+                          /**
+                           * @minItems 2
+                           * @maxItems 8
+                           */
+                          stops: [
+                            {
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            },
+                            {
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            },
+                            ...{
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            }[]
+                          ];
+                        };
+                      }
+                    | {
+                        radial: {
+                          x: number;
+                          y: number;
+                          /**
+                           * @minItems 2
+                           * @maxItems 8
+                           */
+                          stops: [
+                            {
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            },
+                            {
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            },
+                            ...{
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            }[]
+                          ];
+                        };
+                      }
+                    | {
+                        image: {
+                          slot: string;
+                          fit: "cover" | "contain";
+                        };
+                      };
+                };
+          } | null;
+          connector: {
+            from: string;
+            to: string;
+            arrow: "none" | "end" | "both";
+            route: "straight" | "elbow";
+            width: number;
+          } | null;
+          assetRef: string | null;
+          componentRef: string | null;
+          /**
+           * @maxItems 100
+           */
+          interactionRefs: string[];
+          locked: boolean;
+          hidden: boolean;
+        },
+        ...{
+          id: string;
+          role: string;
+          type: string;
+          parentId: string | null;
+          /**
+           * @maxItems 500
+           */
+          children: string[];
+          content?: unknown;
+          geometry: {
+            intent: string | null;
+            box: {
+              x: number;
+              y: number;
+              w: number;
+              h: number;
+            } | null;
+          };
+          layout: {
+            arrange: ("stack" | "row" | "grid" | "layers" | "scroll-x") | null;
+            /**
+             * @maxItems 12
+             */
+            columns: number[];
+            gap: string | null;
+            column: number | null;
+            span: number;
+            layer: {
+              position: "flow" | "overlap" | "pinned" | "sticky";
+              z: number;
+            };
+            bleed: boolean;
+            pin: {
+              sectionId: string;
+              x: number;
+              y: number;
+            } | null;
+          };
+          style: {
+            fill:
+              | (
+                  | {
+                      token: string;
+                    }
+                  | {
+                      hex: string;
+                    }
+                  | {
+                      linear: {
+                        angle: number;
+                        /**
+                         * @minItems 2
+                         * @maxItems 8
+                         */
+                        stops: [
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          ...{
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          }[]
+                        ];
+                      };
+                    }
+                  | {
+                      radial: {
+                        x: number;
+                        y: number;
+                        /**
+                         * @minItems 2
+                         * @maxItems 8
+                         */
+                        stops: [
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          ...{
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          }[]
+                        ];
+                      };
+                    }
+                  | {
+                      image: {
+                        slot: string;
+                        fit: "cover" | "contain";
+                      };
+                    }
+                )
+              | null;
+            stroke:
+              | (
+                  | {
+                      token: string;
+                    }
+                  | {
+                      hex: string;
+                    }
+                )
+              | null;
+            radius: string | null;
+            opacity: number;
+            /**
+             * @maxItems 4
+             */
+            shadows: {
+              x: number;
+              y: number;
+              blur: number;
+              spread: number;
+              colour:
+                | {
+                    token: string;
+                  }
+                | {
+                    hex: string;
+                  };
+              opacity: number;
+            }[];
+            blur: number;
+            blend: "normal" | "multiply" | "screen" | "overlay" | "soft-light" | "difference";
+            rotate: number;
+            scale: number;
+          };
+          text: {
+            style: string;
+            colour:
+              | {
+                  token: string;
+                }
+              | {
+                  hex: string;
+                };
+            align: "left" | "center" | "right";
+            size: number | null;
+            decorative: boolean;
+          } | null;
+          /**
+           * @maxItems 5
+           */
+          motion: {
+            trigger: "load" | "enter-view" | "scroll" | "hover" | "press";
+            /**
+             * @minItems 2
+             * @maxItems 10
+             */
+            keyframes: [
+              {
+                at: number;
+                opacity?: number;
+                x?: number;
+                y?: number;
+                scale?: number;
+                rotate?: number;
+                reveal?: number;
+              },
+              {
+                at: number;
+                opacity?: number;
+                x?: number;
+                y?: number;
+                scale?: number;
+                rotate?: number;
+                reveal?: number;
+              },
+              ...{
+                at: number;
+                opacity?: number;
+                x?: number;
+                y?: number;
+                scale?: number;
+                rotate?: number;
+                reveal?: number;
+              }[]
+            ];
+            timing:
+              | {
+                  token: string;
+                }
+              | {
+                  durationMs: number;
+                  easing: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+                };
+            reducedMotion: "static" | "fade" | "shorter";
+          }[];
+          mediaSlotRef: string | null;
+          scene: {
+            camera: {
+              fov: number;
+              /**
+               * @minItems 3
+               * @maxItems 3
+               */
+              position: never[];
+              /**
+               * @minItems 3
+               * @maxItems 3
+               */
+              target: never[];
+            };
+            /**
+             * @minItems 1
+             * @maxItems 6
+             */
+            lights: [
+              {
+                kind: "ambient" | "directional" | "point";
+                colour:
+                  | {
+                      token: string;
+                    }
+                  | {
+                      hex: string;
+                    };
+                intensity: number;
+                position: never[] | null;
+              },
+              ...{
+                kind: "ambient" | "directional" | "point";
+                colour:
+                  | {
+                      token: string;
+                    }
+                  | {
+                      hex: string;
+                    };
+                intensity: number;
+                position: never[] | null;
+              }[]
+            ];
+            /**
+             * @maxItems 40
+             */
+            primitives: {
+              id: string;
+              shape: "box" | "sphere" | "plane" | "torus" | "cylinder" | "cone";
+              /**
+               * @minItems 3
+               * @maxItems 3
+               */
+              size: never[];
+              /**
+               * @minItems 3
+               * @maxItems 3
+               */
+              position: never[];
+              /**
+               * @minItems 3
+               * @maxItems 3
+               */
+              rotation: never[];
+              colour:
+                | {
+                    token: string;
+                  }
+                | {
+                    hex: string;
+                  };
+              metalness: number;
+              roughness: number;
+            }[];
+            modelSlot: string | null;
+            interaction: "none" | "orbit" | "scroll" | "hover";
+            fallback:
+              | {
+                  slot: string;
+                }
+              | {
+                  fill:
+                    | {
+                        token: string;
+                      }
+                    | {
+                        hex: string;
+                      }
+                    | {
+                        linear: {
+                          angle: number;
+                          /**
+                           * @minItems 2
+                           * @maxItems 8
+                           */
+                          stops: [
+                            {
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            },
+                            {
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            },
+                            ...{
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            }[]
+                          ];
+                        };
+                      }
+                    | {
+                        radial: {
+                          x: number;
+                          y: number;
+                          /**
+                           * @minItems 2
+                           * @maxItems 8
+                           */
+                          stops: [
+                            {
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            },
+                            {
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            },
+                            ...{
+                              colour:
+                                | {
+                                    token: string;
+                                  }
+                                | {
+                                    hex: string;
+                                  };
+                              at: number;
+                            }[]
+                          ];
+                        };
+                      }
+                    | {
+                        image: {
+                          slot: string;
+                          fit: "cover" | "contain";
+                        };
+                      };
+                };
+          } | null;
+          connector: {
+            from: string;
+            to: string;
+            arrow: "none" | "end" | "both";
+            route: "straight" | "elbow";
+            width: number;
+          } | null;
+          assetRef: string | null;
+          componentRef: string | null;
+          /**
+           * @maxItems 100
+           */
+          interactionRefs: string[];
+          locked: boolean;
+          hidden: boolean;
+        }[]
+      ];
+    };
+    documentHash: string;
+    problems: string[];
+    approvedRevision: number | null;
+    changedScenes: string[];
+    decision: {
+      by: string;
+      at: string;
+      decision: "APPROVE" | "CHANGES";
+      changes: {
+        sceneId: string;
+        note: string;
+      }[];
+    } | null;
+    scenes: {
+      id: string;
+      label: string;
+      width: number | null;
+      height: number | null;
+      nodes: {
+        id: string;
+        role: string;
+        type: string;
+        locked: boolean;
+        slotKey: string | null;
+      }[];
+    }[];
+    document: {
+      schemaVersion: "4";
+      documentId: string;
+      projectId: string;
+      tenantId: string;
+      revision: number;
+      status: "DRAFT" | "IN_REVIEW" | "APPROVED";
+      mandate: {
+        /**
+         * @maxItems 30
+         */
+        objectives: string[];
+        audience: string;
+        context: string;
+        /**
+         * @maxItems 30
+         */
+        successMeasures: string[];
+        scope: string;
+        /**
+         * @maxItems 50
+         */
+        constraints: string[];
+        /**
+         * @maxItems 30
+         */
+        nonGoals: string[];
+      };
+      /**
+       * @maxItems 500
+       */
+      evidence: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      meaningModel: {
+        [k: string]: unknown | undefined;
+      } | null;
+      basis: {
+        directionSetting: boolean | "UNKNOWN";
+        reason: string;
+        concept: {
+          decisionId: string;
+          state: "OPEN" | "PROPOSED" | "DECIDED_BY_OWNER" | "DECIDED_UNDER_DELEGATION" | "HELD_ASSET" | "STALE" | "SUPERSEDED";
+        } | null;
+        /**
+         * @maxItems 50
+         */
+        stageSkips: {
+          stage: string;
+          reason: "DECISIONS_CLOSED" | "MODE" | "ROUTE_CLASS" | "NOT_APPLICABLE";
+          /**
+           * @maxItems 20
+           */
+          decisions: {
+            decisionId: string;
+            state: "OPEN" | "PROPOSED" | "DECIDED_BY_OWNER" | "DECIDED_UNDER_DELEGATION" | "HELD_ASSET" | "STALE" | "SUPERSEDED";
+            heldAssetVersionId: string | null;
+          }[];
+          /**
+           * @maxItems 10
+           */
+          servedBy: string[];
+        }[];
+      };
+      /**
+       * @maxItems 3
+       */
+      territories: {
+        id: string;
+        concept: string;
+        thesis: string | null;
+        posture: ("CONSERVATIVE" | "DISTINCTIVE" | "EXPERIMENTAL") | null;
+        meaningInterpretation: string | null;
+        audienceExperience: string | null;
+        composition: string | null;
+        typography: string | null;
+        artDirection: string | null;
+        colourAndMaterial: string | null;
+        interactionAndMotion: string | null;
+        signature:
+          | (
+              | {
+                  device: string;
+                }
+              | {
+                  noneBecause: string;
+                }
+            )
+          | null;
+        addressesBrief: string | null;
+        deliberatelyNot: string | null;
+        /**
+         * @maxItems 20
+         */
+        strengths: string[];
+        /**
+         * @maxItems 20
+         */
+        weaknesses: string[];
+        /**
+         * @maxItems 20
+         */
+        risks: string[];
+        /**
+         * @maxItems 20
+         */
+        tradeoffs: string[];
+        /**
+         * @maxItems 20
+         */
+        implementationImplications: string[];
+        /**
+         * @maxItems 30
+         */
+        referenceLinks: {
+          referenceId: string;
+          learned: string;
+          transformedOrAvoided: string;
+          provenance: string;
+        }[];
+        researchBasis: {
+          map: "FLOOR" | "CEILING" | "GAP";
+          /**
+           * @maxItems 30
+           */
+          rows: string[];
+          /**
+           * @maxItems 10
+           */
+          leaders: {
+            memberId: string;
+            takes: string;
+            transformed: string;
+          }[];
+          ruleBroken: {
+            rowId: string;
+            why: string;
+            safeguard: string;
+          } | null;
+          provisional: boolean;
+          missing: string | null;
+        } | null;
+        technique: string | null;
+        techniqueMapping: string | null;
+        tokens: {
+          colour: {
+            surface: string;
+            text: string;
+            [k: string]: string | undefined;
+          };
+          type: {
+            [k: string]:
+              | {
+                  family: "serif" | "sans" | "mono" | "grotesk";
+                  size: number;
+                  weight: number;
+                  tracking: number;
+                  lineHeight: number;
+                  typeface: string | null;
+                }
+              | undefined;
+          };
+          space: {
+            [k: string]: number | undefined;
+          };
+          radius: {
+            [k: string]: number | undefined;
+          };
+          motion: {
+            [k: string]:
+              | {
+                  durationMs: number;
+                  easing: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+                }
+              | undefined;
+          };
+        } | null;
+        tokenNotes: {
+          [k: string]:
+            | {
+                [k: string]: string | undefined;
+              }
+            | undefined;
+        };
+        /**
+         * @maxItems 10
+         */
+        keyFrameIds: string[];
+        /**
+         * @maxItems 30
+         */
+        studyFrameIds: string[];
+        rendered: boolean;
+        /**
+         * @maxItems 20
+         */
+        previewRefs: string[];
+        systemRef: string | null;
+        evaluation?: {
+          [k: string]: unknown | undefined;
+        };
+        status: "PROPOSED" | "SELECTED" | "SET_ASIDE";
+      }[];
+      selectedTerritoryId: string | null;
+      /**
+       * @maxItems 1000
+       */
+      decisionLog: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      designGenome: {
+        [k: string]: unknown | undefined;
+      } | null;
+      tokens: {
+        colour: {
+          surface: string;
+          text: string;
+          [k: string]: string | undefined;
+        };
+        type: {
+          [k: string]:
+            | {
+                family: "serif" | "sans" | "mono" | "grotesk";
+                size: number;
+                weight: number;
+                tracking: number;
+                lineHeight: number;
+                typeface: string | null;
+              }
+            | undefined;
+        };
+        space: {
+          [k: string]: number | undefined;
+        };
+        radius: {
+          [k: string]: number | undefined;
+        };
+        motion: {
+          [k: string]:
+            | {
+                durationMs: number;
+                easing: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+              }
+            | undefined;
+        };
+      } | null;
+      /**
+       * @maxItems 1000
+       */
+      assets: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      /**
+       * @maxItems 200
+       */
+      mediaSlots: {
+        id: string;
+        kind: "photograph" | "illustration" | "video" | "model-3d" | "icon";
+        subject: string;
+        purpose: string;
+        ratio: string | null;
+        count: number;
+        source: "HELD" | "CAPTURE" | "ASK" | "DERIVE" | "DRAW" | "DRAFT" | "SOURCE_EXTERNAL";
+        existing: boolean | null;
+        assetRef: string | null;
+      }[];
+      /**
+       * @maxItems 200
+       */
+      pagesOrBoards: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      /**
+       * @maxItems 1000
+       */
+      frames: {
+        id: string;
+        territoryId: string | null;
+        page: string | null;
+        viewport: string | null;
+        rootNodeId: string | null;
+        /**
+         * @maxItems 5000
+         */
+        nodeIds: string[];
+        width: number | null;
+        height: number | null;
+        pageRef: string | null;
+      }[];
+      /**
+       * @maxItems 5000
+       */
+      nodes: {
+        id: string;
+        role: string;
+        type: string;
+        parentId: string | null;
+        /**
+         * @maxItems 500
+         */
+        children: string[];
+        content?: unknown;
+        geometry: {
+          intent: string | null;
+          box: {
+            x: number;
+            y: number;
+            w: number;
+            h: number;
+          } | null;
+        };
+        layout: {
+          arrange: ("stack" | "row" | "grid" | "layers" | "scroll-x") | null;
+          /**
+           * @maxItems 12
+           */
+          columns: number[];
+          gap: string | null;
+          column: number | null;
+          span: number;
+          layer: {
+            position: "flow" | "overlap" | "pinned" | "sticky";
+            z: number;
+          };
+          bleed: boolean;
+          pin: {
+            sectionId: string;
+            x: number;
+            y: number;
+          } | null;
+        };
+        style: {
+          fill:
+            | (
+                | {
+                    token: string;
+                  }
+                | {
+                    hex: string;
+                  }
+                | {
+                    linear: {
+                      angle: number;
+                      /**
+                       * @minItems 2
+                       * @maxItems 8
+                       */
+                      stops: [
+                        {
+                          colour:
+                            | {
+                                token: string;
+                              }
+                            | {
+                                hex: string;
+                              };
+                          at: number;
+                        },
+                        {
+                          colour:
+                            | {
+                                token: string;
+                              }
+                            | {
+                                hex: string;
+                              };
+                          at: number;
+                        },
+                        ...{
+                          colour:
+                            | {
+                                token: string;
+                              }
+                            | {
+                                hex: string;
+                              };
+                          at: number;
+                        }[]
+                      ];
+                    };
+                  }
+                | {
+                    radial: {
+                      x: number;
+                      y: number;
+                      /**
+                       * @minItems 2
+                       * @maxItems 8
+                       */
+                      stops: [
+                        {
+                          colour:
+                            | {
+                                token: string;
+                              }
+                            | {
+                                hex: string;
+                              };
+                          at: number;
+                        },
+                        {
+                          colour:
+                            | {
+                                token: string;
+                              }
+                            | {
+                                hex: string;
+                              };
+                          at: number;
+                        },
+                        ...{
+                          colour:
+                            | {
+                                token: string;
+                              }
+                            | {
+                                hex: string;
+                              };
+                          at: number;
+                        }[]
+                      ];
+                    };
+                  }
+                | {
+                    image: {
+                      slot: string;
+                      fit: "cover" | "contain";
+                    };
+                  }
+              )
+            | null;
+          stroke:
+            | (
+                | {
+                    token: string;
+                  }
+                | {
+                    hex: string;
+                  }
+              )
+            | null;
+          radius: string | null;
+          opacity: number;
+          /**
+           * @maxItems 4
+           */
+          shadows: {
+            x: number;
+            y: number;
+            blur: number;
+            spread: number;
+            colour:
+              | {
+                  token: string;
+                }
+              | {
+                  hex: string;
+                };
+            opacity: number;
+          }[];
+          blur: number;
+          blend: "normal" | "multiply" | "screen" | "overlay" | "soft-light" | "difference";
+          rotate: number;
+          scale: number;
+        };
+        text: {
+          style: string;
+          colour:
+            | {
+                token: string;
+              }
+            | {
+                hex: string;
+              };
+          align: "left" | "center" | "right";
+          size: number | null;
+          decorative: boolean;
+        } | null;
+        /**
+         * @maxItems 5
+         */
+        motion: {
+          trigger: "load" | "enter-view" | "scroll" | "hover" | "press";
+          /**
+           * @minItems 2
+           * @maxItems 10
+           */
+          keyframes: [
+            {
+              at: number;
+              opacity?: number;
+              x?: number;
+              y?: number;
+              scale?: number;
+              rotate?: number;
+              reveal?: number;
+            },
+            {
+              at: number;
+              opacity?: number;
+              x?: number;
+              y?: number;
+              scale?: number;
+              rotate?: number;
+              reveal?: number;
+            },
+            ...{
+              at: number;
+              opacity?: number;
+              x?: number;
+              y?: number;
+              scale?: number;
+              rotate?: number;
+              reveal?: number;
+            }[]
+          ];
+          timing:
+            | {
+                token: string;
+              }
+            | {
+                durationMs: number;
+                easing: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+              };
+          reducedMotion: "static" | "fade" | "shorter";
+        }[];
+        mediaSlotRef: string | null;
+        scene: {
+          camera: {
+            fov: number;
+            /**
+             * @minItems 3
+             * @maxItems 3
+             */
+            position: never[];
+            /**
+             * @minItems 3
+             * @maxItems 3
+             */
+            target: never[];
+          };
+          /**
+           * @minItems 1
+           * @maxItems 6
+           */
+          lights: [
+            {
+              kind: "ambient" | "directional" | "point";
+              colour:
+                | {
+                    token: string;
+                  }
+                | {
+                    hex: string;
+                  };
+              intensity: number;
+              position: never[] | null;
+            },
+            ...{
+              kind: "ambient" | "directional" | "point";
+              colour:
+                | {
+                    token: string;
+                  }
+                | {
+                    hex: string;
+                  };
+              intensity: number;
+              position: never[] | null;
+            }[]
+          ];
+          /**
+           * @maxItems 40
+           */
+          primitives: {
+            id: string;
+            shape: "box" | "sphere" | "plane" | "torus" | "cylinder" | "cone";
+            /**
+             * @minItems 3
+             * @maxItems 3
+             */
+            size: never[];
+            /**
+             * @minItems 3
+             * @maxItems 3
+             */
+            position: never[];
+            /**
+             * @minItems 3
+             * @maxItems 3
+             */
+            rotation: never[];
+            colour:
+              | {
+                  token: string;
+                }
+              | {
+                  hex: string;
+                };
+            metalness: number;
+            roughness: number;
+          }[];
+          modelSlot: string | null;
+          interaction: "none" | "orbit" | "scroll" | "hover";
+          fallback:
+            | {
+                slot: string;
+              }
+            | {
+                fill:
+                  | {
+                      token: string;
+                    }
+                  | {
+                      hex: string;
+                    }
+                  | {
+                      linear: {
+                        angle: number;
+                        /**
+                         * @minItems 2
+                         * @maxItems 8
+                         */
+                        stops: [
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          ...{
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          }[]
+                        ];
+                      };
+                    }
+                  | {
+                      radial: {
+                        x: number;
+                        y: number;
+                        /**
+                         * @minItems 2
+                         * @maxItems 8
+                         */
+                        stops: [
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          {
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          },
+                          ...{
+                            colour:
+                              | {
+                                  token: string;
+                                }
+                              | {
+                                  hex: string;
+                                };
+                            at: number;
+                          }[]
+                        ];
+                      };
+                    }
+                  | {
+                      image: {
+                        slot: string;
+                        fit: "cover" | "contain";
+                      };
+                    };
+              };
+        } | null;
+        connector: {
+          from: string;
+          to: string;
+          arrow: "none" | "end" | "both";
+          route: "straight" | "elbow";
+          width: number;
+        } | null;
+        assetRef: string | null;
+        componentRef: string | null;
+        /**
+         * @maxItems 100
+         */
+        interactionRefs: string[];
+        locked: boolean;
+        hidden: boolean;
+      }[];
+      /**
+       * @maxItems 2000
+       */
+      annotations: {
+        id: string;
+        target: {
+          kind: "DOCUMENT" | "TERRITORY" | "FRAME" | "NODE";
+          id: string | null;
+        };
+        kind: "FEEDBACK" | "CHANGE_REQUEST" | "ACCESSIBILITY" | "ENGINEERING_QUESTION";
+        text: string;
+        by: string;
+        at: string | null;
+        status: "OPEN" | "ADDRESSED" | "DECLINED";
+        addressedIn: number | null;
+        reason: string | null;
+        settledBy: string | null;
+        settledAt: string | null;
+        change: {
+          nodeId: string;
+          property: "words" | "token" | "spacing" | "order" | "variant";
+          slot: ("fill" | "stroke" | "text-colour" | "type" | "radius") | null;
+          from: (string | number) | null;
+          to: string | number;
+        } | null;
+      }[];
+      /**
+       * @maxItems 500
+       */
+      components: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      /**
+       * @maxItems 200
+       */
+      flows: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      /**
+       * @maxItems 1000
+       */
+      interactions: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      /**
+       * @maxItems 200
+       */
+      responsiveRules: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      /**
+       * @maxItems 20
+       */
+      platformProfiles: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      accessibilitySpec: {
+        [k: string]: unknown | undefined;
+      };
+      /**
+       * @maxItems 500
+       */
+      qualityFindings: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      /**
+       * @maxItems 200
+       */
+      waivers: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      /**
+       * @maxItems 200
+       */
+      approvals: {
+        id: string;
+        [k: string]: unknown | undefined;
+      }[];
+      handoff: {
+        [k: string]: unknown | undefined;
+      };
+      provenance: {
+        [k: string]: unknown | undefined;
+      };
+      extensions: {
+        [k: string]: unknown | undefined;
+      };
+    } | null;
+  }[];
+  script: {
+    key: string;
+    text: string;
+  }[];
 }

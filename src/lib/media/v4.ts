@@ -1,3 +1,4 @@
+import type { SddDocument } from "@/lib/design/v4";
 import type { MediaStudioView } from "./media-studio.generated";
 
 /**
@@ -21,6 +22,30 @@ export type MediaTransition = MediaTimeline["transitions"][number];
 export type MediaPresetRange = MediaStudioView["presets"]["node"][number];
 export type NodePreset = NonNullable<MediaTrack["preset"]>;
 export type TransitionPreset = MediaTransition["preset"];
+export type MediaScriptLine = MediaStudioView["script"][number];
+/** A storyboard (v4 ADR-0085): Media's own scenes, and where Design's approval of them stands. */
+export type MediaStudioStoryboard = MediaStudioView["storyboards"][number];
+export type MediaStoryboard = MediaStudioStoryboard["storyboard"];
+export type StoryboardChange = NonNullable<MediaStudioStoryboard["decision"]>["changes"][number];
+export type StoryboardDecision = NonNullable<MediaStudioStoryboard["decision"]>["decision"];
+
+/**
+ * The composed document v4 sends (the approved design with the scenes beside its frames) as the Workshop's canvas draws and edits it.
+ * Both are v4's one design-document schema, generated twice; the canvas reads only what that schema holds.
+ */
+export const sceneDocument = (b: MediaStudioStoryboard): SddDocument | null => (b.document as unknown as SddDocument | null);
+
+/**
+ * The storyboard again after the canvas changed the composed document: each scene's nodes as the scene's frame now lists them, and
+ * every node that is not the design's own. The design's nodes are never sent back; v4 holds the storyboard to them.
+ */
+export function storyboardFrom(b: MediaStudioStoryboard, doc: SddDocument): MediaStoryboard {
+  const designIds = new Set((sceneDocument(b)?.nodes ?? []).map((n) => n.id).filter((id) => !b.storyboard.nodes.some((n) => n.id === id)));
+  const frames = new Map(doc.frames.map((f) => [f.id, f]));
+  const scenes = b.storyboard.scenes.map((s) => { const ids = frames.get(s.id)?.nodeIds ?? s.nodeIds; return { ...s, nodeIds: (ids.length ? ids : s.nodeIds) as [string, ...string[]] }; });
+  const nodes = doc.nodes.filter((n) => !designIds.has(n.id)) as unknown as MediaStoryboard["nodes"];
+  return { ...b.storyboard, scenes: asTuple(scenes), nodes };
+}
 
 /** Still formats name one moment; the others play the whole piece. */
 export const isStill = (o: Pick<MediaOutput, "format">) => o.format === "png" || o.format === "jpg";
@@ -49,6 +74,8 @@ function retime(t: MediaTimeline, at: (ms: number) => number): MediaTimeline {
     outputs: asTuple(t.outputs.map((o) => ({ ...o, atMs: o.atMs === null ? null : Math.min(durationMs, r(o.atMs)) }))),
     tracks: t.tracks.map((k) => ({ ...k, startMs: k.startMs === null ? null : r(k.startMs), keyframes: ordered(k.keyframes) })),
     camera: ordered(t.camera),
+    // A script line keeps its place in the beat it is said over (v4 ADR-0085 Decision 4).
+    script: t.script.map((l) => ({ ...l, startMs: r(l.startMs), endMs: Math.min(durationMs, r(l.endMs)) })),
   };
 }
 
@@ -100,3 +127,11 @@ export function setOutput(t: MediaTimeline, outputId: string, change: Partial<Pi
 }
 
 export const seconds = (ms: number) => `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : ms % 100 === 0 ? 1 : 2)} s`;
+
+/** Whether the script's lines are burned into the picture, written as a WebVTT file, or both (v4 ADR-0085 Decision 5). */
+export function setCaptions(t: MediaTimeline, change: Partial<MediaTimeline["captions"]>): MediaTimeline {
+  return { ...t, captions: { ...t.captions, ...change } };
+}
+
+/** The script line said over a moment, if any. */
+export const lineAt = (t: MediaTimeline, ms: number) => t.script.find((l) => ms >= l.startMs && ms < l.endMs) ?? null;

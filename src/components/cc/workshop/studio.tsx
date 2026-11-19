@@ -1,16 +1,17 @@
 "use client";
 
-import { Download, Film, Lock, Pause, Play, Plus, Type } from "lucide-react";
+import { Clapperboard, Download, Film, Lock, Pause, Play, Plus, Type } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useDataSource } from "@/lib/data";
 import {
-  OUTPUT_SHAPES, isStill, seconds, setBeatLength, setOutput, setTrack, setTransition,
+  OUTPUT_SHAPES, isStill, lineAt, seconds, setBeatLength, setCaptions, setOutput, setTrack, setTransition,
   type MediaStudioCheck, type MediaStudioFrame, type MediaStudioPiece, type MediaStudioRender, type MediaStudioView, type MediaTimeline, type NodePreset, type TransitionPreset,
 } from "@/lib/media/v4";
 import { Empty } from "../views";
 import { Field, Num, Section } from "./fields";
+import { Storyboards } from "./storyboard";
 
 /**
  * The Media studio (v4 ADR-0081 Decision 13): the Workshop's timeline panel over the project's approved design. The agency plays
@@ -46,6 +47,8 @@ export function MediaStudio({ projectId, header }: { projectId: string; header: 
     refetchInterval: (query) => (query.state.data?.pieces.some((p) => p.renders.some((r) => r.status === "QUEUED" || r.status === "RENDERING")) ? 2000 : false),
   });
   const [pieceId, setPieceId] = useState<string | null>(null);
+  // Two desks: the pieces, and the storyboards of Media's own scenes that Design approves (v4 ADR-0085).
+  const [desk, setDesk] = useState<"pieces" | "storyboards">("pieces");
   const view = q.data;
   const piece = view?.pieces.find((p) => p.id === pieceId) ?? view?.pieces[0] ?? null;
   const refresh = useCallback(() => { void qc.invalidateQueries({ queryKey: ["media-studio", projectId] }); }, [qc, projectId]);
@@ -54,34 +57,47 @@ export function MediaStudio({ projectId, header }: { projectId: string; header: 
   if (q.isError) return shell(<div className="workshop-empty"><Empty title="The studio could not be opened."><p>{(q.error as Error).message}</p><Button variant="ghost" className="ws-btn" onClick={() => void q.refetch()}>Try again</Button></Empty></div>);
   if (!view) return shell(<div className="workshop-empty"><span className="pulse-dot" /> Opening the studio…</div>);
   if (!view.design) return shell(<div className="workshop-empty"><Empty title="No approved design to play yet.">Media plays only a design the client approved. Once a revision is approved in the Workshop, its frames open here.</Empty></div>);
-  if (!piece) return shell(<NewPiece projectId={projectId} frames={view.design.frames} onStarted={(p) => { setPieceId(p.id); void refresh(); }} />);
-  return <Piece key={piece.id} projectId={projectId} view={view} piece={piece} header={header} choosePiece={setPieceId} refresh={refresh} />;
+  if (desk === "storyboards") return <Storyboards projectId={projectId} view={view} header={header} refresh={refresh} openPiece={(p) => { if (p) setPieceId(p.id); setDesk("pieces"); }} />;
+  if (!piece) return shell(<NewPiece projectId={projectId} view={view} onStarted={(p) => { setPieceId(p.id); void refresh(); }} openStoryboards={() => setDesk("storyboards")} />);
+  return <Piece key={piece.id} projectId={projectId} view={view} piece={piece} header={header} choosePiece={setPieceId} refresh={refresh} openStoryboards={() => setDesk("storyboards")} />;
 }
 
-function NewPiece({ projectId, frames, onStarted, inline }: { projectId: string; frames: MediaStudioFrame[]; onStarted: (p: MediaStudioPiece) => void; inline?: boolean }) {
+/** Where a new piece plays from: a frame of the approved design, or a storyboard of Media's own scenes. */
+function NewPiece({ projectId, view, onStarted, openStoryboards, inline }: { projectId: string; view: MediaStudioView; onStarted: (p: MediaStudioPiece) => void; openStoryboards: () => void; inline?: boolean }) {
   const ds = useDataSource();
-  const [frameId, setFrameId] = useState(frames[0]?.id ?? "");
+  const frames = view.design?.frames ?? [];
+  const [from, setFrom] = useState(view.storyboards[0] ? `board:${view.storyboards[0].storyboard.storyboardId}` : frames[0] ? `frame:${frames[0].id}` : "");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const start = async () => {
     setBusy(true); setMsg(null);
-    const r = await ds.media.startPiece(projectId, frameId);
+    const [kind, ...rest] = from.split(":");
+    const ref = rest.join(":");
+    const r = await ds.media.startPiece(projectId, kind === "board" ? { storyboardId: ref } : { frameId: ref });
     setBusy(false);
     if (r.error || !r.data) { setMsg(r.error?.message ?? "Could not start the piece."); return; }
     onStarted(r.data);
   };
   const form = (
     <div className="st-new">
-      <Field label="Play over this frame of the approved design"><select value={frameId} onChange={(e) => setFrameId(e.target.value)}>{frames.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}</select></Field>
-      <Button className="ws-btn primary" disabled={busy || !frameId} onClick={() => void start()}><Plus size={14} /> Start a piece</Button>
+      <Field label="Play from">
+        <select value={from} onChange={(e) => setFrom(e.target.value)}>
+          {view.storyboards.length > 0 && <optgroup label="Storyboards (Media's own scenes)">{view.storyboards.map((b) => <option key={b.id} value={`board:${b.storyboard.storyboardId}`}>{b.storyboard.storyboardId}, {b.scenes.length} scene{b.scenes.length === 1 ? "" : "s"}</option>)}</optgroup>}
+          <optgroup label="Frames of the approved design">{frames.map((f) => <option key={f.id} value={`frame:${f.id}`}>{f.label}</option>)}</optgroup>
+        </select>
+      </Field>
+      <div className="ws-actions">
+        <Button variant="ghost" className="ws-btn" onClick={openStoryboards}><Clapperboard size={14} /> Storyboards</Button>
+        <Button className="ws-btn primary" disabled={busy || !from} onClick={() => void start()}><Plus size={14} /> Start a piece</Button>
+      </div>
       {msg && <p className="mmsg" role="status">{msg}</p>}
     </div>
   );
   if (inline) return form;
-  return <div className="workshop-empty"><div><Empty title="No piece yet.">A piece is a short video or a still over one frame of the approved design. It starts from a first cut you can change.</Empty>{form}</div></div>;
+  return <div className="workshop-empty"><div><Empty title="No piece yet.">A piece is a short video or a still: over a frame of the approved design, or over a storyboard of Media&apos;s own scenes that Design approves. It starts from a first cut you can change.</Empty>{form}</div></div>;
 }
 
-function Piece({ projectId, view, piece, header, choosePiece, refresh }: { projectId: string; view: MediaStudioView; piece: MediaStudioPiece; header: React.ReactNode; choosePiece: (id: string) => void; refresh: () => void }) {
+function Piece({ projectId, view, piece, header, choosePiece, refresh, openStoryboards }: { projectId: string; view: MediaStudioView; piece: MediaStudioPiece; header: React.ReactNode; choosePiece: (id: string) => void; refresh: () => void; openStoryboards: () => void }) {
   const ds = useDataSource();
   const design = view.design!;
   const [timeline, setTimeline] = useState<MediaTimeline>(piece.timeline);
@@ -104,9 +120,12 @@ function Piece({ projectId, view, piece, header, choosePiece, refresh }: { proje
   const say = (m: string) => { setToast(m); window.clearTimeout(toastTimer.current); toastTimer.current = window.setTimeout(() => setToast(null), 4200); };
   useEffect(() => () => { window.clearTimeout(toastTimer.current); window.clearTimeout(pending.current); }, []);
 
-  // A piece plays one scene until v4 draws several (dev-playbook-v4 ADR-0085 step 2): the frame its first beat plays.
-  const sceneId = timeline.beats[0].sceneId;
-  const frame = design.frames.find((f) => f.id === sceneId);
+  // Each beat plays one scene: a frame of the design or a scene of the storyboard (v4 ADR-0085). The elements are the playing one's.
+  const board = timeline.storyboard ? view.storyboards.find((b) => b.storyboard.storyboardId === timeline.storyboard!.storyboardId) : undefined;
+  const scenes: MediaStudioFrame[] = [...design.frames, ...(board?.scenes ?? [])];
+  const beatNow = timeline.beats.find((b) => at >= b.startMs && at < b.endMs) ?? timeline.beats[timeline.beats.length - 1]!;
+  const sceneId = beatNow.sceneId;
+  const frame = scenes.find((f) => f.id === sceneId);
   const output = timeline.outputs.find((o) => o.id === outputId) ?? timeline.outputs[0];
 
   /** Every change is saved to v4 straight after; a refusal puts the piece back as v4 holds it. */
@@ -143,7 +162,7 @@ function Piece({ projectId, view, piece, header, choosePiece, refresh }: { proje
     refresh();
   };
 
-  const node = selection?.kind === "node" ? frame?.nodes.find((n) => n.id === selection.id) : undefined;
+  const node = selection?.kind === "node" ? scenes.flatMap((f) => f.nodes).find((n) => n.id === selection.id) : undefined;
   const busy = saveState !== "saved";
   const renders = piece.renders;
 
@@ -157,6 +176,7 @@ function Piece({ projectId, view, piece, header, choosePiece, refresh }: { proje
               ? <select className="ws-select" aria-label="Piece" value={piece.id} onChange={(e) => choosePiece(e.target.value)}>{view.pieces.map((p) => <option key={p.id} value={p.id}>{p.timeline.timelineId}</option>)}</select>
               : <b className="ws-project">{piece.timeline.timelineId}</b>}
             <button type="button" className="ws-ibtn" aria-label="New piece" title="Start another piece" aria-pressed={adding} onClick={() => setAdding((a) => !a)}><Plus size={15} /></button>
+            <Button variant="ghost" className="ws-btn" onClick={openStoryboards}><Clapperboard size={14} /> Storyboards</Button>
           </div>
           <div className="ws-group">
             <select className="ws-select" aria-label="Output" value={output.id} onChange={(e) => setOutputId(e.target.value)}>{timeline.outputs.map((o) => <option key={o.id} value={o.id}>{o.destination} ({o.width}x{o.height} {o.format})</option>)}</select>
@@ -164,11 +184,12 @@ function Piece({ projectId, view, piece, header, choosePiece, refresh }: { proje
           </div>
           <span className="ws-status">
             <span className="ws-chip">Design version {design.revision}</span>
+            {timeline.storyboard && <span className={`ws-chip${board?.storyboard.status === "APPROVED" ? " good" : ""}`}>Storyboard revision {timeline.storyboard.revision}{board && board.storyboard.status !== "APPROVED" ? ", waiting for Design" : ""}</span>}
             <span className={`ws-save is-${saveState === "saving" ? "saving" : saveState}`} role="status">{SAVE_WORDS[saveState]}{saveState === "conflict" && <button type="button" onClick={() => refresh()}>Reload</button>}</span>
           </span>
         </div>
       </div>
-      {adding && <div className="ws-banner quiet"><NewPiece inline projectId={projectId} frames={design.frames} onStarted={(p) => { setAdding(false); choosePiece(p.id); refresh(); }} /></div>}
+      {adding && <div className="ws-banner quiet"><NewPiece inline projectId={projectId} view={view} openStoryboards={openStoryboards} onStarted={(p) => { setAdding(false); choosePiece(p.id); refresh(); }} /></div>}
       {view.copy.source === "none" && <p className="ws-banner warn">No copy deck is approved for this project yet, so the slots show what they are for and v4 will not render them. Content writes the words in a plan.</p>}
       {refused && (
         <section className="ws-banner warn st-refused" aria-label="Refused by v4">
@@ -205,7 +226,7 @@ function Piece({ projectId, view, piece, header, choosePiece, refresh }: { proje
         <section className="ws-center" aria-label="Preview">
           <Preview projectId={projectId} pieceId={piece.id} hash={hash} output={output} frameWidth={frame?.width ?? output.width} at={at} />
           <Transport timeline={timeline} at={at} setAt={setAt} playing={playing} setPlaying={setPlaying} />
-          <Lanes timeline={timeline} frame={frame} at={at} setAt={setAt} selection={selection} select={(s) => { setSelection(s); setTab("edit"); }} />
+          <Lanes timeline={timeline} scenes={scenes} script={view.script} at={at} setAt={setAt} selection={selection} select={(s) => { setSelection(s); setTab("edit"); }} />
         </section>
 
         <aside className="ws-inspector" aria-label="Inspector">
@@ -313,10 +334,11 @@ function Transport({ timeline, at, setAt, playing, setPlaying }: { timeline: Med
   );
 }
 
-/** The timeline: beats end to end, then a lane for each element that moves, with the playhead across them. */
-function Lanes({ timeline, frame, at, setAt, selection, select }: { timeline: MediaTimeline; frame: MediaStudioFrame | undefined; at: number; setAt: (ms: number) => void; selection: Selection; select: (s: Selection) => void }) {
+/** The timeline: beats end to end, the script's lines under them, then a lane for each element that moves, with the playhead across them. */
+function Lanes({ timeline, scenes, script, at, setAt, selection, select }: { timeline: MediaTimeline; scenes: MediaStudioFrame[]; script: MediaStudioView["script"]; at: number; setAt: (ms: number) => void; selection: Selection; select: (s: Selection) => void }) {
   const pct = (ms: number) => `${(ms / timeline.durationMs) * 100}%`;
-  const roleOf = (id: string) => roleWords(frame?.nodes.find((n) => n.id === id)?.role ?? id);
+  const roleOf = (id: string) => roleWords(scenes.flatMap((f) => f.nodes).find((n) => n.id === id)?.role ?? id);
+  const textOf = (key: string) => script.find((l) => l.key === key)?.text;
   return (
     <div className="st-lanes" aria-label="Timeline">
       <div className="st-lane st-beats" role="group" aria-label="Beats">
@@ -331,6 +353,17 @@ function Lanes({ timeline, frame, at, setAt, selection, select }: { timeline: Me
           );
         })}
       </div>
+      {timeline.script.length > 0 && (
+        <div className="st-lane st-script" role="group" aria-label="Script">
+          <span className="st-lane-name">Script</span>
+          {timeline.script.map((l) => (
+            <button key={l.key} type="button" className="st-line" style={{ left: pct(l.startMs), width: pct(l.endMs - l.startMs) }} data-now={lineAt(timeline, at)?.key === l.key || undefined}
+              aria-label={`Script line ${l.key}, ${seconds(l.startMs)} to ${seconds(l.endMs)}`} title={textOf(l.key) ?? `${l.key} has no approved words yet`} onClick={() => setAt(l.startMs)}>
+              <span>{textOf(l.key) ?? l.key}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {timeline.tracks.map((k) => {
         const start = k.startMs ?? k.keyframes[0]?.atMs ?? 0;
         const end = k.durationMs !== null ? start + k.durationMs : k.keyframes.at(-1)?.atMs ?? start;
@@ -418,6 +451,12 @@ function Edit({ timeline, view, selection, node, write, select }: { timeline: Me
   return (
     <Section title="The piece">
       <p className="ws-note">{seconds(timeline.durationMs)} at {timeline.fps} frames a second, in {timeline.beats.length} beats{timeline.template ? `, started from the ${timeline.template.id} template` : ""}. Pick a beat or an element to change it.</p>
+      {timeline.script.length > 0 && <>
+        <h4 className="st-sub">Captions</h4>
+        <label className="ws-check"><input type="checkbox" checked={timeline.captions.burnIn} onChange={(e) => write(setCaptions(timeline, { burnIn: e.target.checked }))} /> Burn the script into the picture</label>
+        <label className="ws-check"><input type="checkbox" checked={timeline.captions.webvtt} onChange={(e) => write(setCaptions(timeline, { webvtt: e.target.checked }))} /> Write a WebVTT captions file</label>
+        <p className="ws-note">The words are the copy deck&apos;s script lines; Content writes them, and each line plays over its beat.</p>
+      </>}
       <h4 className="st-sub">Outputs</h4>
       <ul className="st-outputs">{timeline.outputs.map((o) => <li key={o.id}><button type="button" className="ws-layer" onClick={() => select({ kind: "output", id: o.id })}>{o.destination}<span className="ws-chip">{o.width}x{o.height} {o.format}</span></button></li>)}</ul>
     </Section>

@@ -1,6 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { MediaStudioPiece, MediaStudioRender, MediaStudioView } from "@/lib/media/v4";
+import type { MediaStudioPiece, MediaStudioRender, MediaStudioStoryboard, MediaStudioView } from "@/lib/media/v4";
 import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, ConversationMessage, ThreadSummary, ThreadView, ThreadWait, WorkspaceView, ConversationView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 
@@ -481,7 +481,7 @@ export function createApiDataSource(): DataSource {
 
     media: {
       read: (projectId) => call<MediaStudioView>("GET", `/v1/projects/${encodeURIComponent(projectId)}/media`),
-      startPiece: (projectId, frameId) => call<MediaStudioPiece>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/pieces`, { frameId }),
+      startPiece: (projectId, from) => call<MediaStudioPiece>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/pieces`, from),
       // What the platform stamps (the project, the organization, the timeline's id) is v4's; it keeps its own whatever is sent.
       save: (projectId, pieceId, timeline, expectedHash) => call("PUT", `/v1/projects/${encodeURIComponent(projectId)}/media/pieces/${encodeURIComponent(pieceId)}`, { timeline, expectedHash }),
       render: (projectId, pieceId, outputId, timelineHash) => call<MediaStudioRender>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/pieces/${encodeURIComponent(pieceId)}/renders`, { outputId, timelineHash }),
@@ -494,6 +494,10 @@ export function createApiDataSource(): DataSource {
         return ok(await res.text());
       },
       sheetUrl: (projectId, renderId, index) => `${PROXY}/v1/projects/${encodeURIComponent(projectId)}/media/renders/${encodeURIComponent(renderId)}/sheet/${index}`,
+      startStoryboard: (projectId) => call<MediaStudioStoryboard>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards`, {}),
+      saveStoryboard: (projectId, boardId, storyboard, expectedHash) => call<MediaStudioStoryboard>("PUT", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards/${encodeURIComponent(boardId)}`, { storyboard, expectedHash }),
+      sendStoryboard: (projectId, boardId, expectedHash) => call<MediaStudioStoryboard>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards/${encodeURIComponent(boardId)}/review`, { expectedHash }),
+      decideStoryboard: (projectId, boardId, decision) => call<MediaStudioStoryboard>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards/${encodeURIComponent(boardId)}/decision`, decision),
     },
 
     deliverables: {

@@ -57,6 +57,23 @@
 .st-ask { max-width: 720px; }
 .st-new { display: grid; gap: 8px; min-width: min(360px, 100%); margin-top: 12px; }
 
+/* The script lane (v4 ADR-0085 Decision 4): each line over the moments it is said, the one playing now marked. */
+.st-script { height: 34px; }
+.st-line { position: absolute; top: 14px; height: 18px; display: flex; align-items: center; padding: 0 6px; border: 1px dashed color-mix(in oklab, var(--foreground) 30%, var(--border)); border-radius: 3px; background: color-mix(in oklab, var(--foreground) 5%, transparent); color: var(--foreground); font-size: 10px; cursor: pointer; overflow: hidden; }
+.st-line span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-line[data-now] { border-style: solid; border-color: var(--primary); }
+.st-line:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* The storyboard desk: the strip of scenes in order, and the selected scene on the Workshop's canvas. */
+.sb-strip { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sb-scene { width: 100%; display: grid; gap: 4px; padding: 6px; border: 1px solid var(--border); border-radius: 3px; background: transparent; color: var(--foreground); text-align: left; cursor: pointer; }
+.sb-scene[aria-pressed="true"] { border-color: var(--primary); background: color-mix(in oklab, var(--primary) 10%, transparent); }
+.sb-scene:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.sb-thumb { display: block; overflow: hidden; pointer-events: none; }
+.sb-label { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; line-height: 1.35; }
+.sb-stage { display: grid; place-items: center; }
+.sb-script { list-style: decimal; }
+
 @media (max-width: 900px) {
   .st-main { display: flex; flex-direction: column; overflow-y: auto; }
   .st-main > .ws-left, .st-main > .ws-inspector { border: 0; border-top: 1px solid var(--border); }

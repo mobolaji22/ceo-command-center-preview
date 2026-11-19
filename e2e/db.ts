@@ -156,11 +156,14 @@ export function approvedDesignProject(): { id: string; name: string } {
   return { id, name };
 }
 
-/** Content's finished copy deck on that project (e2e/copy-seed.mjs): words for every slot of the chosen direction's frames. */
-export function seedCopyDeck(projectId: string) {
+/**
+ * Content's finished copy deck on that project (e2e/copy-seed.mjs): words for every slot of the chosen direction's frames, and with
+ * `script` the deck's script group too, the lines an explainer says (v4 ADR-0085 Decision 4).
+ */
+export function seedCopyDeck(projectId: string, opts: { script?: boolean } = {}) {
   const u = new URL(ADMIN);
   u.pathname = "/cc_e2e";
-  execFileSync("npx", ["tsx", resolve("e2e/copy-seed.mjs"), projectId], { cwd: V4_DIR, encoding: "utf8", env: { ...process.env, DATABASE_URL: u.toString(), STORAGE_DIR: process.env["E2E_STORAGE_DIR"], ...(process.env["CHROMIUM_PATH"] ? { RENDERER_CHROMIUM_PATH: process.env["CHROMIUM_PATH"] } : {}) } });
+  execFileSync("npx", ["tsx", resolve("e2e/copy-seed.mjs"), projectId, ...(opts.script ? ["--script"] : [])], { cwd: V4_DIR, encoding: "utf8", env: { ...process.env, DATABASE_URL: u.toString(), STORAGE_DIR: process.env["E2E_STORAGE_DIR"], ...(process.env["CHROMIUM_PATH"] ? { RENDERER_CHROMIUM_PATH: process.env["CHROMIUM_PATH"] } : {}) } });
 }
 
 /**

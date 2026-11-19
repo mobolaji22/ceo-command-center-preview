@@ -1,6 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { MediaStudioPiece, MediaStudioRender, MediaStudioView, MediaTimeline } from "@/lib/media/v4";
+import type { MediaStoryboard, MediaStudioPiece, MediaStudioRender, MediaStudioStoryboard, MediaStudioView, MediaTimeline, StoryboardChange, StoryboardDecision } from "@/lib/media/v4";
 import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, ThreadView, WorkspaceView } from "../model";
 
 /**
@@ -204,7 +204,8 @@ export interface DataSource {
    */
   media: {
     read(projectId: string): Promise<Result<MediaStudioView>>;
-    startPiece(projectId: string, frameId: string): Promise<Result<MediaStudioPiece>>;
+    /** A piece over one frame of the approved design, or over a storyboard's scenes (v4 ADR-0085), from v4's first cut of either. */
+    startPiece(projectId: string, from: { frameId: string } | { storyboardId: string }): Promise<Result<MediaStudioPiece>>;
     save(projectId: string, pieceId: string, timeline: MediaTimeline, expectedHash: string): Promise<Result<{ timelineHash: string; problems: string[] }>>;
     render(projectId: string, pieceId: string, outputId: string, timelineHash: string): Promise<Result<MediaStudioRender>>;
     /**
@@ -214,6 +215,15 @@ export interface DataSource {
     preview(projectId: string, pieceId: string, outputId: string): Promise<Result<string>>;
     /** One picture of a render's frame sheet, loaded as an image through the same door as every other read. */
     sheetUrl(projectId: string, renderId: string, index: number): string;
+    /**
+     * Storyboards (v4 ADR-0085 Decision 3): Media's own scenes, which Design approves before a piece renders from them. v4 stamps the
+     * status and revision and sends a changed storyboard back to a draft; who decided for Design is the signed-in person. Each answer
+     * is the storyboard as the studio shows it, its hash the one the next change names.
+     */
+    startStoryboard(projectId: string): Promise<Result<MediaStudioStoryboard>>;
+    saveStoryboard(projectId: string, boardId: string, storyboard: MediaStoryboard, expectedHash: string): Promise<Result<MediaStudioStoryboard>>;
+    sendStoryboard(projectId: string, boardId: string, expectedHash: string): Promise<Result<MediaStudioStoryboard>>;
+    decideStoryboard(projectId: string, boardId: string, decision: { decision: StoryboardDecision; changes: StoryboardChange[]; expectedHash: string }): Promise<Result<MediaStudioStoryboard>>;
   };
   /**
    * The client's book (v4 ADR-0053, ADR-0054): one document with a brand part and a market part, each read from the work its owners

@@ -3,7 +3,7 @@ import type { SddAnnotation, SddDocument, SddView } from "@/lib/design/v4";
 // demo's design document is v4's shape, not an imitation of it.
 // The sample's directions are drawn pages (v4 ADR-0065): the design benchmark's loan-platform territories, through the study loop.
 import sddSample from "@/lib/design/sdd-sample-drawn.json";
-import type { MediaStudioPiece, MediaStudioView, MediaTimeline } from "@/lib/media/v4";
+import type { MediaStoryboard, MediaStudioPiece, MediaStudioStoryboard, MediaStudioView, MediaTimeline } from "@/lib/media/v4";
 import type { KeptBrand } from "@/lib/deliverables/v4";
 import { sampleBook } from "@/lib/deliverables/samples";
 import type {
@@ -142,7 +142,7 @@ const STATUS_LINE = (i: { status: string; questions: unknown[]; delivery?: { out
 /** A thread of a project (v4 ADR-0078): the request that opened it and any later ones in it. Requests not listed have one each. */
 type FixtureThread = { id: string; organization_id: string; project_id: string | null; title: string; opened_from_id: string | null; intent_ids: string[] };
 
-type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; ledger?: LedgerDecision[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; media?: Record<string, MediaStudioPiece[]>; kept?: Record<string, KeptBrand>; conversations?: Record<string, Array<ConversationMessage & { by?: string | undefined }>>; threads?: FixtureThread[] };
+type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; ledger?: LedgerDecision[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; media?: Record<string, MediaStudioPiece[]>; storyboards?: Record<string, MediaStudioStoryboard[]>; kept?: Record<string, KeptBrand>; conversations?: Record<string, Array<ConversationMessage & { by?: string | undefined }>>; threads?: FixtureThread[] };
 
 /**
  * A project's design document in the demo, as v4 keeps it: the approved versions, and the one revision being worked on (a draft, one
@@ -1116,8 +1116,72 @@ export function createFixturesDataSource(): DataSource {
           return ok(structuredClone(out));
         } catch (e) { return e instanceof Refusal ? fail(e.message, e.code) : fail((e as Error).message); }
       };
+      // Storyboards, as v4 keeps them (ADR-0085): one title card over the design's first words, a changed one back to a draft, and
+      // Design's approval making the next revision. The demo checks nothing else; v4 checks the scenes against the brand.
+      const withBoards = <T,>(projectId: string, fn: (boards: MediaStudioStoryboard[], doc: SddDocument) => T): Result<T> => withMedia(projectId, (_p, doc, s) => {
+        if (!doc) throw new Refusal("NO_DESIGN", "There is no approved design for the scenes to draw with yet.");
+        const list = s.storyboards?.[projectId] ?? [];
+        const out = fn(list, doc);
+        s.storyboards = { ...s.storyboards, [projectId]: list };
+        return out;
+      });
+      const boardOf = (list: MediaStudioStoryboard[], boardId: string, expectedHash: string) => {
+        const b = list.find((x) => x.id === boardId);
+        if (!b) throw new Refusal("STORYBOARD_NOT_FOUND", "There is no such storyboard in this project.");
+        if (b.documentHash !== expectedHash) throw new Refusal("STALE_STORYBOARD", "The storyboard changed since you looked at it; reload it.");
+        return b;
+      };
+      const restamp = (b: MediaStudioStoryboard, doc: SddDocument, sb: MediaStoryboard) => {
+        b.storyboard = sb;
+        b.documentHash = hashOf(sb as unknown as MediaTimeline);
+        b.document = { ...doc, frames: [...doc.frames, ...sb.scenes.map((x) => ({ id: x.id, territoryId: doc.selectedTerritoryId, page: null, viewport: "media-scene", rootNodeId: x.rootNodeId, nodeIds: x.nodeIds, width: x.width, height: x.height, pageRef: null }))], nodes: [...doc.nodes, ...sb.nodes] } as unknown as MediaStudioStoryboard["document"];
+        b.scenes = sb.scenes.map((x) => ({ id: x.id, label: x.label, width: x.width, height: x.height, nodes: sb.nodes.filter((n) => x.nodeIds.includes(n.id)).map((n) => ({ id: n.id, role: n.role, type: n.type, locked: n.locked, slotKey: slotOf(n as unknown as SddDocument["nodes"][number]) })) }));
+      };
+      const boards: Pick<DataSource["media"], "startStoryboard" | "saveStoryboard" | "sendStoryboard" | "decideStoryboard"> = {
+        startStoryboard: async (projectId) => withBoards(projectId, (list, doc) => {
+          const words = doc.nodes.find((n) => n.text && slotOf(n));
+          const type = Object.keys(doc.territories.find((t) => t.id === doc.selectedTerritoryId)?.tokens?.type ?? doc.tokens?.type ?? {})[0];
+          if (!words || !type) throw new Refusal("NOTHING_TO_SHOW", "The approved design shows no words through a copy slot, so a first storyboard has nothing to put on screen.");
+          const sid = `storyboard-${list.length + 1}`;
+          const root = `${sid}.s1`, title = `${root}.title`;
+          const sb = {
+            schemaVersion: "1", storyboardId: sid, projectId, tenantId: "demo", revision: 0, status: "DRAFT", design: { documentId: doc.documentId, revision: doc.revision },
+            scenes: [{ id: "scene.1", label: "Scene 1", width: 1920, height: 1080, rootNodeId: root, nodeIds: [root, title] }],
+            nodes: [
+              { ...words, id: root, role: "scene", type: "frame", parentId: null, children: [title], text: null, content: undefined, geometry: { intent: null, box: { x: 0, y: 0, w: 1920, h: 1080 } }, style: { ...words.style, fill: { token: "surface" } }, locked: false },
+              { ...words, id: title, role: "title", type: "text", parentId: root, children: [], geometry: { intent: null, box: { x: 160, y: 340, w: 1600, h: 400 } }, text: { ...words.text!, style: type, colour: { token: "text" } }, locked: false },
+            ],
+          } as unknown as MediaStoryboard;
+          const b = { id: `board-${id()}`, problems: [], approvedRevision: null, changedScenes: ["scene.1"], decision: null } as unknown as MediaStudioStoryboard;
+          restamp(b, doc, sb);
+          list.push(b);
+          return b;
+        }),
+        saveStoryboard: async (projectId, boardId, storyboard, expectedHash) => withBoards(projectId, (list, doc) => {
+          const b = boardOf(list, boardId, expectedHash);
+          const same = JSON.stringify([storyboard.scenes, storyboard.nodes]) === JSON.stringify([b.storyboard.scenes, b.storyboard.nodes]);
+          restamp(b, doc, { ...storyboard, status: same ? b.storyboard.status : "DRAFT", revision: b.storyboard.revision });
+          if (!same) b.changedScenes = storyboard.scenes.map((x) => x.id);
+          return b;
+        }),
+        sendStoryboard: async (projectId, boardId, expectedHash) => withBoards(projectId, (list, doc) => {
+          const b = boardOf(list, boardId, expectedHash);
+          if (b.storyboard.status !== "DRAFT") throw new Refusal("NOT_READY", "It is with Design already, or approved as it is.");
+          restamp(b, doc, { ...b.storyboard, status: "IN_REVIEW" });
+          return b;
+        }),
+        decideStoryboard: async (projectId, boardId, decision) => withBoards(projectId, (list, doc) => {
+          const b = boardOf(list, boardId, decision.expectedHash);
+          if (b.storyboard.status !== "IN_REVIEW") throw new Refusal("NOT_IN_REVIEW", "Design decides on a storyboard once Media sends it for review.");
+          const approve = decision.decision === "APPROVE";
+          restamp(b, doc, approve ? { ...b.storyboard, status: "APPROVED", revision: b.storyboard.revision + 1 } : { ...b.storyboard, status: "DRAFT" });
+          if (approve) { b.approvedRevision = b.storyboard.revision; b.changedScenes = []; }
+          b.decision = { by: sessionUserId() ?? "demo", at: new Date().toISOString(), decision: decision.decision, changes: approve ? [] : decision.changes };
+          return b;
+        }),
+      };
       return {
-        read: async (projectId) => withMedia(projectId, (pieces, doc): MediaStudioView => ({
+        read: async (projectId) => withMedia(projectId, (pieces, doc, s): MediaStudioView => ({
           design: doc ? {
             documentId: doc.documentId, revision: doc.revision,
             frames: doc.frames.filter((f) => f.width).map((f) => ({ id: f.id, label: [f.page, f.viewport].filter(Boolean).join(", ") || f.id, width: f.width, height: f.height, nodes: doc.nodes.filter((n) => f.nodeIds.includes(n.id)).map((n) => ({ id: n.id, role: n.role, type: n.type, locked: n.locked, slotKey: slotOf(n) })) })),
@@ -1128,15 +1192,23 @@ export function createFixturesDataSource(): DataSource {
             transition: [{ name: "cut", minMs: 0, maxMs: 0, defaultMs: 0 }, { name: "crossfade", minMs: 150, maxMs: 1200, defaultMs: 500 }],
           },
           pieces,
+          storyboards: s.storyboards?.[projectId] ?? [],
+          script: [],
         }), false),
-        startPiece: async (projectId, frameId) => withMedia(projectId, (pieces, doc) => {
+        startPiece: async (projectId, from) => withMedia(projectId, (pieces, doc, s) => {
           if (!doc) throw new Refusal("NO_DESIGN", "There is no approved design to play yet. Media plays only an approved design.");
+          const board = "storyboardId" in from ? (s.storyboards?.[projectId] ?? []).find((b) => b.storyboard.storyboardId === from.storyboardId) : undefined;
+          if ("storyboardId" in from && !board) throw new Refusal("STORYBOARD_NOT_FOUND", "There is no such storyboard in this project.");
+          const scenes = board ? board.storyboard.scenes.map((x) => x.id) : ["frameId" in from ? from.frameId : ""];
+          const beat = 6000 / Math.max(2, scenes.length);
+          const beats = (scenes.length > 1 ? scenes : [scenes[0]!, scenes[0]!]).map((sceneId, i) => ({ id: `b${i + 1}`, label: board ? board.storyboard.scenes[i]!.label : i ? "Next" : "Open", startMs: i * beat, endMs: (i + 1) * beat, sceneId }));
           const timeline: MediaTimeline = {
-            schemaVersion: "2", timelineId: `piece-${pieces.length + 1}`, projectId, tenantId: "demo", revision: 0, design: { documentId: doc.documentId, revision: doc.revision }, storyboard: null,
-            mode: "template", template: { id: "first-cut", version: "1.0.0" }, durationMs: 6000, fps: 30,
+            schemaVersion: "2", timelineId: `piece-${pieces.length + 1}`, projectId, tenantId: "demo", revision: 0, design: { documentId: doc.documentId, revision: doc.revision },
+            storyboard: board ? { storyboardId: board.storyboard.storyboardId, revision: board.storyboard.revision } : null,
+            mode: "template", template: { id: board ? "storyboard-cut" : "first-cut", version: "1.0.0" }, durationMs: 6000, fps: 30,
             outputs: [{ id: "landscape", width: 1920, height: 1080, format: "mp4", destination: "Video, 16:9", atMs: null }],
-            beats: [{ id: "open", label: "Open", startMs: 0, endMs: 3000, sceneId: frameId }, { id: "next", label: "Next", startMs: 3000, endMs: 6000, sceneId: frameId }],
-            tracks: [], camera: [], transitions: [{ fromBeatId: "open", toBeatId: "next", preset: "crossfade", durationMs: 500, easing: null }],
+            beats: beats as MediaTimeline["beats"],
+            tracks: [], camera: [], transitions: beats.slice(1).map((b, i) => ({ fromBeatId: beats[i]!.id, toBeatId: b.id, preset: "crossfade" as const, durationMs: 500, easing: null })),
             script: [], captions: { burnIn: false, webvtt: false }, narration: null, audio: null, variants: [], seed: null,
           };
           const piece: MediaStudioPiece = { id: `piece-${id()}`, timeline, timelineHash: hashOf(timeline), updatedAt: new Date().toISOString(), problems: [], renders: [] };
@@ -1163,6 +1235,7 @@ export function createFixturesDataSource(): DataSource {
         }),
         preview: async () => ok(`<!doctype html><html><body style="margin:0;display:grid;place-items:center;height:100vh;font:16px system-ui;color:#888;background:#111">The preview plays v4's own page, so it shows only with v4.<script>parent.postMessage({ mediaPreview: "ready", durationMs: 6000, rate: 30 }, "*")</script></body></html>`),
         sheetUrl: () => "",
+        ...boards,
       };
     })(),
 
