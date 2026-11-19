@@ -1132,11 +1132,12 @@ export function createFixturesDataSource(): DataSource {
         startPiece: async (projectId, frameId) => withMedia(projectId, (pieces, doc) => {
           if (!doc) throw new Refusal("NO_DESIGN", "There is no approved design to play yet. Media plays only an approved design.");
           const timeline: MediaTimeline = {
-            schemaVersion: "1", timelineId: `piece-${pieces.length + 1}`, projectId, tenantId: "demo", revision: 0, design: { documentId: doc.documentId, revision: doc.revision, frameId },
+            schemaVersion: "2", timelineId: `piece-${pieces.length + 1}`, projectId, tenantId: "demo", revision: 0, design: { documentId: doc.documentId, revision: doc.revision }, storyboard: null,
             mode: "template", template: { id: "first-cut", version: "1.0.0" }, durationMs: 6000, fps: 30,
             outputs: [{ id: "landscape", width: 1920, height: 1080, format: "mp4", destination: "Video, 16:9", atMs: null }],
-            beats: [{ id: "open", label: "Open", startMs: 0, endMs: 3000 }, { id: "next", label: "Next", startMs: 3000, endMs: 6000 }],
-            tracks: [], camera: [], transitions: [{ fromBeatId: "open", toBeatId: "next", preset: "crossfade", durationMs: 500, easing: null }], audio: null, variants: [], seed: null,
+            beats: [{ id: "open", label: "Open", startMs: 0, endMs: 3000, sceneId: frameId }, { id: "next", label: "Next", startMs: 3000, endMs: 6000, sceneId: frameId }],
+            tracks: [], camera: [], transitions: [{ fromBeatId: "open", toBeatId: "next", preset: "crossfade", durationMs: 500, easing: null }],
+            script: [], captions: { burnIn: false, webvtt: false }, narration: null, audio: null, variants: [], seed: null,
           };
           const piece: MediaStudioPiece = { id: `piece-${id()}`, timeline, timelineHash: hashOf(timeline), updatedAt: new Date().toISOString(), problems: [], renders: [] };
           pieces.push(piece);

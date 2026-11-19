@@ -43,7 +43,7 @@ export interface MediaStudioView {
   pieces: {
     id: string;
     timeline: {
-      schemaVersion: "1";
+      schemaVersion: "2";
       timelineId: string;
       projectId: string;
       tenantId: string;
@@ -51,8 +51,11 @@ export interface MediaStudioView {
       design: {
         documentId: string;
         revision: number;
-        frameId: string;
       };
+      storyboard: {
+        storyboardId: string;
+        revision: number;
+      } | null;
       mode: "template" | "compose";
       template: {
         id: string;
@@ -92,12 +95,14 @@ export interface MediaStudioView {
           label: string;
           startMs: number;
           endMs: number;
+          sceneId: string;
         },
         ...{
           id: string;
           label: string;
           startMs: number;
           endMs: number;
+          sceneId: string;
         }[]
       ];
       /**
@@ -105,7 +110,8 @@ export interface MediaStudioView {
        */
       tracks: {
         nodeId: string;
-        preset: ("fade-in" | "rise" | "slide-in" | "scale-in" | "parallax" | "spin") | null;
+        preset:
+          ("fade-in" | "rise" | "slide-in" | "scale-in" | "parallax" | "spin" | "draw-on" | "type-on" | "count-up" | "highlight") | null;
         startMs: number | null;
         durationMs: number | null;
         /**
@@ -118,6 +124,7 @@ export interface MediaStudioView {
           y?: number;
           scale?: number;
           rotate?: number;
+          reveal?: number;
           easing:
             | ("linear" | "ease-in" | "ease-out" | "ease-in-out")
             | {
@@ -168,6 +175,24 @@ export interface MediaStudioView {
             )
           | null;
       }[];
+      /**
+       * @maxItems 500
+       */
+      script: {
+        key: string;
+        startMs: number;
+        endMs: number;
+      }[];
+      captions: {
+        burnIn: boolean;
+        webvtt: boolean;
+      };
+      narration: {
+        assetId: string;
+        assetVersion: number;
+        offsetMs: number;
+        gainDb: number;
+      } | null;
       audio: {
         assetId: string;
         assetVersion: number;

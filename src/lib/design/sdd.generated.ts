@@ -499,6 +499,7 @@ export interface SddDocument {
           y?: number;
           scale?: number;
           rotate?: number;
+          reveal?: number;
         },
         {
           at: number;
@@ -507,6 +508,7 @@ export interface SddDocument {
           y?: number;
           scale?: number;
           rotate?: number;
+          reveal?: number;
         },
         ...{
           at: number;
@@ -515,6 +517,7 @@ export interface SddDocument {
           y?: number;
           scale?: number;
           rotate?: number;
+          reveal?: number;
         }[]
       ];
       timing:
@@ -707,6 +710,13 @@ export interface SddDocument {
                   };
                 };
           };
+    } | null;
+    connector: {
+      from: string;
+      to: string;
+      arrow: "none" | "end" | "both";
+      route: "straight" | "elbow";
+      width: number;
     } | null;
     assetRef: string | null;
     componentRef: string | null;

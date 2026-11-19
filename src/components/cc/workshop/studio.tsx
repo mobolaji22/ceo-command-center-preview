@@ -104,7 +104,9 @@ function Piece({ projectId, view, piece, header, choosePiece, refresh }: { proje
   const say = (m: string) => { setToast(m); window.clearTimeout(toastTimer.current); toastTimer.current = window.setTimeout(() => setToast(null), 4200); };
   useEffect(() => () => { window.clearTimeout(toastTimer.current); window.clearTimeout(pending.current); }, []);
 
-  const frame = design.frames.find((f) => f.id === timeline.design.frameId);
+  // A piece plays one scene until v4 draws several (dev-playbook-v4 ADR-0085 step 2): the frame its first beat plays.
+  const sceneId = timeline.beats[0].sceneId;
+  const frame = design.frames.find((f) => f.id === sceneId);
   const output = timeline.outputs.find((o) => o.id === outputId) ?? timeline.outputs[0];
 
   /** Every change is saved to v4 straight after; a refusal puts the piece back as v4 holds it. */
@@ -181,7 +183,7 @@ function Piece({ projectId, view, piece, header, choosePiece, refresh }: { proje
         <aside className="ws-left" aria-label="Elements">
           <div className="ws-tabs"><button type="button" className="active">Elements</button></div>
           <div className="ws-tabpanel">
-            <p className="ws-note">The elements of <b>{frame?.label ?? timeline.design.frameId}</b>. A locked one is Design&apos;s; moving it is a change to the design.</p>
+            <p className="ws-note">The elements of <b>{frame?.label ?? sceneId}</b>. A locked one is Design&apos;s; moving it is a change to the design.</p>
             <ul className="st-nodes">
               {(frame?.nodes ?? []).map((n) => {
                 const moves = timeline.tracks.some((k) => k.nodeId === n.id);

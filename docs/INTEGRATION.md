@@ -125,6 +125,9 @@ the studio never changes either. The browser reaches it only through `DataSource
 - **Types are generated.** `npm run v4:types` copies v4's `media-studio.schema.json` and writes `src/lib/media/media-studio.generated.ts`.
   `src/lib/media/v4.ts` holds the edits (beat length, motion, transition, output) and keeps v4's rules so a save is not refused for a
   reason the person could not see; whether an element may move is v4's to say.
+- **Timelines are version 2** (dev-playbook-v4 ADR-0085): each beat names the scene it plays (`sceneId`), and a timeline may name a
+  storyboard of scenes Media composed, script lines, captions and a recorded narration. Until v4 draws several scenes a piece, the
+  studio plays the frame its first beat names, and v4 offers only the motions its renderer draws.
 - **No second renderer.** The preview is v4's page, so what is scrubbed is what the worker draws. The demo data source has no renderer:
   its renders come back not rendered, saying so.
 
