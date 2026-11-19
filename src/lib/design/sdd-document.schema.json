@@ -2306,6 +2306,11 @@
                         "type": "number",
                         "minimum": -720,
                         "maximum": 720
+                      },
+                      "reveal": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
                       }
                     },
                     "required": [
@@ -3010,6 +3015,62 @@
               }
             ]
           },
+          "connector": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
+                  },
+                  "to": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "pattern": "^[A-Za-z0-9._:-]+$"
+                  },
+                  "arrow": {
+                    "default": "end",
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "end",
+                      "both"
+                    ]
+                  },
+                  "route": {
+                    "default": "straight",
+                    "type": "string",
+                    "enum": [
+                      "straight",
+                      "elbow"
+                    ]
+                  },
+                  "width": {
+                    "default": 2,
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 40
+                  }
+                },
+                "required": [
+                  "from",
+                  "to",
+                  "arrow",
+                  "route",
+                  "width"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "assetRef": {
             "default": null,
             "anyOf": [
@@ -3071,6 +3132,7 @@
           "motion",
           "mediaSlotRef",
           "scene",
+          "connector",
           "assetRef",
           "componentRef",
           "interactionRefs",

@@ -4,7 +4,7 @@ import type { SddAnnotation, SddDocument, SddView } from "@/lib/design/v4";
 // The sample's directions are drawn pages (v4 ADR-0065): the design benchmark's loan-platform territories, through the study loop.
 import sddSample from "@/lib/design/sdd-sample-drawn.json";
 import type { KeptBrand } from "@/lib/deliverables/v4";
-import { sampleBook } from "@/lib/deliverables/samples";
+import { SAMPLE_STRATEGY_DECISION_ID, sampleBook } from "@/lib/deliverables/samples";
 import type {
   ProjectObjectiveView,
   Answer,
@@ -197,6 +197,17 @@ const demoLedger = (): LedgerDecision[] => [{
     keep_option_id: "app",
   },
   created_at: new Date(Date.now() - 864e5 * 19).toISOString(), resolved_at: null,
+}, {
+  // The sample book's recommendation (v4 ADR-0084): the owner decides it, and nothing waits on it.
+  id: SAMPLE_STRATEGY_DECISION_ID, project_id: "p-1", question: "What should the new storefront lead with, so that more people buy midweek?",
+  options: [
+    { id: "o1", label: "Lead with today's bake times", tradeoff: "Gains: a reason to come midweek. Costs: the times are updated after every bake." },
+    { id: "o2", label: "Lead with the weekend range", tradeoff: "Gains: shows the shop at its best. Costs: does nothing for the weak weekdays." },
+    { id: "o3", label: "Keep the storefront as it is for now", tradeoff: "Gains: no new daily work. Costs: the weekday gap stays." },
+  ],
+  recommendation: { option_id: "o1", label: "Lead with today's bake times", why: "Nobody nearby shows bake times, the bakes already happen, and a chalkboard tests it." },
+  state: "OPEN", resolution: null, selected_option: null, disposition: "ASK", authority: null, holds: [], counsel: null,
+  created_at: new Date(Date.now() - 864e5 * 2).toISOString(), resolved_at: null,
 }];
 
 function seed(): Store {
@@ -1143,7 +1154,11 @@ export function createFixturesDataSource(): DataSource {
         const project = s.data.projects.find((p) => p.id === projectId);
         if (projectId !== "p-1" || !project?.started_at) return ok(null);
         const agency = s.users.find((u) => u.id === currentUserId())?.role === "owner";
-        return ok(sampleBook(agency ? "AGENCY" : "CLIENT", project.started_at));
+        const book = sampleBook(agency ? "AGENCY" : "CLIENT", project.started_at);
+        // The recommendation's state is the ledger's, as in v4: answering it there shows in the book.
+        const d = (s.ledger ?? demoLedger()).find((x) => x.id === SAMPLE_STRATEGY_DECISION_ID);
+        if (book.strategy && d) book.strategy.ownerDecision = { id: d.id, state: d.state, chosenOptionId: d.selected_option?.id ?? null, decidedAt: d.resolved_at };
+        return ok(book);
       },
       async keepBrand(projectId) {
         const s = load();

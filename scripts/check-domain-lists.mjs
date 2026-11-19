@@ -20,6 +20,8 @@ const walk = (dir) => readdirSync(dir).flatMap((name) => {
 for (const file of [...walk(join(root, "src")), ...walk(join(root, "e2e"))]) {
   const rel = relative(root, file);
   if (rel === FIXTURES) continue;
+  // A generated file is v4's own definition, copied by `npm run v4:types` and checked against v4 (its --check): not a second list.
+  if (rel.endsWith(".generated.ts")) continue;
   const text = readFileSync(file, "utf8");
   // A type written by scripts/v4-types.mjs from v4's published schema is v4's own list, not a second one: v4:types --check
   // fails if it differs from what v4's schema gives (a Compliance control names the domain that owns it, so it quotes them all).
