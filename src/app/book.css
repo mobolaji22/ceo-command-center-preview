@@ -38,6 +38,15 @@
 .book-known { display: inline-block; margin-left: 4px; padding: 1px 8px; border: 1px solid var(--border); border-radius: 999px; font: 600 10px "DM Sans", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: 2px; color: var(--muted-foreground); }
 .book-known.known-fact { border-color: color-mix(in oklab, var(--primary) 60%, transparent); color: var(--primary); }
 .book-known.known-conflict, .book-known.known-unknown { border-style: dashed; }
+/* Before it goes live (v4 ADR-0075): an item that applies on a binding source reads firm; one not settled reads open. */
+.book-obligations { gap: 18px; }
+.book-obligations small, .book-pairs dd small { display: block; margin-top: 2px; font-size: 13px; color: var(--muted-foreground); }
+.book-obligations .book-pairs { margin-top: 8px; }
+.book-known.applies-applicable { border-color: color-mix(in oklab, var(--primary) 60%, transparent); color: var(--primary); }
+.book-known.applies-unresolved, .book-known.applies-outside_authority { border-style: dashed; }
+.book-obligation-counsel { font-weight: 600; }
+.book-known.before-launch { margin-left: 6px; font-weight: 600; }
+.book-obligation-recalled { font-style: italic; }
 .book-evidence summary { cursor: pointer; font-size: 12px; color: var(--muted-foreground); }
 .book-evidence ul { display: grid; gap: 8px; margin: 8px 0 0; padding-left: 18px; font-size: 14px; }
 .book-implication { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border); }
@@ -77,3 +86,4 @@
   .book-print .book-section h3 { break-after: avoid; }
   .book-print .book-evidence summary { list-style: none; color: var(--muted-foreground); }
 }
+.book-agency-note { margin: 0 0 8px; font-size: 13px; font-style: italic; color: var(--muted-foreground); }

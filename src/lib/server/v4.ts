@@ -63,7 +63,7 @@ export async function callApi(path: string, init: { method?: string; secret?: st
 export const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...extra } });
 
-export type MeResponse = { userId: string; email: string; name: string | null; isCEO: boolean; isAgency: boolean; memberships: Array<{ organizationId: string; role: string }> };
+export type MeResponse = { userId: string; email: string; name: string | null; isCEO: boolean; isAgency: boolean; isStaff?: boolean; memberships: Array<{ organizationId: string; role: string }> };
 
 /** The signed-in person, in the shape the UI uses. Null when there is no valid session. */
 export async function sessionFor(secret: string | null) {
@@ -75,7 +75,8 @@ export async function sessionFor(secret: string | null) {
     userId: me.userId,
     email: me.email,
     displayName: me.name ?? me.email.split("@")[0] ?? me.email,
-    role: me.isAgency ? ("owner" as const) : ("client" as const),
+    // A member of the agency's team is neither the CEO nor a client: they see their steps (v4 ADR-0072).
+    role: me.isAgency ? ("owner" as const) : me.isStaff ? ("staff" as const) : ("client" as const),
     memberships: me.memberships.filter((m) => m.role === "CLIENT_OWNER" || m.role === "CLIENT_MEMBER").map((m) => ({ organizationId: m.organizationId, role: m.role })),
   };
 }
