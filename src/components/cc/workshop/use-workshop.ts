@@ -75,6 +75,7 @@ export function useWorkshop(projectId: string, agency: boolean) {
     const run = (async () => {
       setSaveState("saving");
       const doc = { ...h.present, annotations: notesRef.current };
+      const starts = hashRef.current === null;
       let r = await ds.design.save(projectId, doc, hashRef.current);
       if (r.error?.code === "DRAFT_CONFLICT") {
         // Someone added or answered feedback since the last save: when the design itself is as this editor last saved it, take the
@@ -93,6 +94,8 @@ export function useWorkshop(projectId: string, agency: boolean) {
       }
       hashRef.current = r.data.documentHash;
       savedRef.current = h.present;
+      // The first change to an approved version started v4's draft: take it as the revision being worked on, so it can be sent.
+      if (starts) { const v = await read(); if (v?.current?.status === "DRAFT") setView(v); }
       setSaveNote("");
       setSaveState(histRef.current && histRef.current.present !== h.present ? "unsaved" : "saved");
     })();

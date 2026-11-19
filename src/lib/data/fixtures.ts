@@ -3,6 +3,7 @@ import type { SddAnnotation, SddDocument, SddView } from "@/lib/design/v4";
 // demo's design document is v4's shape, not an imitation of it.
 // The sample's directions are drawn pages (v4 ADR-0065): the design benchmark's loan-platform territories, through the study loop.
 import sddSample from "@/lib/design/sdd-sample-drawn.json";
+import type { MediaStudioPiece, MediaStudioView, MediaTimeline } from "@/lib/media/v4";
 import type { KeptBrand } from "@/lib/deliverables/v4";
 import { sampleBook } from "@/lib/deliverables/samples";
 import type {
@@ -141,7 +142,7 @@ const STATUS_LINE = (i: { status: string; questions: unknown[]; delivery?: { out
 /** A thread of a project (v4 ADR-0078): the request that opened it and any later ones in it. Requests not listed have one each. */
 type FixtureThread = { id: string; organization_id: string; project_id: string | null; title: string; opened_from_id: string | null; intent_ids: string[] };
 
-type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; ledger?: LedgerDecision[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; kept?: Record<string, KeptBrand>; conversations?: Record<string, Array<ConversationMessage & { by?: string | undefined }>>; threads?: FixtureThread[] };
+type Store = { standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; ledger?: LedgerDecision[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; media?: Record<string, MediaStudioPiece[]>; kept?: Record<string, KeptBrand>; conversations?: Record<string, Array<ConversationMessage & { by?: string | undefined }>>; threads?: FixtureThread[] };
 
 /**
  * A project's design document in the demo, as v4 keeps it: the approved versions, and the one revision being worked on (a draft, one
@@ -1095,6 +1096,72 @@ export function createFixturesDataSource(): DataSource {
           });
           return r.error ? r : ok(undefined);
         },
+      };
+    })(),
+
+    // The demo imitates v4's studio only as far as the screen needs: it keeps pieces and refuses a locked element as v4 does, but it
+    // works out no frame values and makes no files. v4 does both (ADR-0081), so the demo says so instead of pretending.
+    media: (() => {
+      const hashOf = (t: MediaTimeline) => { let h = 0; for (const c of JSON.stringify(t)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h.toString(16).padStart(64, "0"); };
+      const approvedDoc = (s: Store, projectId: string) => s.design?.[projectId]?.approved[0]?.document ?? null;
+      const slotOf = (n: SddDocument["nodes"][number]) => { const c = n.content as { contentRef?: { key?: unknown } } | null | undefined; return typeof c?.contentRef?.key === "string" ? c.contentRef.key : null; };
+      const withMedia = <T,>(projectId: string, fn: (pieces: MediaStudioPiece[], doc: SddDocument | null, s: Store) => T, write = true): Result<T> => {
+        const s = load();
+        if (!mayReach(s, projectId)) return fail("That couldn't be found.", "NOT_FOUND");
+        if (s.users.find((u) => u.id === sessionUserId())?.role !== "owner") return fail("You don't have access to do that.", "FORBIDDEN");
+        const pieces = s.media?.[projectId] ?? [];
+        try {
+          const out = fn(pieces, approvedDoc(s, projectId), s);
+          if (write) { s.media = { ...s.media, [projectId]: pieces }; save(s); }
+          return ok(structuredClone(out));
+        } catch (e) { return e instanceof Refusal ? fail(e.message, e.code) : fail((e as Error).message); }
+      };
+      return {
+        read: async (projectId) => withMedia(projectId, (pieces, doc): MediaStudioView => ({
+          design: doc ? {
+            documentId: doc.documentId, revision: doc.revision,
+            frames: doc.frames.filter((f) => f.width).map((f) => ({ id: f.id, label: [f.page, f.viewport].filter(Boolean).join(", ") || f.id, width: f.width, height: f.height, nodes: doc.nodes.filter((n) => f.nodeIds.includes(n.id)).map((n) => ({ id: n.id, role: n.role, type: n.type, locked: n.locked, slotKey: slotOf(n) })) })),
+          } : null,
+          copy: { source: "none", words: {} },
+          presets: {
+            node: [{ name: "fade-in", minMs: 150, maxMs: 1500, defaultMs: 400 }, { name: "rise", minMs: 150, maxMs: 1500, defaultMs: 400 }],
+            transition: [{ name: "cut", minMs: 0, maxMs: 0, defaultMs: 0 }, { name: "crossfade", minMs: 150, maxMs: 1200, defaultMs: 500 }],
+          },
+          pieces,
+        }), false),
+        startPiece: async (projectId, frameId) => withMedia(projectId, (pieces, doc) => {
+          if (!doc) throw new Refusal("NO_DESIGN", "There is no approved design to play yet. Media plays only an approved design.");
+          const timeline: MediaTimeline = {
+            schemaVersion: "1", timelineId: `piece-${pieces.length + 1}`, projectId, tenantId: "demo", revision: 0, design: { documentId: doc.documentId, revision: doc.revision, frameId },
+            mode: "template", template: { id: "first-cut", version: "1.0.0" }, durationMs: 6000, fps: 30,
+            outputs: [{ id: "landscape", width: 1920, height: 1080, format: "mp4", destination: "Video, 16:9", atMs: null }],
+            beats: [{ id: "open", label: "Open", startMs: 0, endMs: 3000 }, { id: "next", label: "Next", startMs: 3000, endMs: 6000 }],
+            tracks: [], camera: [], transitions: [{ fromBeatId: "open", toBeatId: "next", preset: "crossfade", durationMs: 500, easing: null }], audio: null, variants: [], seed: null,
+          };
+          const piece: MediaStudioPiece = { id: `piece-${id()}`, timeline, timelineHash: hashOf(timeline), updatedAt: new Date().toISOString(), problems: [], renders: [] };
+          pieces.push(piece);
+          return piece;
+        }),
+        save: async (projectId, pieceId, timeline, expectedHash) => withMedia(projectId, (pieces, doc) => {
+          const piece = pieces.find((p) => p.id === pieceId);
+          if (!piece) throw new Refusal("NOT_FOUND", "That couldn't be found.");
+          const locked = timeline.tracks.filter((k) => doc?.nodes.some((n) => n.id === k.nodeId && n.locked));
+          if (locked.length) throw new Refusal("LOCKED_NODE", "Design locked this element, so moving it is a change to the design, not to the production. Ask Design to change it.");
+          if (piece.timelineHash !== expectedHash) throw new Refusal("STALE_PIECE", "This piece changed since you opened it. Reload to see the newer one.");
+          piece.timeline = { ...timeline, timelineId: piece.timeline.timelineId, projectId };
+          piece.timelineHash = hashOf(piece.timeline);
+          piece.updatedAt = new Date().toISOString();
+          return { timelineHash: piece.timelineHash, problems: [] };
+        }),
+        render: async (projectId, pieceId, outputId, timelineHash) => withMedia(projectId, (pieces) => {
+          const piece = pieces.find((p) => p.id === pieceId);
+          if (!piece) throw new Refusal("NOT_FOUND", "That couldn't be found.");
+          const render = { id: `render-${id()}`, outputId, status: "REFUSED" as const, timelineHash, requestedAt: new Date().toISOString(), finishedAt: new Date().toISOString(), asset: null, problems: ["Demo data: files are made by v4's worker, so nothing is rendered here."], checks: [], frameSheet: [] };
+          piece.renders = [render, ...piece.renders];
+          return render;
+        }),
+        preview: async () => ok(`<!doctype html><html><body style="margin:0;display:grid;place-items:center;height:100vh;font:16px system-ui;color:#888;background:#111">The preview plays v4's own page, so it shows only with v4.<script>parent.postMessage({ mediaPreview: "ready", durationMs: 6000, rate: 30 }, "*")</script></body></html>`),
+        sheetUrl: () => "",
       };
     })(),
 

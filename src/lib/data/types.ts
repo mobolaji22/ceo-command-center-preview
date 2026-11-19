@@ -1,5 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
+import type { MediaStudioPiece, MediaStudioRender, MediaStudioView, MediaTimeline } from "@/lib/media/v4";
 import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, ThreadView, WorkspaceView } from "../model";
 
 /**
@@ -18,6 +19,8 @@ export type Failure = {
   message: string;
   /** The API's machine-readable reason when it gave one, for example STEP_UP_REQUIRED. */
   code?: string;
+  /** Each thing to fix, in v4's words, when it listed them (the Media studio's refusals do). */
+  problems?: string[];
 };
 export type Result<T = void> = { data: T | null; error: Failure | null };
 
@@ -192,6 +195,25 @@ export interface DataSource {
     page(projectId: string, file: string): Promise<Result<string>>;
     /** The decision owner's answer to a submitted revision. Approving needs a fresh proof of who is deciding. */
     decide(proposalId: string, input: { action: "APPROVE" | "REQUEST_REVISION"; note?: string }): Promise<Result>;
+  };
+  /**
+   * The Media studio (v4 ADR-0081 Decision 13): pieces of motion and stills over a project's approved design. The agency opens a
+   * piece, edits its timeline's free values, plays v4's preview and asks for a render, which v4's worker makes and Design's check
+   * reads. A save names the hash it was made on, so a stale save is refused. v4 refuses a timeline that moves an element Design
+   * locked (`LOCKED_NODE`); that change goes to Design as a change request on the element, through `design.annotate`.
+   */
+  media: {
+    read(projectId: string): Promise<Result<MediaStudioView>>;
+    startPiece(projectId: string, frameId: string): Promise<Result<MediaStudioPiece>>;
+    save(projectId: string, pieceId: string, timeline: MediaTimeline, expectedHash: string): Promise<Result<{ timelineHash: string; problems: string[] }>>;
+    render(projectId: string, pieceId: string, outputId: string, timelineHash: string): Promise<Result<MediaStudioRender>>;
+    /**
+     * v4's preview of one output, as text: the renderer's own page with every moment's values in it. It is shown only in a frame with
+     * an opaque origin (`sandbox="allow-scripts"`) and told where to be by message (`{ seek: ms }`); it answers `{ mediaPreview: "ready" }`.
+     */
+    preview(projectId: string, pieceId: string, outputId: string): Promise<Result<string>>;
+    /** One picture of a render's frame sheet, loaded as an image through the same door as every other read. */
+    sheetUrl(projectId: string, renderId: string, index: number): string;
   };
   /**
    * The client's book (v4 ADR-0053, ADR-0054): one document with a brand part and a market part, each read from the work its owners
