@@ -1,7 +1,8 @@
 // Runs inside the v4 checkout (cwd = V4_DIR) so it can use v4's own code. Stands in for a finished Brand run on the client's newest
 // project: a chosen position with a clean handoff lint, Content's brand kit, and Market's research still drafted (no snapshot can be
 // filled before live research, ADR-0042 wave B). Every output is checked against its pack's schema first, so the book the test reads
-// is the one v4 would build from a real run.
+// is the one v4 would build from a real run. Compliance's screen (v4 ADR-0075) is checked by v4's own floor, which writes its records,
+// as it would after a screen run with nothing read.
 // Usage: tsx book-seed.mjs <client owner email>. Prints the project the book belongs to.
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
@@ -9,6 +10,8 @@ const root = process.cwd();
 const { PrismaClient } = createRequire(`${root}/package.json`)("@prisma/client");
 const { packRegistry } = await import(`${root}/packages/packs/src/index.ts`);
 const { BOOK_CHAPTER_WRITERS } = await import(`${root}/packages/contracts/src/index.ts`);
+const { checkSpanOutput } = await import(`${root}/packages/runs/src/span-checks.ts`);
+const { raiseStrategyDecision } = await import(`${root}/packages/runs/src/strategy-decision.ts`);
 // Which domain writes each chapter is v4's to say; this only asks.
 const writerOf = (capability) => Object.entries(BOOK_CHAPTER_WRITERS).find(([, c]) => c === capability)[0];
 
@@ -70,11 +73,40 @@ const kit = {
   key_messages: [{ audience: "Home brewers", message: "You can see when your coffee was roasted.", proof: "The roast date on every bag." }],
   open_items: [],
 };
+const unread = { locator: null, quote: null, authority: "NONE", title: null };
+const screen = {
+  scope: { activity: "A coffee roastery's online shop that takes card payments", jurisdictions: [], called_up_by: [{ domain: "ENGINEERING", condition: "The work processes payments." }] },
+  obligations: [
+    { id: "o1", statement: "Show a refund policy before customers pay.", category: "PLATFORM_RULE", source: unread, applicability: "CONDITIONAL", condition: "If the payment provider's terms require one.", rationale: "The shop takes card payments.", status: "UNKNOWN", risk: 2, specialist: "NONE", recalled: null, before_launch: false, controls: [{ owner: "ENGINEERING", requirement: "The refund policy is linked beside the pay button.", evidence: "The link on the checkout page." }] },
+    { id: "o2", statement: "Customers' details may be used only as the privacy law of the place of business allows.", category: "LAW_OR_REGULATION", source: unread, applicability: "UNRESOLVED", condition: null, rationale: "No place of business was stated, so the law is not known.", status: "UNKNOWN", risk: 4, specialist: "PRIVACY", recalled: { name: "The data protection act", provision: null, check_at: "The data protection regulator where the roastery is registered.", well_established: true }, before_launch: true, controls: [{ owner: "ENGINEERING", requirement: "A privacy notice linked beside every form that asks for details.", evidence: "The link on the checkout form." }] },
+  ],
+  client_actions: [{ action: "Keep a record of each customer who agrees to marketing, and when.", obligations: ["o2"] }],
+  for_the_agency: ["We write the product copy, so the contract should have the roastery approve every claim we draft."],
+  questions: [{ question: "Where is the roastery registered as a business?", changes: "Which privacy law applies to the customer data." }],
+  limitations: ["No source was read."],
+};
 const research = JSON.parse(readFileSync(`${root}/tests/fixtures/golden-seeds/research-orbit-competitors.json`, "utf8"));
+// What we recommend (ADR-0084): Strategy's options for the roastery, one recommended; v4 puts it to the owner in the ledger.
+const strategy = {
+  decision: "What should the shop lead with, so that more first-time buyers subscribe?",
+  objective: "More subscriptions from people who first buy a single bag.",
+  diagnosis: {
+    summary: "The roastery roasts weekly and dates every bag; first-time buyers cannot see that before they order. The market research is still a draft, so how often rivals show roast dates is not yet known.",
+    evidence: [{ statement: "The roastery roasts weekly in small batches.", owner_words: "roasted weekly in small batches", epistemic: { status: "FACT", epistemicClass: "ASKED" } }],
+  },
+  options: [
+    { id: "o1", label: "Lead with this week's roast date", kind: "change", what_it_is: "Every product page opens on the date the coffee in stock was roasted.", rests_on: [], gains: ["Freshness a buyer can read."], costs: ["The date is updated after every roast."], risks: ["A missed update shows an old date."], reversibility: "easy", smallest_test: { what: "Show the roast date on the three best sellers for a month.", measure: "Single bags that become subscriptions.", go_on_if: "More of them subscribe than last month." } },
+    { id: "o2", label: "Lead with a first-bag discount", kind: "change", what_it_is: "The shop opens on a discount for a first subscription.", rests_on: [], gains: ["A familiar reason to try."], costs: ["Margin on every first bag."], risks: ["Buyers who leave when the discount ends."], reversibility: "costly", smallest_test: { what: "Offer it to one in two first-time buyers for a month.", measure: "Subscriptions still active after two months.", go_on_if: "Retention matches full-price subscribers." } },
+    { id: "o3", label: "Keep the shop as it is for now", kind: "keep_as_is", what_it_is: "Change nothing about what the shop leads with.", rests_on: [], gains: ["No new work."], costs: ["First-time buyers still cannot see freshness."], risks: ["A rival shows roast dates first."], reversibility: "easy", smallest_test: { what: "Ask ten subscribers why they subscribed.", measure: "How many mention freshness.", go_on_if: "Fewer than three do." } },
+  ],
+  recommendation: { option_id: "o1", why: "The roast date is what makes this roastery different, it costs only an update after each roast, and it is easy to undo. A discount costs margin and teaches buyers to wait for one.", would_change_it: ["No change in subscriptions after a month of dated pages."], confidence: { level: "medium", basis: "The difference is the owner's own; how buyers respond is untested." } },
+  not_doing: [{ what: "Discounting every bag.", why: "It hides the difference the roastery has." }],
+  open_items: [],
+};
 
 try {
   const registry = packRegistry();
-  for (const [capability, output] of [["brand-direction", direction], ["brand-kit", kit], ["research", research]]) {
+  for (const [capability, output] of [["brand-direction", direction], ["brand-kit", kit], ["research", research], ["obligation-screen", screen], ["strategy", strategy]]) {
     const check = registry.outputSchemaOf(capability).validator.safeParse(output);
     if (!check.success) throw new Error(`${capability}: ${JSON.stringify(check.error.issues.slice(0, 3))}`);
   }
@@ -90,7 +122,13 @@ try {
     version, content: {}, impact: 1, reversibility: 4, decisionOwner: "CEO", authority: {}, proposedBy: "e2e", correlationId: "e2e-book",
   } });
   const run = await db.run.create({ data: { organizationId: project.organizationId, projectId: project.id, proposalId: plan.id, planVersion: version, status: "COMPLETED", endedAt: new Date() } });
-  const done = (capability, outputs) => ({ projectId: project.id, runId: run.id, planTaskId: capability, title: capability, domain: writerOf(capability), capability, status: "COMPLETED", outputs, completedAt: new Date() });
-  await db.task.createMany({ data: [done("brand-direction", direction), done("brand-kit", kit), done("research", research)] });
+  const done = (capability, outputs, domain = writerOf(capability)) => ({ projectId: project.id, runId: run.id, planTaskId: capability, title: capability, domain, capability, status: "COMPLETED", outputs, completedAt: new Date() });
+  const floor = checkSpanOutput(["obligation-screen"], screen, { capability: "obligation-screen", schemaId: "e2e", readerText: [], engaged: ["ENGINEERING"], now: new Date() });
+  if (floor.blocking.length) throw new Error(`obligation-screen: ${floor.blocking.join("; ")}`);
+  await db.task.createMany({ data: [done("brand-direction", direction), done("brand-kit", kit), done("research", research),
+    done("obligation-screen", { ...screen, ...floor.records }, "COMPLIANCE"), done("strategy", strategy)] });
+  // As the engine does when a strategy step completes: its recommendation goes to the owner as one ledger decision.
+  const step = await db.task.findFirstOrThrow({ where: { runId: run.id, capability: "strategy" } });
+  await db.$transaction((tx) => raiseStrategyDecision(tx, run, step, strategy, "e2e"));
   console.log(JSON.stringify({ projectId: project.id, projectName: project.name }));
 } finally { await db.$disconnect(); }

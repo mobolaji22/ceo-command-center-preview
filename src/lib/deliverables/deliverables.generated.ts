@@ -5,6 +5,224 @@ export type Deliverable = ClientBookView;
 export interface ClientBookView {
   kind: "BOOK";
   audience: "AGENCY" | "CLIENT";
+  strategy: {
+    kind: "RECOMMENDATION";
+    audience: "AGENCY" | "CLIENT";
+    source: {
+      runId: string;
+      taskId: string;
+      schemaId: string;
+      completedAt: string;
+    };
+    question: string;
+    objective: string;
+    diagnosis: {
+      summary: string;
+      /**
+       * @maxItems 12
+       */
+      evidence: {
+        statement: string;
+        /**
+         * @maxItems 20
+         */
+        findingIds: string[];
+        ownerWords?: string;
+        status: "FACT" | "INFERRED" | "ASSUMPTION" | "UNKNOWN" | "CONFLICT";
+        epistemicClass?:
+          | "OBSERVED"
+          | "VERIFIED"
+          | "ASKED"
+          | "DERIVED"
+          | "ESTIMATED"
+          | "FORECAST"
+          | "SCENARIO"
+          | "ASSUMPTION"
+          | "HYPOTHESIS"
+          | "UNKNOWN"
+          | "CONTRADICTED";
+      }[];
+    };
+    /**
+     * @minItems 2
+     * @maxItems 4
+     */
+    options: [
+      {
+        id: string;
+        label: string;
+        kind: "change" | "keep_as_is" | "not_yet";
+        whatItIs: string;
+        /**
+         * @maxItems 8
+         */
+        restsOn: {
+          statement: string;
+          /**
+           * @maxItems 20
+           */
+          findingIds: string[];
+          ownerWords?: string;
+          status: "FACT" | "INFERRED" | "ASSUMPTION" | "UNKNOWN" | "CONFLICT";
+          epistemicClass?:
+            | "OBSERVED"
+            | "VERIFIED"
+            | "ASKED"
+            | "DERIVED"
+            | "ESTIMATED"
+            | "FORECAST"
+            | "SCENARIO"
+            | "ASSUMPTION"
+            | "HYPOTHESIS"
+            | "UNKNOWN"
+            | "CONTRADICTED";
+        }[];
+        /**
+         * @maxItems 60
+         */
+        gains: string[];
+        /**
+         * @maxItems 60
+         */
+        costs: string[];
+        /**
+         * @maxItems 60
+         */
+        risks: string[];
+        reversibility: "easy" | "costly" | "hard";
+        smallestTest: {
+          what: string;
+          measure: string;
+          goOnIf: string;
+        };
+      },
+      {
+        id: string;
+        label: string;
+        kind: "change" | "keep_as_is" | "not_yet";
+        whatItIs: string;
+        /**
+         * @maxItems 8
+         */
+        restsOn: {
+          statement: string;
+          /**
+           * @maxItems 20
+           */
+          findingIds: string[];
+          ownerWords?: string;
+          status: "FACT" | "INFERRED" | "ASSUMPTION" | "UNKNOWN" | "CONFLICT";
+          epistemicClass?:
+            | "OBSERVED"
+            | "VERIFIED"
+            | "ASKED"
+            | "DERIVED"
+            | "ESTIMATED"
+            | "FORECAST"
+            | "SCENARIO"
+            | "ASSUMPTION"
+            | "HYPOTHESIS"
+            | "UNKNOWN"
+            | "CONTRADICTED";
+        }[];
+        /**
+         * @maxItems 60
+         */
+        gains: string[];
+        /**
+         * @maxItems 60
+         */
+        costs: string[];
+        /**
+         * @maxItems 60
+         */
+        risks: string[];
+        reversibility: "easy" | "costly" | "hard";
+        smallestTest: {
+          what: string;
+          measure: string;
+          goOnIf: string;
+        };
+      },
+      ...{
+        id: string;
+        label: string;
+        kind: "change" | "keep_as_is" | "not_yet";
+        whatItIs: string;
+        /**
+         * @maxItems 8
+         */
+        restsOn: {
+          statement: string;
+          /**
+           * @maxItems 20
+           */
+          findingIds: string[];
+          ownerWords?: string;
+          status: "FACT" | "INFERRED" | "ASSUMPTION" | "UNKNOWN" | "CONFLICT";
+          epistemicClass?:
+            | "OBSERVED"
+            | "VERIFIED"
+            | "ASKED"
+            | "DERIVED"
+            | "ESTIMATED"
+            | "FORECAST"
+            | "SCENARIO"
+            | "ASSUMPTION"
+            | "HYPOTHESIS"
+            | "UNKNOWN"
+            | "CONTRADICTED";
+        }[];
+        /**
+         * @maxItems 60
+         */
+        gains: string[];
+        /**
+         * @maxItems 60
+         */
+        costs: string[];
+        /**
+         * @maxItems 60
+         */
+        risks: string[];
+        reversibility: "easy" | "costly" | "hard";
+        smallestTest: {
+          what: string;
+          measure: string;
+          goOnIf: string;
+        };
+      }[]
+    ];
+    recommendation: {
+      optionId: string;
+      why: string;
+      /**
+       * @maxItems 60
+       */
+      wouldChangeIt: string[];
+      confidence: {
+        level: "low" | "medium" | "high";
+        basis: string;
+      };
+    };
+    /**
+     * @maxItems 6
+     */
+    notDoing: {
+      what: string;
+      why: string;
+    }[];
+    ownerDecision: {
+      id: string;
+      state: "OPEN" | "PROPOSED" | "DECIDED_BY_OWNER" | "DECIDED_UNDER_DELEGATION" | "HELD_ASSET" | "STALE" | "SUPERSEDED";
+      chosenOptionId: string | null;
+      decidedAt: string | null;
+    } | null;
+    /**
+     * @maxItems 60
+     */
+    openQuestions: string[];
+  } | null;
   brand: {
     kind: "BRAND_BOOK";
     audience: "AGENCY" | "CLIENT";
@@ -349,11 +567,121 @@ export interface ClientBookView {
      */
     checks: string[];
   } | null;
+  compliance: {
+    kind: "OBLIGATION_SCREEN";
+    audience: "AGENCY" | "CLIENT";
+    source: {
+      runId: string;
+      taskId: string;
+      schemaId: string;
+      completedAt: string;
+    };
+    state: "SOURCED" | "NOT_YET";
+    notYet: string | null;
+    sourcesRead: number;
+    counsel: {
+      notice: string;
+      /**
+       * @minItems 1
+       * @maxItems 30
+       */
+      obligationIds: [string, ...string[]];
+    } | null;
+    scope: {
+      activity: string;
+      /**
+       * @maxItems 60
+       */
+      jurisdictions: string[];
+    };
+    /**
+     * @maxItems 30
+     */
+    items: {
+      id: string;
+      statement: string;
+      category:
+        | "LAW_OR_REGULATION"
+        | "CONTRACT"
+        | "INTERNAL_POLICY"
+        | "CLIENT_REQUIREMENT"
+        | "PLATFORM_RULE"
+        | "LICENSE"
+        | "STANDARD"
+        | "V4_CONTROL";
+      applicability: "APPLICABLE" | "CONDITIONAL" | "UNRESOLVED" | "OUTSIDE_AUTHORITY" | "NOT_APPLICABLE";
+      condition: string | null;
+      rationale: string;
+      status: "FACT" | "INFERRED" | "ASSUMPTION" | "UNKNOWN" | "CONFLICT";
+      risk: number;
+      specialist: "NONE" | "LEGAL" | "PRIVACY" | "FINANCIAL" | "SECURITY" | "OTHER";
+      source: {
+        title: string | null;
+        locator: string | null;
+        authority: "LAW" | "REGULATOR" | "PLATFORM_RULE" | "CONTRACT" | "STANDARD" | "GUIDANCE" | "COMMENTARY" | "NONE";
+        quote: string | null;
+      };
+      recalled: {
+        name: string;
+        provision: string | null;
+        checkAt: string;
+        wellEstablished: boolean;
+      } | null;
+      beforeLaunch: boolean;
+      /**
+       * @maxItems 8
+       */
+      controls: {
+        owner:
+          | "STRATEGY"
+          | "MARKET"
+          | "BUSINESS"
+          | "BRAND"
+          | "DESIGN"
+          | "CONTENT"
+          | "MEDIA"
+          | "PRODUCT"
+          | "ENGINEERING"
+          | "GROWTH"
+          | "COMMUNICATIONS"
+          | "MEASUREMENT"
+          | "COMPLIANCE";
+        requirement: string;
+        evidence: string;
+      }[];
+    }[];
+    /**
+     * @maxItems 10
+     */
+    clientActions: {
+      action: string;
+      /**
+       * @minItems 1
+       * @maxItems 30
+       */
+      obligationIds: [string, ...string[]];
+    }[];
+    /**
+     * @maxItems 8
+     */
+    forTheAgency: string[];
+    /**
+     * @maxItems 3
+     */
+    questions: {
+      question: string;
+      changes: string;
+    }[];
+    /**
+     * @maxItems 60
+     */
+    limitations: string[];
+  } | null;
   /**
-   * @maxItems 2
+   * @maxItems 4
    */
   toCome: {
-    part: "BRAND" | "MARKET";
+    part: "STRATEGY" | "BRAND" | "MARKET" | "COMPLIANCE";
     why: string;
   }[];
 }

@@ -106,6 +106,31 @@ direction, the client's owner leaves typed feedback and decides, and v4 keeps ev
   approves (with a fresh code) or asks for a change. A Workshop link (`/?room=DESIGN&spot=workshop&project=<id>`) opened by a client
   goes to their design desk.
 
+## The Media studio (dev-playbook-v4 ADR-0081 Decision 13)
+
+The Workshop's **Motion** bench makes a piece that plays over a frame of the approved design: v4's `MediaTimeline`, which adds only
+time (beats, transitions, a motion per element, outputs). The words are the approved copy deck and the look is the approved design;
+the studio never changes either. The browser reaches it only through `DataSource.media`; the agency's people use it (a client gets
+`403`).
+
+| Call | Request | Success | Failure the UI handles |
+|---|---|---|---|
+| `media.read(projectId)` | `GET /v1/projects/:id/media` | `200 MediaStudioView`: the approved design's frames and elements (with their locks), the copy deck's words, the shared motion presets, and each piece with its timeline, hash, problems and renders (status, check rail, frame sheet, kept file) | any error is shown; with nothing approved, `design` is null and the studio says so |
+| `media.startPiece(projectId, frameId)` | `POST .../media/pieces` body `{ frameId }` | `201` piece, from v4's first cut in plain code | `409 NO_DESIGN`; `400 FRAME_NOT_PLAYABLE` |
+| `media.save(projectId, pieceId, timeline, expectedHash)` | `PUT .../media/pieces/:pieceId` body `{ timeline, expectedHash }` (v4 stamps the project, tenant and timeline id) | `200` piece; a timeline with problems is kept and its problems returned | `409 LOCKED_NODE` with `nodeIds` (nothing is stored: the studio reverts and offers "Ask Design", a `CHANGE_REQUEST` annotation on that element); `409 STALE_PIECE` (Reload) |
+| `media.render(projectId, pieceId, outputId, timelineHash)` | `POST .../pieces/:pieceId/renders` | `202`: queued for the worker, which renders, keeps the file as an Asset version and runs Design's check; the studio polls while it waits | `409 NOT_READY` with `problems`; `409 STALE_PIECE` |
+| `media.preview(projectId, pieceId, outputId)` | `GET .../pieces/:pieceId/preview?output=` | text: the renderer's own page with the timeline's states worked out, shown in a sandboxed `srcDoc` iframe and moved by `postMessage({ seek })` | any error is shown |
+| `media.sheetUrl(projectId, renderId, index)` | `GET .../media/renders/:renderId/sheet/:index` (an `<img>`) | one photograph of the frame sheet, named by its beat or transition | `404` |
+
+- **Types are generated.** `npm run v4:types` copies v4's `media-studio.schema.json` and writes `src/lib/media/media-studio.generated.ts`.
+  `src/lib/media/v4.ts` holds the edits (beat length, motion, transition, output) and keeps v4's rules so a save is not refused for a
+  reason the person could not see; whether an element may move is v4's to say.
+- **Timelines are version 2** (dev-playbook-v4 ADR-0085): each beat names the scene it plays (`sceneId`), and a timeline may name a
+  storyboard of scenes Media composed, script lines, captions and a recorded narration. Until v4 draws several scenes a piece, the
+  studio plays the frame its first beat names, and v4 offers only the motions its renderer draws.
+- **No second renderer.** The preview is v4's page, so what is scrubbed is what the worker draws. The demo data source has no renderer:
+  its renders come back not rendered, saying so.
+
 ## The client's book (dev-playbook-v4 ADR-0053, ADR-0054)
 
 One book per project: the brand (Brand's direction, with Content's words to sell it) and the market (Market's research, with Business's

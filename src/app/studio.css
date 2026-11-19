@@ -1,0 +1,82 @@
+/*
+ * The Media studio (v4 ADR-0081 Decision 13): the Workshop's second bench. It borrows the Workshop's chrome (toolbar, panels, tabs,
+ * fields) and adds only what time needs: the preview screen, the transport, and the lanes of the timeline with the playhead. The
+ * preview shows the design in its own colours, like the canvas; the lanes read the shared tokens, so they follow day and night.
+ */
+.ws-bench { margin-left: 4px; }
+.studio .ws-tb-top { display: flex; align-items: center; gap: 10px; }
+.st-main { --ws-left: 240px; --ws-right: 340px; }
+.st-nodes, .st-outputs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.st-nodes .ws-layer[aria-pressed="true"], .st-outputs .ws-layer[aria-pressed="true"] { background: color-mix(in oklab, var(--primary) 14%, transparent); }
+.st-nodes .ws-layer:hover, .st-outputs .ws-layer:hover { background: color-mix(in oklab, var(--foreground) 6%, transparent); }
+.st-dot, .ws-layer .st-dot { flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--muted-foreground); opacity: 0.6; }
+.st-nodes .ws-layer .ws-chip, .st-outputs .ws-layer .ws-chip { flex: none; }
+.st-sub { margin: 14px 0 6px; font: 700 10px "DM Sans", sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-foreground); }
+
+.st-stage { flex: 1 1 auto; min-height: 0; display: grid; justify-items: center; align-content: start; gap: 6px; padding: 16px 16px 8px; overflow: hidden; }
+.st-screen { position: relative; overflow: hidden; background: #000; box-shadow: 0 14px 44px oklch(0 0 0 / 38%); }
+.st-screen iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; opacity: 0; transition: opacity var(--t-feedback, 160ms); background: #000; }
+.st-screen[data-ready] iframe { opacity: 1; }
+.st-screen-note { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 16px; color: #bbb; font-size: 12px; text-align: center; }
+.st-caption { margin: 0; font-size: 10px; color: var(--muted-foreground); }
+
+.st-transport { display: flex; align-items: center; gap: 10px; padding: 4px 16px; border-top: 1px solid var(--border); }
+.st-transport input[type="range"] { flex: 1; accent-color: var(--primary); }
+.st-time { font: 600 11px ui-monospace, monospace; color: var(--muted-foreground); white-space: nowrap; }
+
+.st-lanes { position: relative; flex: 0 0 auto; display: grid; gap: 4px; padding: 8px 16px 14px; border-top: 1px solid var(--border); background: color-mix(in oklab, var(--foreground) 3%, var(--background)); max-height: 34%; overflow-y: auto; }
+.st-lane { position: relative; height: 22px; }
+.st-lane:not(.st-beats) { height: 30px; }
+.st-lane:not(.st-beats) .st-bar { top: 14px; height: 12px; }
+.st-beats { height: 34px; }
+.st-beat { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; padding: 0 8px; border: 1px solid color-mix(in oklab, var(--primary) 45%, var(--border)); border-radius: 3px; background: color-mix(in oklab, var(--primary) 12%, transparent); color: var(--foreground); font: 600 11px "DM Sans", sans-serif; text-align: left; cursor: pointer; overflow: hidden; }
+.st-beat span { position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-beat[aria-pressed="true"], .st-bar[aria-pressed="true"] { outline: 2px solid var(--primary); outline-offset: 1px; }
+.st-handover { position: absolute; top: 0; right: 0; bottom: 0; background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--primary) 30%, transparent) 0 4px, transparent 4px 8px); }
+.st-lane-name { position: absolute; left: 0; top: 0; font-size: 10px; color: var(--muted-foreground); pointer-events: none; }
+.st-bar { position: absolute; top: 4px; height: 14px; border: 0; border-radius: 7px; background: color-mix(in oklab, var(--primary) 70%, transparent); cursor: pointer; min-width: 6px; }
+.st-playhead { position: absolute; top: 4px; bottom: 4px; width: 2px; margin-left: -1px; background: #ff3b6b; pointer-events: none; }
+.st-beat:focus-visible, .st-bar:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+.st-list { margin: 0 0 8px; padding-left: 18px; display: grid; gap: 4px; font-size: 12px; line-height: 1.45; }
+.st-nm { color: var(--muted-foreground); }
+.st-render { margin-bottom: 14px; padding: 10px; border: 1px solid var(--border); border-radius: 3px; display: grid; gap: 8px; }
+.st-render > header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.st-ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.st-ladder li { padding-left: 10px; border-left: 3px solid var(--border); }
+.st-ladder li[data-gate="PASSED"] { border-left-color: oklch(0.6 0.14 155); }
+.st-ladder li[data-gate="FAILED"] { border-left-color: oklch(0.6 0.18 35); }
+.st-ladder li > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+.st-ladder p { margin: 3px 0 0; font-size: 12px; line-height: 1.45; color: var(--muted-foreground); }
+.st-ladder details summary { cursor: pointer; font-size: 11px; color: var(--primary); margin-top: 4px; }
+.st-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+.st-sheet figure { margin: 0; display: grid; gap: 3px; }
+.st-sheet img { width: 100%; height: auto; display: block; border: 1px solid var(--border); background: #000; }
+.st-sheet figcaption { font-size: 10px; color: var(--muted-foreground); line-height: 1.3; }
+.st-refused p { margin: 0 0 6px; display: flex; align-items: center; gap: 6px; }
+.st-ask { max-width: 720px; }
+.st-new { display: grid; gap: 8px; min-width: min(360px, 100%); margin-top: 12px; }
+
+/* The script lane (v4 ADR-0085 Decision 4): each line over the moments it is said, the one playing now marked. */
+.st-script { height: 34px; }
+.st-line { position: absolute; top: 14px; height: 18px; display: flex; align-items: center; padding: 0 6px; border: 1px dashed color-mix(in oklab, var(--foreground) 30%, var(--border)); border-radius: 3px; background: color-mix(in oklab, var(--foreground) 5%, transparent); color: var(--foreground); font-size: 10px; cursor: pointer; overflow: hidden; }
+.st-line span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-line[data-now] { border-style: solid; border-color: var(--primary); }
+.st-line:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* The storyboard desk: the strip of scenes in order, and the selected scene on the Workshop's canvas. */
+.sb-strip { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sb-scene { width: 100%; display: grid; gap: 4px; padding: 6px; border: 1px solid var(--border); border-radius: 3px; background: transparent; color: var(--foreground); text-align: left; cursor: pointer; }
+.sb-scene[aria-pressed="true"] { border-color: var(--primary); background: color-mix(in oklab, var(--primary) 10%, transparent); }
+.sb-scene:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.sb-thumb { display: block; overflow: hidden; pointer-events: none; }
+.sb-label { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; line-height: 1.35; }
+.sb-stage { display: grid; place-items: center; }
+.sb-script { list-style: decimal; }
+
+@media (max-width: 900px) {
+  .st-main { display: flex; flex-direction: column; overflow-y: auto; }
+  .st-main > .ws-left, .st-main > .ws-inspector { border: 0; border-top: 1px solid var(--border); }
+  .st-main > .ws-left { order: 2; } .st-main > .ws-inspector { order: 3; }
+  .st-lanes { max-height: none; }
+}

@@ -1,7 +1,9 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, ConversationMessage, ThreadSummary, ThreadView, ThreadWait, WorkspaceView, ConversationView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView } from "../model";
+import type { MediaStudioPiece, MediaStudioRender, MediaStudioStoryboard, MediaStudioView } from "@/lib/media/v4";
+import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, ConversationMessage, ThreadSummary, ThreadView, ThreadWait, WorkspaceView, ConversationView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, PersonGuide, StepMaterials, TeamView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
+import { WAIT_LINE } from "../format";
 
 /**
  * API DataSource: the dev-playbook-v4 API, reached only through this app's own server.
@@ -49,6 +51,10 @@ const MESSAGES: Record<string, string> = {
   OPEN_CHANGE_REQUEST: "A change the client asked for is still open. Answer it before this revision can be approved.",
   ANNOTATIONS_ARE_APPENDED: "Feedback is added and answered on its own, never in a save. Reload and try again.",
   INTERVENTION_NOT_FOUND: "That couldn't be found.",
+  STALE_PIECE: "This piece changed since you opened it. Reload to see the newer one.",
+  LOCKED_NODE: "Design locked this element, so moving it is a change to the design, not to the production. Ask Design to change it.",
+  NOT_READY: "The piece can't be rendered against the approved design yet. Fix what the checks list first.",
+  NO_DESIGN: "There is no approved design to play yet. Media plays only an approved design.",
 };
 
 async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
@@ -69,7 +75,16 @@ async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
       const issue = code === "INVALID_BODY" ? (json as { issues?: Array<{ message?: unknown }> } | null)?.issues?.[0]?.message : undefined;
       // A refusal v4 explains in a sentence (what in a design document does not hold) is passed on when there is no sentence here.
       const detail = (json as { detail?: unknown } | null)?.detail;
-      return fail(typeof issue === "string" && issue ? `${issue.replace(/\.$/, "")}.` : MESSAGES[code] ?? (typeof detail === "string" && detail ? detail : code.replace(/_/g, " ").toLowerCase()), code);
+      // A missing or wrong part of an answer is said exactly when v4 says which (which steps of a guide are still open, ADR-0071).
+      if (code === "INVALID_PARAMS" && typeof detail === "string" && detail) return fail(detail.endsWith(".") ? detail : `${detail}.`, code);
+      // A model that cannot answer now says which wait it is (v4 ADR-0027): no budget, the limit, no model, or no usable answer.
+      const reason = (json as { reason?: unknown } | null)?.reason;
+      if (code === "REASONING_UNAVAILABLE" && typeof reason === "string" && reason in WAIT_LINE) return fail(WAIT_LINE[reason as keyof typeof WAIT_LINE], code);
+      const failed = fail<T>(typeof issue === "string" && issue ? `${issue.replace(/\.$/, "")}.` : MESSAGES[code] ?? (typeof detail === "string" && detail ? detail : code.replace(/_/g, " ").toLowerCase()), code);
+      // A refusal that lists what to fix (the Media studio's do) passes the list on.
+      const problems = (json as { problems?: unknown } | null)?.problems;
+      if (Array.isArray(problems) && failed.error) failed.error.problems = problems.filter((p): p is string => typeof p === "string");
+      return failed;
     }
     if (res.status >= 500) return fail(MESSAGES["SERVER_ERROR"]!, "SERVER_ERROR");
     return fail(`Request failed (${res.status}).`);
@@ -126,6 +141,7 @@ const toRunTask = (t: ApiRunTask): RunTask => ({ id: t.id, plan_task_id: t.planT
 type ApiQuestion = {
   id: string; projectId: string; organizationId: string; runId: string; taskId: string | null; reason: string; routedTo: Question["routed_to"]; status: Question["status"];
   title: string; summary: string; detail?: string | null; options: Array<{ id: string; stepUp?: boolean }>; recommendation: { option: string; why: string } | null; deadline: string | null; createdAt: string;
+  withTeam?: string[];
 };
 /** A message as v4 sends it (ADR-0077, ADR-0078), and as the screens read it. */
 type ApiMessage = {
@@ -167,6 +183,7 @@ const toDelegation = (d: ApiDelegation): DelegationView => ({
 const toQuestion = (q: ApiQuestion): Question => ({
   id: q.id, project_id: q.projectId, organization_id: q.organizationId, run_id: q.runId, task_id: q.taskId, reason: q.reason, routed_to: q.routedTo, status: q.status,
   title: q.title, summary: q.summary, detail: q.detail ?? null, options: q.options.map((o) => ({ id: o.id, stepUp: o.stepUp === true })), recommendation: q.recommendation, deadline: q.deadline, created_at: q.createdAt,
+  ...(q.withTeam ? { with_team: q.withTeam } : {}),
 });
 
 type ApiLedger = {
@@ -470,6 +487,27 @@ export function createApiDataSource(): DataSource {
       decide: async (proposalId, input) => voidResult(await call("POST", `/v1/proposals/${encodeURIComponent(proposalId)}/decision`, input)),
     },
 
+    media: {
+      read: (projectId) => call<MediaStudioView>("GET", `/v1/projects/${encodeURIComponent(projectId)}/media`),
+      startPiece: (projectId, from) => call<MediaStudioPiece>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/pieces`, from),
+      // What the platform stamps (the project, the organization, the timeline's id) is v4's; it keeps its own whatever is sent.
+      save: (projectId, pieceId, timeline, expectedHash) => call("PUT", `/v1/projects/${encodeURIComponent(projectId)}/media/pieces/${encodeURIComponent(pieceId)}`, { timeline, expectedHash }),
+      render: (projectId, pieceId, outputId, timelineHash) => call<MediaStudioRender>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/pieces/${encodeURIComponent(pieceId)}/renders`, { outputId, timelineHash }),
+      async preview(projectId, pieceId, outputId) {
+        // v4 sends the page as inert text, so it is read as text here, not through the JSON reader.
+        let res: Response;
+        try { res = await fetch(`${PROXY}/v1/projects/${encodeURIComponent(projectId)}/media/pieces/${encodeURIComponent(pieceId)}/preview?output=${encodeURIComponent(outputId)}`, { credentials: "same-origin", headers: { Accept: "text/plain" } }); }
+        catch { return fail("Could not reach the server. Check your connection and try again."); }
+        if (!res.ok) return fail(res.status === 404 ? MESSAGES["NOT_FOUND"]! : res.status >= 500 ? MESSAGES["SERVER_ERROR"]! : `Request failed (${res.status}).`);
+        return ok(await res.text());
+      },
+      sheetUrl: (projectId, renderId, index) => `${PROXY}/v1/projects/${encodeURIComponent(projectId)}/media/renders/${encodeURIComponent(renderId)}/sheet/${index}`,
+      startStoryboard: (projectId) => call<MediaStudioStoryboard>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards`, {}),
+      saveStoryboard: (projectId, boardId, storyboard, expectedHash) => call<MediaStudioStoryboard>("PUT", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards/${encodeURIComponent(boardId)}`, { storyboard, expectedHash }),
+      sendStoryboard: (projectId, boardId, expectedHash) => call<MediaStudioStoryboard>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards/${encodeURIComponent(boardId)}/review`, { expectedHash }),
+      decideStoryboard: (projectId, boardId, decision) => call<MediaStudioStoryboard>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards/${encodeURIComponent(boardId)}/decision`, decision),
+    },
+
     deliverables: {
       async book(projectId) {
         const r = await call<ClientBookView>("GET", `/v1/projects/${encodeURIComponent(projectId)}/book`);
@@ -524,6 +562,20 @@ export function createApiDataSource(): DataSource {
         const params = { ...(answer.toUsd !== undefined ? { toUsd: answer.toUsd } : {}), ...(answer.evidence ? { evidence: answer.evidence } : {}) };
         return voidResult(await call("POST", `/v1/interventions/${questionId}/resolve`, { option: answer.option, ...(answer.note ? { note: answer.note } : {}), ...(Object.keys(params).length ? { params } : {}) }));
       },
+      async guide(questionId) {
+        const r = await call<PersonGuide>("GET", `/v1/interventions/${questionId}/guide`);
+        if (r.error?.code === "NO_GUIDE") return ok(null);
+        return r.error || !r.data ? { data: null, error: r.error } : ok(r.data);
+      },
+      async logStep(questionId, stepId, entry) {
+        return call<PersonGuide>("POST", `/v1/interventions/${questionId}/guide/steps/${encodeURIComponent(stepId)}`, entry);
+      },
+      async materials(questionId) {
+        return call<StepMaterials>("GET", `/v1/interventions/${questionId}/materials`);
+      },
+      async askStep(questionId, stepId, question) {
+        return call<PersonGuide>("POST", `/v1/interventions/${questionId}/guide/steps/${encodeURIComponent(stepId)}/ask`, { question });
+      },
     },
 
     briefs: {
@@ -550,6 +602,18 @@ export function createApiDataSource(): DataSource {
       },
     },
 
+    team: {
+      async get() { return call<TeamView>("GET", "/v1/team"); },
+      async invite(email) {
+        const team = await call<TeamView>("GET", "/v1/team");
+        if (team.error || !team.data) return { data: null, error: team.error };
+        return voidResult(await call("POST", "/v1/invitations", { organizationId: team.data.agencyId, email, role: "AGENCY_STAFF" }));
+      },
+      async createRole(input) { return voidResult(await call("POST", "/v1/team/roles", input)); },
+      async changeRole(id, input) { return voidResult(await call("PATCH", `/v1/team/roles/${encodeURIComponent(id)}`, input)); },
+      async grant(roleId, userId) { return voidResult(await call("POST", `/v1/team/roles/${encodeURIComponent(roleId)}/holders`, { userId })); },
+      async revoke(roleId, userId) { return voidResult(await call("DELETE", `/v1/team/roles/${encodeURIComponent(roleId)}/holders/${encodeURIComponent(userId)}`)); },
+    },
     settings: {
       async system() {
         const r = await call<{ agencyMode: SystemView["agency_mode"]; readsWith: SystemView["reads_with"]; modelSwitchedOn: boolean; waiting: SystemView["waiting"]; revisionsWaiting: number }>("GET", "/v1/settings/system");

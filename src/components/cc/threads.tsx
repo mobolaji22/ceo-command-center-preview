@@ -9,6 +9,7 @@ import type { Intent, ThreadState, ThreadSummary, ThreadView, WorkspaceView } fr
 import { fmtAgo, label } from "@/lib/format";
 import { ClientIntentCard, Composer, INTENT_STATUS_WORDS, IntentCard, intentTone } from "./intents";
 import { MessageItem } from "./conversation";
+import { waitsOnBudget } from "@/lib/attention";
 import { PlanPanel } from "./plans";
 import { Empty } from "./views";
 import { ActionButton, Presence, RollingNumber, SlideGroup } from "./motion";
@@ -197,7 +198,7 @@ function ThreadDetail({ threadId, summary, group, audience, intent, part, setPar
     onStarted({ intentId: r.data!.intentId, status: r.data!.status });
   };
 
-  const asks = intent ? intent.questions.length + intent.materials.length + (audience === "agency" && intent.delivery?.needs_answer ? 1 : 0) : 0;
+  const asks = intent ? intent.questions.length + intent.materials.length + (audience === "agency" && intent.delivery?.needs_answer ? 1 : 0) + (audience === "agency" && waitsOnBudget(intent) ? 1 : 0) : 0;
   // The plan's decision belongs to the thread the plan came from; a thread waiting its turn says so instead.
   const deciding = summary.needs_you.decision;
   const from = group.org.kind === "INTERNAL" ? "The agency's own work" : group.org.name;

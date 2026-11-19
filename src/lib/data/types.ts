@@ -1,6 +1,7 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, ThreadView, WorkspaceView } from "../model";
+import type { MediaStoryboard, MediaStudioPiece, MediaStudioRender, MediaStudioStoryboard, MediaStudioView, MediaTimeline, StoryboardChange, StoryboardDecision } from "@/lib/media/v4";
+import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, ThreadView, WorkspaceView, PersonGuide, GuideLogEntry, StepMaterials, TeamView } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -18,6 +19,8 @@ export type Failure = {
   message: string;
   /** The API's machine-readable reason when it gave one, for example STEP_UP_REQUIRED. */
   code?: string;
+  /** Each thing to fix, in v4's words, when it listed them (the Media studio's refusals do). */
+  problems?: string[];
 };
 export type Result<T = void> = { data: T | null; error: Failure | null };
 
@@ -194,6 +197,35 @@ export interface DataSource {
     decide(proposalId: string, input: { action: "APPROVE" | "REQUEST_REVISION"; note?: string }): Promise<Result>;
   };
   /**
+   * The Media studio (v4 ADR-0081 Decision 13): pieces of motion and stills over a project's approved design. The agency opens a
+   * piece, edits its timeline's free values, plays v4's preview and asks for a render, which v4's worker makes and Design's check
+   * reads. A save names the hash it was made on, so a stale save is refused. v4 refuses a timeline that moves an element Design
+   * locked (`LOCKED_NODE`); that change goes to Design as a change request on the element, through `design.annotate`.
+   */
+  media: {
+    read(projectId: string): Promise<Result<MediaStudioView>>;
+    /** A piece over one frame of the approved design, or over a storyboard's scenes (v4 ADR-0085), from v4's first cut of either. */
+    startPiece(projectId: string, from: { frameId: string } | { storyboardId: string }): Promise<Result<MediaStudioPiece>>;
+    save(projectId: string, pieceId: string, timeline: MediaTimeline, expectedHash: string): Promise<Result<{ timelineHash: string; problems: string[] }>>;
+    render(projectId: string, pieceId: string, outputId: string, timelineHash: string): Promise<Result<MediaStudioRender>>;
+    /**
+     * v4's preview of one output, as text: the renderer's own page with every moment's values in it. It is shown only in a frame with
+     * an opaque origin (`sandbox="allow-scripts"`) and told where to be by message (`{ seek: ms }`); it answers `{ mediaPreview: "ready" }`.
+     */
+    preview(projectId: string, pieceId: string, outputId: string): Promise<Result<string>>;
+    /** One picture of a render's frame sheet, loaded as an image through the same door as every other read. */
+    sheetUrl(projectId: string, renderId: string, index: number): string;
+    /**
+     * Storyboards (v4 ADR-0085 Decision 3): Media's own scenes, which Design approves before a piece renders from them. v4 stamps the
+     * status and revision and sends a changed storyboard back to a draft; who decided for Design is the signed-in person. Each answer
+     * is the storyboard as the studio shows it, its hash the one the next change names.
+     */
+    startStoryboard(projectId: string): Promise<Result<MediaStudioStoryboard>>;
+    saveStoryboard(projectId: string, boardId: string, storyboard: MediaStoryboard, expectedHash: string): Promise<Result<MediaStudioStoryboard>>;
+    sendStoryboard(projectId: string, boardId: string, expectedHash: string): Promise<Result<MediaStudioStoryboard>>;
+    decideStoryboard(projectId: string, boardId: string, decision: { decision: StoryboardDecision; changes: StoryboardChange[]; expectedHash: string }): Promise<Result<MediaStudioStoryboard>>;
+  };
+  /**
    * The client's book (v4 ADR-0053, ADR-0054): one document with a brand part and a market part, each read from the work its owners
    * finished and checked. v4 decides who reads what: a client gets each part once it is fit to read, and the book is "not
    * produced" (null here) while no part is, never an empty book.
@@ -222,6 +254,14 @@ export interface DataSource {
   questions: {
     list(opts?: { projectId?: string }): Promise<Result<Question[]>>;
     answer(questionId: string, answer: Answer): Promise<Result>;
+    /** A person's step's guide (v4 ADR-0071), or null when its work has none. */
+    guide(questionId: string): Promise<Result<PersonGuide | null>>;
+    /** The person logs one step: done with the proof it needs, stuck with what is in the way, or skipped with why. */
+    logStep(questionId: string, stepId: string, entry: GuideLogEntry): Promise<Result<PersonGuide>>;
+    /** The step's person asks v4 about one step; the answer is kept on the guide. Refused, with why, when no model can answer. */
+    askStep(questionId: string, stepId: string, question: string): Promise<Result<PersonGuide>>;
+    /** What a person's step applies: the approved design and the finished design and copy it waits on, read-only. */
+    materials(questionId: string): Promise<Result<StepMaterials>>;
   };
   /**
    * What people are told (CC-5). A brief is written from records and every statement names the records it comes from, so the
@@ -240,6 +280,15 @@ export interface DataSource {
    * person is signed in. Changing money (the fee, a rate, the envelope) needs a fresh proof; v4 refuses otherwise, and it never
    * reaches a client.
    */
+  /** The agency's team (v4 ADR-0072). The CEO's alone; every change asks for a fresh emailed code. */
+  team: {
+    get(): Promise<Result<TeamView>>;
+    invite(email: string): Promise<Result>;
+    createRole(input: { name: string; capabilities: string[] }): Promise<Result>;
+    changeRole(id: string, input: { name?: string; capabilities?: string[]; retired?: boolean }): Promise<Result>;
+    grant(roleId: string, userId: string): Promise<Result>;
+    revoke(roleId: string, userId: string): Promise<Result>;
+  };
   settings: {
     system(): Promise<Result<SystemView>>;
     fees(): Promise<Result<FeesView>>;

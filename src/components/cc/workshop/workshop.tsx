@@ -19,6 +19,7 @@ import { Directions } from "./directions";
 import { Inspector, type InspectorTab } from "./inspector";
 import { LeftPanel, viewportWords, type LeftTab } from "./left-panel";
 import { useWorkshop } from "./use-workshop";
+import { MediaStudio } from "./studio";
 
 /**
  * The Design Workshop: a light design tool over v4's design document (ADR-0051). The agency adjusts the chosen direction (tokens,
@@ -29,10 +30,14 @@ export function WorkshopDesk({ data, dept }: { data: OwnerData; dept: string }) 
   const { list } = useDomains();
   const projects = projectsIn(data, dept, list);
   const [pid, setPid] = useState(projects[0]?.id ?? "");
+  // The Workshop has two benches over one project (v4 ADR-0081 Decision 0): the design, and the Media studio that plays it.
+  const [bench, setBench] = useState<"design" | "motion">("design");
   const project = projects.find((p) => p.id === pid) ?? projects[0];
   if (!project) return <div className="workshop-empty"><Empty title="No design project yet.">The Workshop opens a project that has design work. Issue a directive for one from the office.</Empty></div>;
   const picker = projects.length > 1 ? <select className="ws-select" aria-label="Design project" value={project.id} onChange={(e) => setPid(e.target.value)}>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : <b className="ws-project">{project.name}</b>;
-  return <DesignWorkshop key={project.id} projectId={project.id} projectName={project.name} picker={picker} />;
+  const benches = <div className="ws-seg ws-bench" role="group" aria-label="Bench">{(["design", "motion"] as const).map((b) => <button key={b} type="button" aria-pressed={bench === b} onClick={() => setBench(b)}>{b === "design" ? "Design" : "Motion"}</button>)}</div>;
+  const header = <>{picker}{benches}</>;
+  return bench === "motion" ? <MediaStudio key={project.id} projectId={project.id} header={header} /> : <DesignWorkshop key={project.id} projectId={project.id} projectName={project.name} picker={header} />;
 }
 
 /** The client's way into the same Workshop: their own projects, one at a time. What they may see and do is v4's to decide. */
