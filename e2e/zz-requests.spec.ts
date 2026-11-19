@@ -162,8 +162,7 @@ test("a directive waiting for a model budget says so and counts as needing the C
   await expect(card.getByLabel("What we can deliver")).toContainText("we haven't checked whether we can deliver it");
 
   // A second request, read and then held as v4 holds one it may not spend on: it waits on the CEO, and says why and what to do.
-  await page.getByRole("button", { name: "New directive", exact: true }).click();
-  const second = page.getByLabel("New request");
+  const second = await newDirective(page);
   await second.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Plan our own team offsite");
   await second.getByRole("button", { name: "Send request" }).click();
   await openDirective(page, "Plan our own team offsite");
@@ -173,8 +172,7 @@ test("a directive waiting for a model budget says so and counts as needing the C
   await expect(waits).toContainText("WAITING TO READ IT", { timeout: 30_000 });
   await expect(waits).toContainText("No model budget is set, so no model is asked. Set one in Settings, under Model spend.");
   await shot(page, "A directive waiting for a model budget says why and what to do");
-  // It waits on the CEO, so it is listed under "Needs you".
-  await page.getByRole("button", { name: "ALL DIRECTIVES" }).click();
+  // It waits on the CEO, so it is listed under "Needs you" (the projects-and-threads desk, CC #40, lists threads beside the open one).
   await page.getByRole("tab", { name: /^Needs you/ }).click();
-  await expect(page.locator(".directive-row", { hasText: "Plan our own team offsite" })).toBeVisible();
+  await expect(page.locator(".thread-row", { hasText: "Plan our own team offsite" })).toBeVisible();
 });
