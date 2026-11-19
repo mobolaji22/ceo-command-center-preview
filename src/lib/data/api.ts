@@ -1,5 +1,6 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
+import type { MediaStudioPiece, MediaStudioRender, MediaStudioStoryboard, MediaStudioView } from "@/lib/media/v4";
 import type { ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, ConversationMessage, ThreadSummary, ThreadView, ThreadWait, WorkspaceView, ConversationView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, PersonGuide, StepMaterials, TeamView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 import { WAIT_LINE } from "../format";
@@ -50,6 +51,10 @@ const MESSAGES: Record<string, string> = {
   OPEN_CHANGE_REQUEST: "A change the client asked for is still open. Answer it before this revision can be approved.",
   ANNOTATIONS_ARE_APPENDED: "Feedback is added and answered on its own, never in a save. Reload and try again.",
   INTERVENTION_NOT_FOUND: "That couldn't be found.",
+  STALE_PIECE: "This piece changed since you opened it. Reload to see the newer one.",
+  LOCKED_NODE: "Design locked this element, so moving it is a change to the design, not to the production. Ask Design to change it.",
+  NOT_READY: "The piece can't be rendered against the approved design yet. Fix what the checks list first.",
+  NO_DESIGN: "There is no approved design to play yet. Media plays only an approved design.",
 };
 
 async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
@@ -75,7 +80,11 @@ async function request<T>(url: string, init: RequestInit): Promise<Result<T>> {
       // A model that cannot answer now says which wait it is (v4 ADR-0027): no budget, the limit, no model, or no usable answer.
       const reason = (json as { reason?: unknown } | null)?.reason;
       if (code === "REASONING_UNAVAILABLE" && typeof reason === "string" && reason in WAIT_LINE) return fail(WAIT_LINE[reason as keyof typeof WAIT_LINE], code);
-      return fail(typeof issue === "string" && issue ? `${issue.replace(/\.$/, "")}.` : MESSAGES[code] ?? (typeof detail === "string" && detail ? detail : code.replace(/_/g, " ").toLowerCase()), code);
+      const failed = fail<T>(typeof issue === "string" && issue ? `${issue.replace(/\.$/, "")}.` : MESSAGES[code] ?? (typeof detail === "string" && detail ? detail : code.replace(/_/g, " ").toLowerCase()), code);
+      // A refusal that lists what to fix (the Media studio's do) passes the list on.
+      const problems = (json as { problems?: unknown } | null)?.problems;
+      if (Array.isArray(problems) && failed.error) failed.error.problems = problems.filter((p): p is string => typeof p === "string");
+      return failed;
     }
     if (res.status >= 500) return fail(MESSAGES["SERVER_ERROR"]!, "SERVER_ERROR");
     return fail(`Request failed (${res.status}).`);
@@ -476,6 +485,27 @@ export function createApiDataSource(): DataSource {
       annotate: (projectId, input) => call("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/annotations`, { target: { kind: input.target.kind, id: input.target.id }, kind: input.kind, text: input.text }),
       settle: (projectId, annotationId, input) => call("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/annotations/${encodeURIComponent(annotationId)}/settle`, input),
       decide: async (proposalId, input) => voidResult(await call("POST", `/v1/proposals/${encodeURIComponent(proposalId)}/decision`, input)),
+    },
+
+    media: {
+      read: (projectId) => call<MediaStudioView>("GET", `/v1/projects/${encodeURIComponent(projectId)}/media`),
+      startPiece: (projectId, from) => call<MediaStudioPiece>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/pieces`, from),
+      // What the platform stamps (the project, the organization, the timeline's id) is v4's; it keeps its own whatever is sent.
+      save: (projectId, pieceId, timeline, expectedHash) => call("PUT", `/v1/projects/${encodeURIComponent(projectId)}/media/pieces/${encodeURIComponent(pieceId)}`, { timeline, expectedHash }),
+      render: (projectId, pieceId, outputId, timelineHash) => call<MediaStudioRender>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/pieces/${encodeURIComponent(pieceId)}/renders`, { outputId, timelineHash }),
+      async preview(projectId, pieceId, outputId) {
+        // v4 sends the page as inert text, so it is read as text here, not through the JSON reader.
+        let res: Response;
+        try { res = await fetch(`${PROXY}/v1/projects/${encodeURIComponent(projectId)}/media/pieces/${encodeURIComponent(pieceId)}/preview?output=${encodeURIComponent(outputId)}`, { credentials: "same-origin", headers: { Accept: "text/plain" } }); }
+        catch { return fail("Could not reach the server. Check your connection and try again."); }
+        if (!res.ok) return fail(res.status === 404 ? MESSAGES["NOT_FOUND"]! : res.status >= 500 ? MESSAGES["SERVER_ERROR"]! : `Request failed (${res.status}).`);
+        return ok(await res.text());
+      },
+      sheetUrl: (projectId, renderId, index) => `${PROXY}/v1/projects/${encodeURIComponent(projectId)}/media/renders/${encodeURIComponent(renderId)}/sheet/${index}`,
+      startStoryboard: (projectId) => call<MediaStudioStoryboard>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards`, {}),
+      saveStoryboard: (projectId, boardId, storyboard, expectedHash) => call<MediaStudioStoryboard>("PUT", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards/${encodeURIComponent(boardId)}`, { storyboard, expectedHash }),
+      sendStoryboard: (projectId, boardId, expectedHash) => call<MediaStudioStoryboard>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards/${encodeURIComponent(boardId)}/review`, { expectedHash }),
+      decideStoryboard: (projectId, boardId, decision) => call<MediaStudioStoryboard>("POST", `/v1/projects/${encodeURIComponent(projectId)}/media/storyboards/${encodeURIComponent(boardId)}/decision`, decision),
     },
 
     deliverables: {

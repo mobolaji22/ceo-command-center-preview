@@ -168,3 +168,37 @@ export function seedGuidedStep(ceoEmail: string): { id: string; title: string; p
   const out = execFileSync("npx", ["tsx", resolve("e2e/guide-seed.mjs"), ceoEmail], { cwd: V4_DIR, encoding: "utf8", env: { ...process.env, DATABASE_URL: u.toString() } });
   return JSON.parse(out.trim().split("\n").at(-1)!) as { id: string; title: string; projectId: string; projectName: string };
 }
+
+/** The newest project with an approved design (the Workshop's, once its client approved a version), with its name. */
+export function approvedDesignProject(): { id: string; name: string } {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const row = execFileSync("psql", [u.toString(), "-t", "-A", "-F", "\t", "-c", `SELECT p.id, p.name FROM "DesignState" d JOIN "Project" p ON p.id = d."projectId" WHERE d."sddVersionId" IS NOT NULL ORDER BY p."createdAt" DESC LIMIT 1`], { encoding: "utf8" }).trim();
+  const [id, name] = row.split("\t");
+  if (!id || !name) throw new Error("no project has an approved design");
+  return { id, name };
+}
+
+/**
+ * Content's finished copy deck on that project (e2e/copy-seed.mjs): words for every slot of the chosen direction's frames, and with
+ * `script` the deck's script group too, the lines an explainer says (v4 ADR-0085 Decision 4).
+ */
+export function seedCopyDeck(projectId: string, opts: { script?: boolean } = {}) {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  execFileSync("npx", ["tsx", resolve("e2e/copy-seed.mjs"), projectId, ...(opts.script ? ["--script"] : [])], { cwd: V4_DIR, encoding: "utf8", env: { ...process.env, DATABASE_URL: u.toString(), STORAGE_DIR: process.env["E2E_STORAGE_DIR"], ...(process.env["CHROMIUM_PATH"] ? { RENDERER_CHROMIUM_PATH: process.env["CHROMIUM_PATH"] } : {}) } });
+}
+
+/**
+ * Stands in for the worker's Media sweep (e2e/media-render.mjs): v4 renders every queued studio render in Chromium and FFmpeg into the
+ * API's storage, and Design's check reads each file. Returns what became of them.
+ */
+export function runStudioRenders(): Array<{ id: string; status: string; problems: unknown }> {
+  const u = new URL(ADMIN);
+  u.pathname = "/cc_e2e";
+  const out = execFileSync("npx", ["tsx", resolve("e2e/media-render.mjs")], {
+    cwd: V4_DIR, encoding: "utf8", timeout: 240_000,
+    env: { ...process.env, DATABASE_URL: u.toString(), STORAGE_DIR: process.env["E2E_STORAGE_DIR"], ...(process.env["CHROMIUM_PATH"] ? { RENDERER_CHROMIUM_PATH: process.env["CHROMIUM_PATH"] } : {}) },
+  });
+  return JSON.parse(out.trim().split("\n").at(-1)!) as Array<{ id: string; status: string; problems: unknown }>;
+}

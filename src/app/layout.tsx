@@ -18,6 +18,7 @@ import "./micro.css";
 import "./desks.css";
 import "./day.css";
 import "./workshop.css";
+import "./studio.css";
 import "./book.css";
 import "./lobby.css";
 import "./phone.css";
