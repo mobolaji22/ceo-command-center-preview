@@ -151,12 +151,12 @@ export function CaseFile({ projectId, audience, canControl, onChanged }: { proje
 
 const OPTION: Record<string, string> = {
   APPROVE: "Approve this step", GRANT_EXCEPTION: "Grant an exception", RAISE_BUDGET: "Raise the budget", REWORK: "Do it again", ACCEPT_RISK: "Accept it anyway",
-  RETRY: "Try again", MARK_DONE: "It is done", RESUME: "Resume the work", UPSTREAM_STANDS: "Keep the earlier result", CONSTRAINT_STANDS: "Redo the earlier result", STOP_RUN: "Stop the work",
+  RETRY: "Try again", MARK_DONE: "It is done", SEND_BACK: "Send it back with what I found", RESUME: "Resume the work", UPSTREAM_STANDS: "Keep the earlier result", CONSTRAINT_STANDS: "Redo the earlier result", STOP_RUN: "Stop the work",
   OUTPUT_STANDS: "Let the work stand over the objection", REDO_OUTPUT: "Redo the work", REQUEST_QUALIFIED_REVIEW: "Ask a qualified reviewer", REVISE_PLAN: "Revise the plan",
 };
 const optionWords = (o: string) => OPTION[o] ?? label(o);
 /** Answers that ask their own question in place of the optional note. */
-const NOTE_ASKED = ["RAISE_BUDGET", "MARK_DONE", "ACCEPT_RISK", "OUTPUT_STANDS", "REQUEST_QUALIFIED_REVIEW"];
+const NOTE_ASKED = ["RAISE_BUDGET", "MARK_DONE", "SEND_BACK", "ACCEPT_RISK", "OUTPUT_STANDS", "REQUEST_QUALIFIED_REVIEW"];
 
 export function QuestionsList({ projectId, audience, onChanged, quiet }: { projectId?: string | undefined; audience: Audience; onChanged?: (() => void) | undefined; quiet?: boolean | undefined }) {
   const ds = useDataSource();
@@ -213,6 +213,8 @@ export function QuestionCard({ question: x, audience, onChanged }: { question: Q
     {choice && <div className="plan-confirm">
       {choice === "RAISE_BUDGET" && <label>Raise the budget to (US dollars)<input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>}
       {choice === "MARK_DONE" && <label>{guided ? "Anything to add? (optional)" : "What was done?"}<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
+      {/* v4 ADR-0090: what the check found goes back to the step it checked (a name that is taken), and this step waits for the new result. */}
+      {choice === "SEND_BACK" && <label>What did you find? The work it checks is done again with this, and the step comes back to you.<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "ACCEPT_RISK" && <label>Why is this acceptable? It is recorded with your name.<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "OUTPUT_STANDS" && <label>Why should the work stand? It is recorded with your name.<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       {choice === "REQUEST_QUALIFIED_REVIEW" && <label>Who is qualified to review it, and why?<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>}
