@@ -21,6 +21,7 @@ const db = new PrismaClient();
 const HOOKS = ["conflict", "stakes", "specificity", "curiosity", "transformation", "contrast_with_named_villain", "signature_device", "conflict"];
 const candidate = (n) => ({
   id: `p${n}`, statement: n === 2 ? "The roastery that prints the roast date on every bag." : `The roastery with difference ${n}.`, hook_type: HOOKS[n - 1],
+  line: n === 2 ? "Read the date, not the claim." : `A line for position ${n}.`,
   strategic_premise: "Coffee bought online is often weeks old.", difference: n === 2 ? "Every bag and every product page shows the day it was roasted." : `Difference ${n}.`,
   reason_to_believe: "The roasters roast weekly in small batches and date each bag by hand.", evidence_refs: ["the request"],
   epistemic: { status: "FACT", epistemicClass: "ASKED" }, rung: 2, strengths: ["specific"], weaknesses: ["untested"], claims_needed: [], signature_device: "The roast-date stamp",

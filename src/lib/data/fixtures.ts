@@ -512,12 +512,14 @@ function standingOf(s: Store, t: FixtureThread, all: FixtureThread[]): { state: 
   const planThread = t.project_id ? all.filter((x) => x.project_id === t.project_id && !x.opened_from_id)[0]?.id ?? null : null;
   const messages = t.intent_ids.flatMap((x) => s.conversations?.[x] ?? []);
   const replying = messages.filter((m) => m.from !== "PLATFORM").at(-1)?.from === "PERSON";
-  const needs_you = { questions: c.questions.length, materials: c.materials.filter((m) => m.required).length, decision: head?.status === "SUBMITTED" && planThread === t.id };
+  // As v4 counts them: Strategy's open recommendation, in the thread the plan came from (ADR-0090).
+  const recommendations = planThread === t.id ? (s.ledger ?? demoLedger()).filter((d) => d.project_id === t.project_id && d.id === SAMPLE_STRATEGY_DECISION_ID && (d.state === "OPEN" || d.state === "STALE")).length : 0;
+  const needs_you = { questions: c.questions.length, materials: c.materials.filter((m) => m.required).length, decision: head?.status === "SUBMITTED" && planThread === t.id, decisions: recommendations };
   if (c.status === "RECEIVED" && !t.project_id && t.opened_from_id) return { state: "WAITING", waiting_for: { reason: "PROJECT_NOT_OPEN", thread_id: t.opened_from_id }, needs_you };
   if (c.status === "UNDERSTOOD" && t.project_id && planThread !== t.id && head && ["DRAFT", "SUBMITTED", "REVISION_REQUESTED"].includes(head.status)) {
     return { state: "WAITING", waiting_for: { reason: "REVISION_OPEN", thread_id: planThread, proposal_id: head.id, version: head.version }, needs_you };
   }
-  if (!replying && (needs_you.questions > 0 || needs_you.decision)) return { state: "NEEDS_YOU", needs_you };
+  if (!replying && (needs_you.questions > 0 || needs_you.decision || needs_you.decisions > 0)) return { state: "NEEDS_YOU", needs_you };
   if (["PLANNED", "REJECTED", "SUPERSEDED"].includes(c.status)) return { state: "DONE", needs_you };
   return { state: "WORKING", needs_you };
 }
