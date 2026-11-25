@@ -59,7 +59,8 @@ test("the CEO gives a team member a job role, and the member sees only the steps
   await settings.getByRole("tab", { name: "Team", exact: true }).click();
   await expect(settings.getByRole("list", { name: "Team members" })).toContainText(MEMBER);
   await settings.getByLabel("Role name").fill("Store setup");
-  await settings.getByRole("group", { name: "The work it covers" }).getByRole("checkbox").first().check();
+  // By name: the list holds every person's step the packs declare (Brand's name check sorts before the store setup).
+  await settings.getByRole("group", { name: "The work it covers" }).getByRole("checkbox", { name: /hosted.store.setup/i }).check();
   await settings.getByRole("button", { name: "Add the role" }).click();
   await expect(settings.getByRole("status")).toHaveText('"Store setup" added.');
   // The box shows what v4 holds, so it ticks once the grant is saved, not on the click.
