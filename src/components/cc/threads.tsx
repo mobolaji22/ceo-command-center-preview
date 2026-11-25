@@ -85,7 +85,8 @@ export function ThreadsScreen({ audience, intents, organizations, fixedOrganizat
   ]), [ws.data]);
   const all = groups.flatMap((g) => g.threads.map((t) => ({ t, g })));
   const titleOf = (id: string | null) => (id ? all.find((x) => x.t.thread_id === id)?.t.title ?? null : null);
-  const needs = (t: ThreadSummary) => { const i = byIntent.get(t.current.intent_id); return i ? needsMe(i) : false; };
+  // What the agency recommends waits on whoever may answer for the request (v4 ADR-0090), as its questions do.
+  const needs = (t: ThreadSummary) => { const i = byIntent.get(t.current.intent_id); return i ? needsMe(i) || ((t.needs_you.decisions ?? 0) > 0 && canWrite(i)) : false; };
   const forName = (o: Group["org"]) => (o.kind === "INTERNAL" ? "The agency's own work" : o.name);
   const shownGroups = groups
     .filter((g) => forOrg === "*" || (forOrg === "INTERNAL" ? g.org.kind === "INTERNAL" : g.org.id === forOrg))
@@ -201,6 +202,7 @@ function ThreadDetail({ threadId, summary, group, audience, intent, part, setPar
   const asks = intent ? intent.questions.length + intent.materials.length + (audience === "agency" && intent.delivery?.needs_answer ? 1 : 0) + (audience === "agency" && waitsOnBudget(intent) ? 1 : 0) : 0;
   // The plan's decision belongs to the thread the plan came from; a thread waiting its turn says so instead.
   const deciding = summary.needs_you.decision;
+  const recommending = summary.needs_you.decisions ?? 0;
   const from = group.org.kind === "INTERNAL" ? "The agency's own work" : group.org.name;
   const state = view ? waitLine(view, titleOf) : null;
   const whose = may ? "you" : audience === "agency" ? "the client" : "your account owner";
@@ -221,11 +223,13 @@ function ThreadDetail({ threadId, summary, group, audience, intent, part, setPar
     </SlideGroup>
 
     {part === "talk" && <section className="convo thread-convo" aria-label="Conversation in this thread">
-      {(asks > 0 || deciding) && <div className="thread-asking" role="group" aria-label={`Waiting on ${whose}`}>
+      {(asks > 0 || deciding || recommending > 0) && <div className="thread-asking" role="group" aria-label={`Waiting on ${whose}`}>
         {intent && intent.questions.slice(0, 3).map((q) => <button key={q.id} type="button" className="ask-chip" onClick={() => setPart("asks")}>{q.question}</button>)}
         {intent && intent.questions.length > 3 && <button type="button" className="ask-chip" onClick={() => setPart("asks")}>{intent.questions.length - 3} more question{intent.questions.length - 3 === 1 ? "" : "s"}</button>}
         {intent && intent.materials.length > 0 && <button type="button" className="ask-chip" onClick={() => setPart("asks")}>{intent.materials.length} thing{intent.materials.length === 1 ? "" : "s"} we need from {whose}</button>}
         {deciding && <button type="button" className="ask-chip" onClick={() => setPart("plan")}>The plan is ready for {may ? "your" : audience === "agency" ? "the client's" : "a"} decision</button>}
+        {/* v4 ADR-0090: what the agency recommends is the owner's to decide; it waits under the plan, and the thread says so. */}
+        {recommending > 0 && <button type="button" className="ask-chip" onClick={() => setPart("plan")}>{recommending === 1 ? "We recommend a direction" : `We recommend ${recommending} directions`}; {may ? "you decide" : `${whose} decide${whose === "you" ? "" : "s"}`}</button>}
       </div>}
       {!view ? <p className="convo-sub">Loading…</p> : <ol className="convo-thread">
         {/* The thread reads as one conversation: each request made in it, then what was said, in the order it happened. */}

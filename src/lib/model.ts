@@ -171,7 +171,8 @@ export type ThreadSummary = {
   current: { intent_id: string; status: IntentStatus }
   state: ThreadState
   waiting_for?: ThreadWait | undefined
-  needs_you: { questions: number; materials: number; decision: boolean }
+  /** `decisions`: what the agency recommended that the owner has still to decide (v4 ADR-0084, ADR-0090). */
+  needs_you: { questions: number; materials: number; decision: boolean; decisions: number }
   last_message: { from: ConversationSpeaker; text: string; at: string } | null
 };
 /** What the person can see, as projects and their threads (v4 ADR-0078): their own organization for a client, every one for the CEO. */
