@@ -1,0 +1,14 @@
+{
+  "name": "Boxwood",
+  "line": "The whole studio, in one conversation.",
+  "voice": null,
+  "source": null,
+  "notSet": [
+    { "part": "mark", "reason": "Design has not delivered the mark yet; it arrives as an asset with the brand book." },
+    { "part": "colours", "reason": "Design has not delivered the palette yet; it arrives as tokens with the brand book." },
+    { "part": "type", "reason": "Design has not delivered the typefaces yet; they arrive as tokens with the brand book." },
+    { "part": "voice", "reason": "No brand book the CEO approved holds a voice yet." },
+    { "part": "imagery", "reason": "Design has not delivered the imagery direction yet." }
+  ],
+  "updatedAt": "2026-11-26T12:00:00.000Z"
+}

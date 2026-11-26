@@ -14,6 +14,7 @@ import { FindBar, Marked } from "./find-bar";
 import { useProjectFind } from "@/lib/find";
 import { useStepUp } from "./step-up";
 import type { OrgRole } from "@/lib/model";
+import { useAgencyBrand } from "@/lib/brand";
 
 type P = { data: OwnerData; refresh: () => void; initialProjectId?: string | undefined };
 
@@ -38,6 +39,7 @@ const FOLDERS: FolderName[] = ["Projects", "Library"];
  * only how you move between them changed. A project is a folder you open; Up goes back to the folder it was in.
  */
 export function ManageView({ data, refresh, initialProjectId }: P) {
+  const { name } = useAgencyBrand();
   const [folder, setFolder] = useState<FolderName>("Projects");
   const [project, setProject] = useState<string | null>(initialProjectId ?? null);
   const open = data.projects.find((p) => p.id === project) ?? null;
@@ -49,7 +51,7 @@ export function ManageView({ data, refresh, initialProjectId }: P) {
   return (
     <div className="explorer" data-desk="explorer">
       <h2 className="sr-only">Records & access</h2>
-      <div className="window-bar"><div className="traffic-dots"><i /><i /><i /></div><span>&gt; DevPlaybook Records // Explorer</span><span className="window-more">{FOLDERS.length} folders</span></div>
+      <div className="window-bar"><div className="traffic-dots"><i /><i /><i /></div><span>&gt; {name ? `${name} ` : ""}Records // Explorer</span><span className="window-more">{FOLDERS.length} folders</span></div>
       <div className="explorer-toolbar">
         <Button variant="ghost" className="explorer-up" aria-label="Up one folder" disabled={!open} onClick={() => setProject(null)}><ArrowUp size={15} /> Up</Button>
         <nav className="explorer-path" aria-label="Where you are">

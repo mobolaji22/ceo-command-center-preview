@@ -23,6 +23,7 @@ import { RoomKeys, type KeyBinding, type PaletteCommand } from "@/components/cc/
 import { usePlaceFromHistory, writePlace } from "@/lib/place";
 import { setLighting, useLighting } from "@/lib/lighting";
 import { label } from "@/lib/format";
+import { useAgencyBrand } from "@/lib/brand";
 
 type Spot = "projects" | "decisions" | "requests" | "library" | "briefs" | "atmosphere";
 /** The design has no object in the room: it is reached from a project, a link or ⌘K, and opens wide, as the CEO's Workshop does. */
@@ -52,6 +53,7 @@ const OBJECT_AT: Partial<Record<View, SceneOrigin>> = { projects: { x: 60, y: 65
  * organization's projects and what was shared with them. Nothing here is a new data path; it is the same data reached differently.
  */
 export default function ClientCenter() {
+  const brand = useAgencyBrand().name.toUpperCase();
   const auth = useAuth();
   const ds = useDataSource();
   const router = useRouter();
@@ -151,7 +153,7 @@ export default function ClientCenter() {
       />
     </SceneFrame>
 
-    {view !== "office" && <DeskOverlay account={account} label={view === "settings" ? "Settings" : view === "design" ? "Design workshop" : `${spotData[view].label} desk`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; CLIENT &nbsp; / &nbsp; {view === "settings" || view === "design" ? view.toUpperCase() : spotData[view].label.toUpperCase()}</>} surface={`client-${view}`} wide={view === "design"} origin={origin} onBack={() => openView("office")}>
+    {view !== "office" && <DeskOverlay account={account} label={view === "settings" ? "Settings" : view === "design" ? "Design workshop" : `${spotData[view].label} desk`} backLabel="BACK TO ROOM" path={<>{brand && <>{brand} &nbsp; / &nbsp; </>}CLIENT &nbsp; / &nbsp; {view === "settings" || view === "design" ? view.toUpperCase() : spotData[view].label.toUpperCase()}</>} surface={`client-${view}`} wide={view === "design"} origin={origin} onBack={() => openView("office")}>
       {!data ? <DeskSkeleton error={q.isError ? (q.error as Error).message : undefined} /> : <div key={view} className="scene scene-side">
         {view === "projects" && <ProjectsDesk data={data} isOwner={isOwner} initialProjectId={focusProject} />}
         {view === "decisions" && <DecisionsDesk data={data} isOwner={isOwner} busy={busy} msg={msg} onDecide={decide} />}

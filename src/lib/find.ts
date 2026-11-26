@@ -5,9 +5,9 @@ import { label } from "@/lib/format";
 import type { Project } from "@/lib/model";
 
 /**
- * Finding a project among many. One small hook so every list of projects (the explorer, the computer's dossiers, a department's
+ * Finding a project among many. One small hook so every list of projects (the explorer, the computer's dossiers, a room's
  * wall, the client's table) searches and filters the same way: words typed are matched against the name, description, objective,
- * status and departments (every word must be found, in any order); chips narrow by status; a department narrows by where the
+ * status and domains (every word must be found, in any order); chips narrow by status; a domain narrows by where the
  * project is worked; sort orders what is left. Nothing here reaches a server: it works on the projects already on screen.
  */
 export type Sort = "new" | "old" | "az";
@@ -50,7 +50,7 @@ export function useProjectFind<P extends Pick<Project, "name" | "description" | 
   const deptOptions = useMemo<FindOption[]>(() => {
     const counts = new Map<string, number>();
     projects.forEach((p) => new Set(p.domains).forEach((d) => counts.set(d, (counts.get(d) ?? 0) + 1)));
-    return [{ id: "ALL", label: "All departments", count: projects.length }, ...[...counts.entries()].map(([id, count]) => ({ id, label: deptLabel(id), count })).sort((a, b) => a.label.localeCompare(b.label))];
+    return [{ id: "ALL", label: "All rooms", count: projects.length }, ...[...counts.entries()].map(([id, count]) => ({ id, label: deptLabel(id), count })).sort((a, b) => a.label.localeCompare(b.label))];
   }, [projects, deptLabel]);
 
   const results = useMemo(() => {

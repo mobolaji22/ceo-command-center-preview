@@ -20,6 +20,7 @@ import { isFreeKey, useSingleKeys, useWindowKeys } from "@/lib/shortcuts";
 import { flushSync } from "react-dom";
 import { carry } from "@/lib/motion";
 import { ActionButton, Presence, RollingNumber, SlideGroup, Tick } from "./motion";
+import { useAgencyBrand } from "@/lib/brand";
 
 /** `refresh` reads the records again; it returns a promise that settles once they have arrived. */
 type Common = { data: OwnerData; refresh: () => unknown };
@@ -31,6 +32,7 @@ export function Empty({ title, children }: { title: string; children?: React.Rea
 }
 
 export function ComputerView({ data, openContracts, openBrief, openManage }: Common & { openContracts: (projectId?: string) => void; openBrief: () => void; openManage: (projectId?: string) => void }) {
+  const brand = useAgencyBrand().name.toUpperCase();
   const ds = useDataSource();
   const [tab, setTab] = useState("Cases & Engagements");
   const active = data.projects.filter((p) => !CLOSED.includes(p.status));
@@ -43,7 +45,7 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
   const blocked = data.tasks.filter((t) => t.status === "BLOCKED" || t.status === "FAILED");
   const exceptions = pending.length + blocked.length;
   return <div className="computer-frame">
-    <div className="computer-body"><div className="computer-heading"><div><div className="eyebrow gold">THE ORGANIZATIONAL NERVOUS SYSTEM</div><h2>Operating overview<span className="period">.</span></h2><p>{data.projects.length} projects · {data.tasks.length} tasks · {data.decisions.length} decisions on record.</p></div><div className="system-time"><Radio size={15} /> {ds.kind === "api" ? "LIVE FROM DEVPLAYBOOK V4" : "DEMO FIXTURES"}</div></div>
+    <div className="computer-body"><div className="computer-heading"><div><div className="eyebrow gold">THE ORGANIZATIONAL NERVOUS SYSTEM</div><h2>Operating overview<span className="period">.</span></h2><p>{data.projects.length} projects · {data.tasks.length} tasks · {data.decisions.length} decisions on record.</p></div><div className="system-time"><Radio size={15} /> {ds.kind === "api" ? (brand ? `LIVE FROM ${brand}` : "LIVE") : "DEMO FIXTURES"}</div></div>
       <SlideGroup active={tab} className="computer-tabs" role="tablist">{["Cases & Engagements", "Decision Ledger", "Security/Gov"].map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>{t}</Button>)}</SlideGroup>
       {tab === "Cases & Engagements" && <div className="computer-content"><div className="section-label"><span>ACTIVE DOSSIERS</span><span><RollingNumber value={pad(active.length)} /> IN MOTION</span></div>
         {data.projects.length > 0 && <FindBar find={find} shown={find.results.length} showDept onOnly={() => { const only = find.results[0]; if (only) { if (pending.some((a) => a.project_id === only.id)) openContracts(only.id); else openManage(only.id); } }} extra={<select className="find-select" aria-label="Show" value={scope} onChange={(e) => setScope(e.target.value as "ACTIVE" | "CLOSED" | "ALL")}><option value="ACTIVE">In motion</option><option value="CLOSED">Finished</option><option value="ALL">Everything</option></select>} />}
@@ -51,7 +53,7 @@ export function ComputerView({ data, openContracts, openBrief, openManage }: Com
         <div className="dossier-list">{find.results.map((p, i) => {
           const hasPending = pending.some((a) => a.project_id === p.id);
           // The whole row opens the project (its name is the link, stretched over the row); the case file keeps its own button.
-          return <div key={p.id} className="dossier-row with-case rise-in" style={{ "--i": Math.min(i, 8) } as CSSProperties}><span className="row-index">{pad(i + 1)}</span><div><button type="button" className="row-link" aria-label={`Open ${p.name}${hasPending ? ", awaiting your review" : ""}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><b><Marked text={p.name} q={find.q} /></b></button><small>{p.domains.length ? p.domains.map(nameOf).join(" · ") : "No department"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /></div>;
+          return <div key={p.id} className="dossier-row with-case rise-in" style={{ "--i": Math.min(i, 8) } as CSSProperties}><span className="row-index">{pad(i + 1)}</span><div><button type="button" className="row-link" aria-label={`Open ${p.name}${hasPending ? ", awaiting your review" : ""}`} onClick={() => hasPending ? openContracts(p.id) : openManage(p.id)}><b><Marked text={p.name} q={find.q} /></b></button><small>{p.domains.length ? p.domains.map(nameOf).join(" · ") : "No room yet"} · Priority {p.priority}</small></div>{hasPending ? <span className="pill amber">CEO REVIEW</span> : <Standing projectId={p.id} fallback={{ text: label(p.status).toUpperCase(), tone: statusTone(p.status) }} />}<CaseFileToggle projectId={p.id} name={p.name} audience="agency" canControl /></div>;
         })}</div>}
         <div className="computer-lower"><div><div className="section-label">SIGNAL HEALTH</div><h3>{exceptions === 0 ? "Steady. Nothing needs you." : `Steady, with ${exceptions} exception${exceptions > 1 ? "s" : ""}.`}</h3><p>{pending.length} approval{pending.length === 1 ? "" : "s"} awaiting signature · {blocked.length} blocked or failed task{blocked.length === 1 ? "" : "s"}.</p></div><Button variant="ghost" className="inline-arrow" onClick={openBrief}>VIEW EXECUTIVE BRIEF <ArrowRight size={16} /></Button></div></div>}
       {tab === "Decision Ledger" && <div className="computer-content"><div className="section-label"><span>DECISION LEDGER</span><span>TRACEABLE BY DESIGN</span></div>
@@ -114,6 +116,7 @@ export function PhoneView({ data, openBrief, openContracts }: Common & { openBri
  * Enter confirms it (Escape lets go), because a single stray letter must never sign anything.
  */
 export function ContractsView({ data, refresh, focusProjectId, focusApprovalId, more }: Common & { focusProjectId?: string | undefined; /** Open on this authorization (the palette chose it). */ focusApprovalId?: string | undefined; /** The rest of the desk (questions, plans), on the contract's own column. */ more?: React.ReactNode }) {
+  const brand = useAgencyBrand().name.toUpperCase();
   const ds = useDataSource();
   const single = useSingleKeys();
   // Decisions sent and not refused. Each leaves the queue the moment it is sent, and the next one opens; the API confirms it
@@ -198,14 +201,14 @@ export function ContractsView({ data, refresh, focusProjectId, focusApprovalId, 
   }, true);
 
   const resolved = data.approvals.filter((x) => x.status !== "REQUESTED").slice(0, 6);
-  if (!a) return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span></div>
+  if (!a) return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>{brand && <>{brand} </>}GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span></div>
     <div className="contract-body">{msg && <p className="mmsg" role="status"><ToldLine told={told} text={msg} /></p>}<Empty title="No authorizations awaiting your signature.">New approval requests appear here as soon as they're raised.</Empty>
     {resolved.length > 0 && <ResolvedList data={data} items={resolved} />}{more}</div></div>;
 
   const evidence = data.evidence.filter((e) => e.approval_id === a.id || (!e.approval_id && e.project_id === a.project_id));
   const projectRef = `DPL-AC-${a.id.slice(0, 4).toUpperCase()}`;
 
-  return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>DEVPLAYBOOK GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span><span className="protocol-id">{projectRef}</span></div>
+  return <div className="contract-wrap"><div className="protocol-line"><ShieldCheck size={17} /><span>{brand && <>{brand} </>}GOVERNANCE PROTOCOL <span className="dot-divider">·</span> AUTHORIZATION CONTRACT</span><span className="protocol-id">{projectRef}</span></div>
     {ordered.length > 1 && <div className="approval-queue">{ordered.map((x, i) => <button key={x.id} className={x.id === a.id ? "active" : ""} style={{ viewTransitionName: carriedName("approval", x.id) }} onClick={() => select(x.id)}><span>{pad(i + 1)}</span>{x.title}</button>)}</div>}
     {ds.capabilities.approvalNotes && <SlideGroup active={tab} className="contract-tabs" role="tablist">{(["Contract Review", "Modify Constraints & Scope", "Request Evidence"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant="ghost" className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>{t}</Button>)}</SlideGroup>}
     <div className="contract-body"><div className="classification"><span><LockKeyhole size={15} /> CLASSIFICATION: {label(a.target_type).toUpperCase()} · {projectName(data, a.project_id).toUpperCase()}</span><strong>{a.requires_client ? "CLIENT & CEO APPROVAL" : "CEO APPROVAL REQUIRED"}</strong></div>
@@ -268,6 +271,7 @@ const RANGES: { id: BriefRange; label: string }[] = [{ id: "visit", label: "Sinc
  * chips widen the window to a day or a week whenever "since your last visit" is too short to be useful.
  */
 export function BriefView({ data, openContracts, openComputer }: Common & { openContracts: (projectId?: string) => void; openComputer: () => void }) {
+  const brand = useAgencyBrand().name.toUpperCase();
   const ds = useDataSource();
   const lastVisit = useQuery({ queryKey: ["brief-since"], queryFn: () => ds.commands.markSeen(), staleTime: Infinity, gcTime: Infinity, meta: { static: true } });
   const [range, setRange] = useState<BriefRange>("visit");
@@ -286,5 +290,5 @@ export function BriefView({ data, openContracts, openComputer }: Common & { open
       <div className="brief-feature"><span>02 / ORGANIZATIONAL PULSE</span><h3>{blocked.length ? `${blocked.length} item${blocked.length > 1 ? "s" : ""} blocked.` : "Momentum is holding."}</h3><p>{done.length ? `Completed: ${done.slice(0, 3).map((t) => t.title).join(" · ")}` : "No tasks completed in this window."}</p><Button variant="ghost" className="inline-arrow" onClick={openComputer}>OPEN OPERATING SYSTEM <ArrowRight size={16} /></Button></div></div>
     <div className="brief-events"><div className="section-label"><span>WHAT CHANGED</span><span>{recent.length}</span></div>{recent.length === 0 ? <Empty title={range === "visit" ? "No new signals since your last visit." : "No signals in this window."}>{range !== "week" ? "Widen the window to see more." : null}</Empty> : recent.slice(0, 12).map((e) => <div key={e.id} className="resolved-row"><span>{e.summary}<small>{projectName(data, e.project_id)} · {fmtAgo(e.created_at)}</small></span><span className="pill muted">{label(e.type).toUpperCase()}</span></div>)}</div>
     <div className="brief-events"><div className="section-label"><span>EVERYTHING YOU HAVE BEEN TOLD</span></div><BriefArchive limit={5} /></div>
-    <div className="brief-signoff"><span className="live-dot" /> PREPARED BY DEVPLAYBOOK · EXECUTIVE INTELLIGENCE</div></div>;
+    <div className="brief-signoff"><span className="live-dot" /> {brand ? `PREPARED BY ${brand} · ` : ""}EXECUTIVE INTELLIGENCE</div></div>;
 }

@@ -3,7 +3,7 @@
  * the visitor's own time; lights drawn over the places they are in the picture; a visitor card of glass with a brass edge.
  *
  * Positions over the photograph are percentages of the picture itself: .lobby-frame always has the photograph's proportions and
- * covers the screen, so 88% 40% is the DEVPLAYBOOK sign at every size. Motion: arrival from the street (~1.7s), the walk to
+ * covers the screen, so 88% 40% is the sign in the photograph at every size. Motion: arrival from the street (~1.7s), the walk to
  * "Rooms 01-13" after sign-in (950ms, LEAVE_MS), the envelope (700ms, SEND_MS). With reduced motion nothing travels.
  */
 

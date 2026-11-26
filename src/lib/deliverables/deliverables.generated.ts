@@ -632,20 +632,7 @@ export interface ClientBookView {
        * @maxItems 8
        */
       controls: {
-        owner:
-          | "STRATEGY"
-          | "MARKET"
-          | "BUSINESS"
-          | "BRAND"
-          | "DESIGN"
-          | "CONTENT"
-          | "MEDIA"
-          | "PRODUCT"
-          | "ENGINEERING"
-          | "GROWTH"
-          | "COMMUNICATIONS"
-          | "MEASUREMENT"
-          | "COMPLIANCE";
+        owner: "STRATEGY" | "MARKET" | "BUSINESS" | "BRAND" | "CONTENT" | "DESIGN" | "MEDIA" | "ENGINEERING" | "GROWTH" | "COMPLIANCE";
         requirement: string;
         evidence: string;
       }[];

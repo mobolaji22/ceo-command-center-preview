@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { Button } from "@/components/ui/button";
 import { fmtDate, label, pad, statusTone } from "@/lib/format";
 import type { OwnerData } from "@/lib/model";
-import { departments, projectsIn, taskIn, type Entry } from "./corridor";
+import { domainOrder, projectsIn, taskIn, type Entry } from "./corridor";
 import { useDomains, type DomainList } from "@/lib/domains";
 import { DeskFrame, firstFilled } from "./desk-frame";
 import { OfficeStage, type Spot } from "./office-stage";
@@ -17,14 +17,14 @@ import { FindBar, Marked, TextFind } from "./find-bar";
 import { useProjectFind, useRemembered, type FindOption } from "@/lib/find";
 
 /**
- * A department is a room you stand in, like the CEO's office: its own photograph, three objects to press, and a desk behind each.
- * The wall holds the projects pinned to the department, the calendar its dated history, the desk the work in motion, waiting and
+ * A domain is a room you stand in, like the CEO's office: its own photograph, three objects to press, and a desk behind each.
+ * The wall holds the projects pinned to the domain, the calendar its dated history, the desk the work in motion, waiting and
  * done. Where the objects sit is in the stylesheet by room (.room-<dept> .hotspot-<spot>) because every room's photograph differs.
  */
 export type RoomSpot = "wall" | "calendar" | "desk" | "workshop" | "book";
 
 const spotData: Record<RoomSpot, Omit<Spot<RoomSpot>, "id">> = {
-  wall: { title: "PINNED TO THE WALL", label: "Wall", description: "The projects pinned to this department.", action: "Open pinned projects", icon: PanelTop },
+  wall: { title: "PINNED TO THE WALL", label: "Wall", description: "The projects pinned to this room.", action: "Open pinned projects", icon: PanelTop },
   calendar: { title: "WORK CALENDAR", label: "Calendar", description: "What was tasked, started and finished here, month by month.", action: "Open work calendar", icon: CalendarDays },
   workshop: { title: "DESIGN WORKSHOP", label: "Workshop", description: "Adjust the direction that was chosen: tokens, type, layout, copy and notes, with every change recorded.", action: "Open the workshop", icon: PenTool },
   book: { title: "THE CLIENT'S BOOK", label: "Book", description: "The brand, the words to sell it, the market and what it means for the business, in one book per project.", action: "Open the book", icon: BookOpen },
@@ -50,7 +50,7 @@ const counts = (data: OwnerData, dept: string, list: DomainList) => {
 
 export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: OwnerData; dept: string; back: () => void; toOffice: () => void; goTo?: ((dept: string) => void) | undefined; onAct: (spot: RoomSpot, at: { x: number; y: number }) => void }) {
   const { list, nameOf } = useDomains();
-  const depts = departments(data, list);
+  const depts = domainOrder(data, list);
   const projects = projectsIn(data, dept, list);
   const desk = counts(data, dept, list);
   const art = roomArt(dept) ?? CORRIDOR_ART;
@@ -67,7 +67,7 @@ export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: O
       className={`room-stage room-${dept.toLowerCase()}`}
       art={art}
       alt=""
-      eyebrow={`${(list.find((d) => d.code === dept)?.department.name ?? "Other").toUpperCase()} / ROOM ${pad(depts.indexOf(dept) + 1)}`}
+      eyebrow={`${(list.find((d) => d.code === dept)?.room.name ?? "Other").toUpperCase()} / ROOM ${pad(depts.indexOf(dept) + 1)}`}
       heading={name}
       line={<><span aria-label="On the desks">{desk.moving} in motion · {desk.waiting} waiting · {desk.done} done in this room.</span>{projects.length === 0 && <span className="wall-empty stage-note">No projects pinned on the walls.</span>}</>}
       sideLabel={[`ROOM / ${pad(depts.indexOf(dept) + 1)}`, name.toUpperCase()]}

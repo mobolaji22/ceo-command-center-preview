@@ -73,7 +73,7 @@ export function OfficeStage<K extends string>({
   coordinate: ReactNode;
   previewText?: ((id: K) => string | undefined) | undefined;
   actionDisabled?: ((id: K) => boolean) | undefined;
-  /** Extra class on the stage (the department rooms use it to place hotspots on each room's own objects). */
+  /** Extra class on the stage (the domain rooms use it to place hotspots on each room's own objects). */
   className?: string | undefined;
   /** Controls pinned to the top-left of the room (a way back and a way sideways), above the photograph. */
   nav?: ReactNode;

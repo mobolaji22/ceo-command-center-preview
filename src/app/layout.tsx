@@ -25,11 +25,11 @@ import "./phone.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "CEO Command Center — DevPlaybook",
+  title: "Command Center",
   description: "Executive intelligence and governance, in one private workspace.",
   icons: { icon: "/favicon.ico" },
   openGraph: {
-    title: "CEO Command Center — DevPlaybook",
+    title: "Command Center",
     description: "Executive intelligence and governance, in one private workspace.",
     type: "website",
   },
