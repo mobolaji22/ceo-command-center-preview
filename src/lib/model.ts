@@ -698,8 +698,22 @@ export type AgencyBrandView = {
   line: string | null;
   voice: { name: string; why: string; wordsWeUse: string[]; wordsWeAvoid: string[] } | null;
   source: { assetId: string; version: number } | null;
-  notSet: Array<{ part: "line" | "mark" | "colours" | "type" | "voice" | "imagery"; reason: string }>;
+  /** Colours and type from the design direction the CEO approved for the brand (v4 ADR-0093 D4), by the direction's own token names. */
+  look: AgencyLook | null;
+  /** The mark the CEO chose (v4 ADR-0095): one SVG version, drawn through `DataSource.queries.agencyMarkUrl`. */
+  mark: { assetId: string; version: number } | null;
+  notSet: Array<{ part: "name" | "line" | "mark" | "colours" | "type" | "voice" | "imagery"; reason: string }>;
   updatedAt: string;
+};
+
+/** A type style of the approved design direction (v4 `SddTypeStyle`): sizes in pixels, tracking in em, line height a multiple. */
+export type AgencyTypeStyle = { family: string; size: number; weight: number; tracking: number; lineHeight: number; typeface: string | null };
+
+/** The brand's look (v4 `AgencyLook`): `surface` and `text` are always there; other colours are named by the direction. */
+export type AgencyLook = {
+  colours: { surface: string; text: string } & Record<string, string>;
+  type: Record<string, AgencyTypeStyle>;
+  source: { assetId: string; version: number };
 };
 
 /** The effort levels a task is planned at (v4 `RIGOR_TIERS`). A rate card prices each one. */

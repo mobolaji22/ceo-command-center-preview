@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { setLighting, useLighting } from "@/lib/lighting";
 import { LightingToggle } from "./lighting-toggle";
 import { useAgencyBrand } from "@/lib/brand";
+import { BrandMark } from "@/components/cc/brand-mark";
 
 /**
  * The header the CEO and clients share. On a wide screen the lighting, Settings and Sign out icons sit in the bar. On a phone
@@ -22,7 +23,7 @@ export function TopBar({ who, center, date, initials, onSettings, onSignOut, onS
   const brand = useAgencyBrand().name.toUpperCase();
   return (
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><span /></span><span>{brand && <>{brand} <em>/</em> </>}{who}</span></div>
+      <div className="brand"><BrandMark /><span>{brand && <>{brand} <em>/</em> </>}{who}</span></div>
       <div className="topbar-center">{center}</div>
       <div className="topbar-right">
         {date && <span className="topbar-date">{date}</span>}

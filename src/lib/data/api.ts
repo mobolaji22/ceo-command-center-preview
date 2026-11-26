@@ -295,6 +295,8 @@ export function createApiDataSource(): DataSource {
       async agencyBrand() {
         return must(await call<AgencyBrandView>("GET", "/v1/agency/brand"));
       },
+      // The version is in the address so a newly chosen mark is never served from an old cache.
+      agencyMarkUrl: (mark) => `${PROXY}/v1/agency/brand/mark?v=${encodeURIComponent(`${mark.assetId}.${mark.version}`)}`,
     },
 
     commands: {

@@ -635,6 +635,7 @@ export function createFixturesDataSource(): DataSource {
       async agencyBrand() {
         return structuredClone(DEMO_BRAND);
       },
+      agencyMarkUrl: (mark) => `/fixtures/brand/mark-${encodeURIComponent(mark.assetId)}-${mark.version}.svg`,
       async clientData(): Promise<ClientData> {
         const s = load();
         const uid = currentUserId();

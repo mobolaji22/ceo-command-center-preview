@@ -96,6 +96,11 @@ export interface DataSource {
     domains(): Promise<DomainView[]>;
     /** The agency's brand (v4 ADR-0093): its name, line and voice, read by every screen that shows them. The same for everyone. */
     agencyBrand(): Promise<AgencyBrandView>;
+    /**
+     * Where the brand's mark is drawn from (v4 ADR-0095): public, so the lobby shows it before sign-in. v4 serves it as SVG under a
+     * policy that lets it draw and do nothing else, and the screen shows it only as an image, never inline.
+     */
+    agencyMarkUrl(mark: { assetId: string; version: number }): string;
   };
 
   commands: {

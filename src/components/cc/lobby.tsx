@@ -9,6 +9,7 @@ import { LitImage } from "./lit-image";
 import { ARRIVAL_KEY } from "./lobby-arrival";
 import { LOBBY_ART } from "./room-art";
 import { useAgencyBrand } from "@/lib/brand";
+import { BrandMark } from "@/components/cc/brand-mark";
 
 /**
  * The street entrance, where every way in begins (sign-in, an emailed link, an invitation). The photograph keeps the visitor's own
@@ -149,7 +150,7 @@ export function Lobby({ children }: { children: ReactNode }) {
       </div>
       <div className="lobby-shade" aria-hidden="true" />
       <header className="lobby-plaque">
-        <span className="brand-mark"><span /></span>
+        <BrandMark />
         <span className="lobby-plaque-name">{brand}</span>
         {time && <span className="lobby-plaque-time" aria-hidden="true"><i />{part} · {time}</span>}
       </header>
