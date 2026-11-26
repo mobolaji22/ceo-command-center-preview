@@ -3,6 +3,7 @@ import type { SddAnnotation, SddDocument, SddView } from "@/lib/design/v4";
 // demo's design document is v4's shape, not an imitation of it.
 // The sample's directions are drawn pages (v4 ADR-0065): the design benchmark's loan-platform territories, through the study loop.
 import sddSample from "@/lib/design/sdd-sample-drawn.json";
+import demoBrand from "./demo-brand.json";
 import type { MediaStoryboard, MediaStudioPiece, MediaStudioStoryboard, MediaStudioView, MediaTimeline } from "@/lib/media/v4";
 import type { KeptBrand } from "@/lib/deliverables/v4";
 import { SAMPLE_STRATEGY_DECISION_ID, sampleBook } from "@/lib/deliverables/samples";
@@ -34,6 +35,7 @@ import type {
   Session,
   V4Event,
   DomainView,
+  AgencyBrandView,
   FeeScope,
   FeesView,
   Intent,
@@ -300,7 +302,7 @@ function seed(): Store {
     organizations: [
       { id: "o-1", name: "Northwind Bakery", mission: "Fresh bread, honestly made.", kind: "CLIENT", created_at: ago(24 * 70) },
       { id: "o-2", name: "Lumen Health", mission: "Care that feels unhurried.", kind: "CLIENT", created_at: ago(24 * 50) },
-      { id: "o-3", name: "DevPlaybook (internal)", mission: "The agency's own work.", kind: "INTERNAL", created_at: ago(24 * 90) },
+      { id: "o-3", name: "Boxwood (internal)", mission: "The agency's own work.", kind: "INTERNAL", created_at: ago(24 * 90) },
     ],
     clients,
   };
@@ -445,22 +447,22 @@ function save(s: Store) {
 const toSession = (u: User): Session => ({ userId: u.id, email: u.email, displayName: u.displayName, role: u.role, memberships: u.memberships });
 
 /** What `GET /v1/domains` serves, for the demo. The only list of domains in this repo; the real one comes from the API (ADR-0017). */
-const DEMO_DEPARTMENTS: Record<string, string> = {
-  STRATEGY_INTELLIGENCE: "Strategy & Intelligence", BRAND_CREATIVE: "Brand & Creative", PRODUCT_ENGINEERING: "Product & Engineering",
-  GROWTH_COMMUNICATIONS: "Growth & Communications", EVIDENCE_ASSURANCE: "Evidence & Assurance",
+const DEMO_ROOMS: Record<string, string> = {
+  STRATEGY: "Strategy", BRAND: "Brand", DESIGN: "Product & Design", MEDIA: "Media", ENGINEERING: "Engineering", GROWTH: "Growth", COMPLIANCE: "Compliance",
 };
 const DEMO_DOMAINS: DomainView[] = ([
-  ["STRATEGY", "Strategy", "advisory-standin", "STRATEGY_INTELLIGENCE"], ["MARKET", "Market", "advisory-standin", "STRATEGY_INTELLIGENCE"],
-  ["BUSINESS", "Business", "advisory-standin", "STRATEGY_INTELLIGENCE"], ["BRAND", "Brand", "contract", "BRAND_CREATIVE"],
-  ["DESIGN", "Design", "contract", "BRAND_CREATIVE"], ["CONTENT", "Content", "advisory-standin", "BRAND_CREATIVE"],
-  ["MEDIA", "Media", "advisory-standin", "BRAND_CREATIVE"], ["PRODUCT", "Product", "advisory-standin", "PRODUCT_ENGINEERING"],
-  ["ENGINEERING", "Engineering", "advisory-standin", "PRODUCT_ENGINEERING"], ["GROWTH", "Growth", "advisory-standin", "GROWTH_COMMUNICATIONS"],
-  ["COMMUNICATIONS", "Communications", "advisory-standin", "GROWTH_COMMUNICATIONS"], ["MEASUREMENT", "Measurement", "advisory-standin", "EVIDENCE_ASSURANCE"],
-  ["COMPLIANCE", "Compliance", "advisory-standin", "EVIDENCE_ASSURANCE"],
-] as const).map(([code, name, basis, department]) => ({
-  code, name, department: { code: department, name: DEMO_DEPARTMENTS[department]! },
-  pack: { version: "0.1.0", basis, contract: null, stages: ["plan"], implementation: { "implemented-and-tested": 0, partial: 0, missing: 0 } },
+  ["STRATEGY", "Strategy", "advisory-standin", "STRATEGY"], ["MARKET", "Market", "advisory-standin", "STRATEGY"],
+  ["BUSINESS", "Business", "advisory-standin", "STRATEGY"], ["BRAND", "Brand", "contract", "BRAND"],
+  ["CONTENT", "Content", "advisory-standin", "BRAND"], ["DESIGN", "Design", "contract", "DESIGN"],
+  ["MEDIA", "Media", "advisory-standin", "MEDIA"], ["ENGINEERING", "Engineering", "advisory-standin", "ENGINEERING"],
+  ["GROWTH", "Growth", "advisory-standin", "GROWTH"], ["COMPLIANCE", "Compliance", "advisory-standin", "COMPLIANCE"],
+] as const).map(([code, name, basis, room]) => ({
+  code, name, room: { code: room, name: DEMO_ROOMS[room]! },
+  pack: { version: "0.1.0", basis, contract: null, stages: ["plan"], implementation: { "implemented-and-tested": 0, partial: 0, missing: 0 }, bridge: { SESSION: 1, BRIEF: 0, CODE: 0, PERSON: 0 } },
 }));
+
+/** What `GET /v1/agency/brand` serves, for the demo (v4 ADR-0093). The only place the demo's brand is written; screens read it. */
+const DEMO_BRAND = demoBrand as AgencyBrandView;
 
 const DEMO_CODE = "123456";
 
@@ -629,6 +631,9 @@ export function createFixturesDataSource(): DataSource {
       },
       async domains() {
         return structuredClone(DEMO_DOMAINS);
+      },
+      async agencyBrand() {
+        return structuredClone(DEMO_BRAND);
       },
       async clientData(): Promise<ClientData> {
         const s = load();

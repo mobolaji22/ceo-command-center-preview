@@ -10,7 +10,7 @@ import { useDataSource } from "@/lib/data";
 const ownerKey = ["owner-data"] as const;
 import { attentionCounts, needYou } from "@/lib/attention";
 import { BriefView, ComputerView, ContractsView, DirectiveView, PhoneView } from "@/components/cc/views";
-import { HallwayView, departments } from "@/components/cc/corridor";
+import { HallwayView, domainOrder } from "@/components/cc/corridor";
 import { useDomains } from "@/lib/domains";
 import { RoomDesk, RoomStage, spotsFor, type RoomSpot } from "@/components/cc/room-stage";
 import { SceneFrame, ThresholdVeil, directionBetween, isOverlayMove, originFor, type SceneOrigin } from "@/components/cc/scene";
@@ -29,6 +29,7 @@ import { readPlace, usePlaceFromHistory, writePlace, type Place } from "@/lib/pl
 import { setLighting, useLighting } from "@/lib/lighting";
 import { label } from "@/lib/format";
 import { RollingNumber } from "@/components/cc/motion";
+import { useAgencyBrand } from "@/lib/brand";
 
 
 const CEO_DESKS = ["computer", "phone", "contracts", "directive", "brief", "manage", "settings"] as const;
@@ -58,10 +59,11 @@ const hotspotData: Record<Hotspot, { title: string; label: string; description: 
   contracts: { title: "GOVERNANCE PROTOCOL", label: "Contracts", description: "Authorizations awaiting your signature.", action: "Review contracts", icon: FileCheck2 },
   directive: { title: "EXECUTIVE DIRECTIVE", label: "Directive", description: "Frame an intent that the organization can act on.", action: "Compose directive", icon: PenLine },
   brief: { title: "THE CEO BRIEF", label: "Brief", description: "“What happened while I was away?”", action: "Review full brief", icon: Sparkles },
-  door: { title: "BEYOND THE OFFICE", label: "Door", description: "Step into the departments behind the decisions.", action: "Enter corridor", icon: DoorOpen },
+  door: { title: "BEYOND THE OFFICE", label: "Door", description: "Step into the rooms behind the decisions.", action: "Enter corridor", icon: DoorOpen },
 };
 
 export default function Index() {
+  const brand = useAgencyBrand().name.toUpperCase();
   const auth = useAuth();
   const router = useRouter();
   const ds = useDataSource();
@@ -83,7 +85,7 @@ export default function Index() {
   const [view, setView] = useState<View>("office");
   const [focus, setFocus] = useState(false);
   const [dept, setDept] = useState("");
-  // Which object in a department room was pressed, and where it sits, so its desk opens out of it and folds back into it.
+  // Which object in a domain room was pressed, and where it sits, so its desk opens out of it and folds back into it.
   const [roomSpot, setRoomSpot] = useState<RoomSpot>("wall");
   const [roomAt, setRoomAt] = useState<SceneOrigin | undefined>();
   const [focusProject, setFocusProject] = useState<string | undefined>();
@@ -138,13 +140,13 @@ export default function Index() {
   const go = (v: View) => () => { if (v === "hallway" || data) openView(v); };
   const bindings: KeyBinding[] = deskViews.map((v) => ({ key: DESK_KEYS[v]!, label: DESK_NAMES[v]!, run: go(v) }));
   const deskIcon: Partial<Record<View, typeof Coffee>> = { computer: Monitor, phone: Phone, contracts: FileCheck2, directive: PenLine, brief: Sparkles, hallway: DoorOpen, manage: FolderOpen, settings: Settings2 };
-  const rooms = data ? departments(data, domains.list) : [];
+  const rooms = data ? domainOrder(data, domains.list) : [];
   const commands: PaletteCommand[] = [
     // What is waiting on you comes first, so ⌘K then Enter opens the first decision.
     ...(data?.approvals.filter((a) => a.status === "REQUESTED").map((a) => ({ id: `approval:${a.id}`, group: "Waiting on you", label: a.title, hint: `${data.projects.find((p) => p.id === a.project_id)?.name ?? ""} · authorization`, keywords: ["approve", "sign", "contract"], icon: FileCheck2, run: () => openView("contracts", a.project_id ?? undefined, undefined, a.id) })) ?? []),
-    ...recentRooms.filter((code) => rooms.includes(code) && !(view === "room" && code === dept)).map((code) => ({ id: `recent:${code}`, group: "Recent rooms", label: domains.nameOf(code), hint: domains.list.find((d) => d.code === code)?.department.name, keywords: ["room", "recent", code], icon: Waypoints, run: () => enterRoom(code) })),
+    ...recentRooms.filter((code) => rooms.includes(code) && !(view === "room" && code === dept)).map((code) => ({ id: `recent:${code}`, group: "Recent rooms", label: domains.nameOf(code), hint: domains.list.find((d) => d.code === code)?.room.name, keywords: ["room", "recent", code], icon: Waypoints, run: () => enterRoom(code) })),
     ...deskViews.map((v) => ({ id: `desk:${v}`, group: "Desks", label: DESK_NAMES[v]!, hint: v === "contracts" && pending ? `${pending} awaiting your signature` : v === "hallway" ? "Every room of the agency" : undefined, shortcut: DESK_KEYS[v], icon: deskIcon[v], run: go(v) })),
-    ...rooms.map((code) => ({ id: `room:${code}`, group: "Rooms", label: domains.nameOf(code), hint: domains.list.find((d) => d.code === code)?.department.name, keywords: ["room", code], icon: Waypoints, run: () => enterRoom(code) })),
+    ...rooms.map((code) => ({ id: `room:${code}`, group: "Rooms", label: domains.nameOf(code), hint: domains.list.find((d) => d.code === code)?.room.name, keywords: ["room", code], icon: Waypoints, run: () => enterRoom(code) })),
     ...rooms.filter((code) => spotsFor(code).includes("workshop")).map((code) => ({ id: `workshop:${code}`, group: "Rooms", label: `${domains.nameOf(code)} workshop`, hint: "Work on the chosen design", keywords: ["canvas", "frame"], icon: PenTool, run: () => enterRoom(code, "workshop") })),
     ...rooms.filter((code) => spotsFor(code).includes("book")).map((code) => ({ id: `book:${code}`, group: "Rooms", label: `The client's book (${domains.nameOf(code)})`, hint: "Brand, market and how to sell it, per project", keywords: ["book", "brand book", "market report"], icon: BookOpen, run: () => enterRoom(code, "book") })),
     ...(data?.projects.map((p) => ({ id: `project:${p.id}`, group: "Projects", label: p.name, hint: `${label(p.status)} · ${p.domains.map(domains.nameOf).join(", ")}`, keywords: [p.description ?? "", p.objective ?? ""], icon: FolderOpen, run: () => openView("manage", p.id) })) ?? []),
@@ -181,11 +183,11 @@ export default function Index() {
     </SceneFrame>}
 
     {(view === "room" || view === "roomdesk") && data && <SceneFrame sceneKey={`room:${dept}`} dir={dir} origin={origin} inert={view === "roomdesk"}>
-      <RoomStage data={data} dept={dept} back={() => openView("hallway")} toOffice={() => openView("office")} goTo={(d) => { if (d === dept) return; const order = departments(data, domains.list); setDir(order.indexOf(d) > order.indexOf(dept) ? "next" : "prev"); setOrigin(undefined); setFocusProject(undefined); setDept(d); }} onAct={(spot, at) => { setRoomSpot(spot); setRoomAt(at); openView("roomdesk", undefined, at); }} />
+      <RoomStage data={data} dept={dept} back={() => openView("hallway")} toOffice={() => openView("office")} goTo={(d) => { if (d === dept) return; const order = domainOrder(data, domains.list); setDir(order.indexOf(d) > order.indexOf(dept) ? "next" : "prev"); setOrigin(undefined); setFocusProject(undefined); setDept(d); }} onAct={(spot, at) => { setRoomSpot(spot); setRoomAt(at); openView("roomdesk", undefined, at); }} />
     </SceneFrame>}
 
     {view === "hallway" && <div className="workspace">
-      <div className="workspace-heading"><Button variant="ghost" className="back-link" onClick={() => openView("office")}><ArrowLeft size={16} /> BACK TO OFFICE</Button><span key={view} className="workspace-path">DEVPLAYBOOK &nbsp; / &nbsp; {view.toUpperCase()}</span><span className="workspace-right"><span className="live-dot" /> LIVE LEDGER</span></div>
+      <div className="workspace-heading"><Button variant="ghost" className="back-link" onClick={() => openView("office")}><ArrowLeft size={16} /> BACK TO OFFICE</Button><span key={view} className="workspace-path">{brand && <>{brand} &nbsp; / &nbsp; </>}{view.toUpperCase()}</span><span className="workspace-right"><span className="live-dot" /> LIVE LEDGER</span></div>
       <SceneFrame sceneKey={view} dir={dir} origin={origin}>
       {q.isError && <div className="empty-state"><b>Couldn't load the ledger.</b><p>{(q.error as Error).message}</p></div>}
       {!data && !q.isError && <DoorsSkeleton />}
@@ -195,7 +197,7 @@ export default function Index() {
       </SceneFrame>
     </div>}
 
-    {isDesk(view) && <DeskOverlay account={account} label={view === "manage" ? "Records explorer" : view === "settings" ? "Settings" : `${view} desk`} backLabel="BACK TO OFFICE" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {view === "manage" ? "RECORDS" : view.toUpperCase()}</>} surface={view} origin={origin} onBack={() => openView("office")}>
+    {isDesk(view) && <DeskOverlay account={account} label={view === "manage" ? "Records explorer" : view === "settings" ? "Settings" : `${view} desk`} backLabel="BACK TO OFFICE" path={<>{brand && <>{brand} &nbsp; / &nbsp; </>}{view === "manage" ? "RECORDS" : view.toUpperCase()}</>} surface={view} origin={origin} onBack={() => openView("office")}>
       {!data ? <DeskSkeleton error={q.isError ? (q.error as Error).message : undefined} /> : <div key={view} className="scene scene-side">
         {view === "computer" && <ComputerView data={data} refresh={refresh} openContracts={(id) => openView("contracts", id)} openBrief={() => openView("brief")} openManage={(id) => openView("manage", id)} />}
         {view === "phone" && <PhoneView data={data} refresh={refresh} openBrief={() => openView("brief")} openContracts={(id) => openView("contracts", id)} />}
@@ -207,7 +209,7 @@ export default function Index() {
       </div>}
     </DeskOverlay>}
 
-    {view === "roomdesk" && <DeskOverlay account={account} label={`${domains.nameOf(dept)} ${roomSpot}`} backLabel="BACK TO ROOM" path={<>DEVPLAYBOOK &nbsp; / &nbsp; {domains.nameOf(dept).toUpperCase()} &nbsp; / &nbsp; {roomSpot.toUpperCase()}</>} surface={`room-${roomSpot}`} wide={roomSpot === "workshop"} origin={origin} onBack={() => openView("room", undefined, roomAt)}>
+    {view === "roomdesk" && <DeskOverlay account={account} label={`${domains.nameOf(dept)} ${roomSpot}`} backLabel="BACK TO ROOM" path={<>{brand && <>{brand} &nbsp; / &nbsp; </>}{domains.nameOf(dept).toUpperCase()} &nbsp; / &nbsp; {roomSpot.toUpperCase()}</>} surface={`room-${roomSpot}`} wide={roomSpot === "workshop"} origin={origin} onBack={() => openView("room", undefined, roomAt)}>
       {data ? <div className="scene scene-side"><RoomDesk data={data} dept={dept} spot={roomSpot} openManage={(id) => openView("manage", id)} /></div> : <DeskSkeleton error={q.isError ? (q.error as Error).message : undefined} />}
     </DeskOverlay>}
   </main>;

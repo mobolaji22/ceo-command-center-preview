@@ -28,7 +28,7 @@ const WHY: Record<string, string> = {
   AWAITING_APPROVAL: "your go-ahead", AWAITING_CLARIFICATION: "an answer", AWAITING_CONTEXT: "some information", AWAITING_CREDENTIAL: "access",
   POLICY_BLOCK: "a rule", NEGOTIATION_CONFLICT: "a disagreement to be settled", BUDGET_EXCEEDED: "the budget", QUALITY_BLOCK: "a quality check",
   ANOMALY: "something unexpected", HUMAN_TASK: "a person to do it", EXTERNAL_DEPENDENCY: "an outside service", PAUSED_BY_OWNER: "being resumed",
-  AWAITING_CONSULTATION: "another department's review", CONSULTATION_OBJECTION: "a decision on an objection", CONSULTATION_ESCALATION: "a decision on who should review it",
+  AWAITING_CONSULTATION: "another room's review", CONSULTATION_OBJECTION: "a decision on an objection", CONSULTATION_ESCALATION: "a decision on who should review it",
   SUBSTITUTE_INVALIDATED: "a decision on the plan",
 };
 /**
@@ -66,7 +66,7 @@ function stepWords(t: RunTask): { text: string; tone: string } {
 function heldWords(reason: string | null): string {
   switch (reason) {
     case "AWAITING_CONSULTATION": case "CONSULTATION_OBJECTION": case "CONSULTATION_ESCALATION":
-      return "On hold: what it builds on is waiting for another department's review or a decision, and it starts only once that is settled";
+      return "On hold: what it builds on is waiting for another room's review or a decision, and it starts only once that is settled";
     case "SUBSTITUTE_INVALIDATED":
       return "On hold: the approved file the plan relied on in place of this work can no longer be relied on, and it waits for a decision on the plan";
     default: return "Settling a problem with an earlier step";

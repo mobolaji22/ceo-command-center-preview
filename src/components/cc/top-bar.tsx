@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { setLighting, useLighting } from "@/lib/lighting";
 import { LightingToggle } from "./lighting-toggle";
+import { useAgencyBrand } from "@/lib/brand";
 
 /**
  * The header the CEO and clients share. On a wide screen the lighting, Settings and Sign out icons sit in the bar. On a phone
@@ -18,9 +19,10 @@ export function TopBar({ who, center, date, initials, onSettings, onSignOut, onS
   /** Opens the list of keyboard shortcuts. */
   onKeys?: (() => void) | undefined;
 }) {
+  const brand = useAgencyBrand().name.toUpperCase();
   return (
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><span /></span><span>DEVPLAYBOOK <em>/</em> {who}</span></div>
+      <div className="brand"><span className="brand-mark"><span /></span><span>{brand && <>{brand} <em>/</em> </>}{who}</span></div>
       <div className="topbar-center">{center}</div>
       <div className="topbar-right">
         {date && <span className="topbar-date">{date}</span>}

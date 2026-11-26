@@ -122,7 +122,7 @@
 
 .door-plate { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .hall .door-name { font: 28px/1 "Cormorant Garamond", serif; }
-/* The wing (department) a room sits in: a quiet line above its name (v4 ADR-0018). */
+/* The wing (the room a domain sits in): a quiet line above its name (v4 ADR-0092). */
 .hall .door-wing { display: block; margin-bottom: 6px; color: var(--primary); font: 600 8px "DM Sans", sans-serif; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.8; }
 .hall .door-enter { margin-top: auto; opacity: 0; translate: 0 -4px; transition: opacity var(--t-feedback), translate var(--t-feedback) var(--ease-out); }
 .hall .door-card[data-active] .door-enter, .hall .door-card:hover .door-enter, .hall .door-card:focus-visible .door-enter { opacity: 1; translate: 0 0; color: var(--primary); }

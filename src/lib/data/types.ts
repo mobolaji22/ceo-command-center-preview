@@ -1,7 +1,7 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
 import type { MediaStoryboard, MediaStudioPiece, MediaStudioRender, MediaStudioStoryboard, MediaStudioView, MediaTimeline, StoryboardChange, StoryboardDecision } from "@/lib/media/v4";
-import type { ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, ThreadView, WorkspaceView, PersonGuide, GuideLogEntry, StepMaterials, TeamView } from "../model";
+import type { AgencyBrandView, ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, ThreadView, WorkspaceView, PersonGuide, GuideLogEntry, StepMaterials, TeamView } from "../model";
 
 /**
  * The ONLY door between the Command Center UI and data.
@@ -94,6 +94,8 @@ export interface DataSource {
     clientData(): Promise<ClientData>;
     /** The domains the agency works in, in order, with their names (the rooms). The same for every signed-in person. */
     domains(): Promise<DomainView[]>;
+    /** The agency's brand (v4 ADR-0093): its name, line and voice, read by every screen that shows them. The same for everyone. */
+    agencyBrand(): Promise<AgencyBrandView>;
   };
 
   commands: {

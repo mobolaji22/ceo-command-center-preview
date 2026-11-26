@@ -673,18 +673,33 @@ export type ActionLinkView = {
 };
 
 /** A domain the agency works in, as `GET /v1/domains` serves it (dev-playbook-v4 ADR-0017). The rooms are drawn from these. */
-/** One domain as `GET /v1/domains` serves it (v4 ADR-0017, ADR-0018, ADR-0019): its department is the corridor's wing. */
+/** One domain as `GET /v1/domains` serves it (v4 ADR-0017, ADR-0019, ADR-0092): the room it sits in is the corridor's wing. */
 export type DomainView = {
   code: string;
   name: string;
-  department: { code: string; name: string };
+  room: { code: string; name: string };
   pack: {
     version: string;
     basis: "contract" | "advisory-standin";
     contract: { document: string; version: string } | null;
     stages: string[];
     implementation: { "implemented-and-tested": number; partial: number; missing: number };
+    /** How many of its capabilities run on the free bridge by each route (v4 ADR-0091 Decision 9). */
+    bridge: { SESSION: number; BRIEF: number; CODE: number; PERSON: number };
   };
+};
+
+/**
+ * The agency's brand, as `GET /v1/agency/brand` serves it (v4 ADR-0093): the one record every screen reads for the agency's name,
+ * line and voice, so no screen types them. A part it does not hold says why; a screen never fills it with a default.
+ */
+export type AgencyBrandView = {
+  name: string;
+  line: string | null;
+  voice: { name: string; why: string; wordsWeUse: string[]; wordsWeAvoid: string[] } | null;
+  source: { assetId: string; version: number } | null;
+  notSet: Array<{ part: "line" | "mark" | "colours" | "type" | "voice" | "imagery"; reason: string }>;
+  updatedAt: string;
 };
 
 /** The effort levels a task is planned at (v4 `RIGOR_TIERS`). A rate card prices each one. */

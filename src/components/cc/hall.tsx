@@ -16,7 +16,7 @@ import { THRESHOLD_MS, useReducedMotion } from "@/lib/motion";
 import { LitImage } from "./lit-image";
 import { CORRIDOR_ART, roomArt } from "./room-art";
 
-/** `wing` is the department the room sits in (v4 ADR-0018); a room with no wing (older records) shows none. */
+/** `wing` is the room the domain sits in (v4 ADR-0092); a room with no wing (older records) shows none. */
 export type HallDoor = { code: string; name: string; active: number; icon: LucideIcon; wing?: string | undefined };
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));

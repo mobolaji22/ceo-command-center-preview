@@ -8,6 +8,7 @@ import { walkPath } from "@/lib/walk-path";
 import { LitImage } from "./lit-image";
 import { ARRIVAL_KEY } from "./lobby-arrival";
 import { LOBBY_ART } from "./room-art";
+import { useAgencyBrand } from "@/lib/brand";
 
 /**
  * The street entrance, where every way in begins (sign-in, an emailed link, an invitation). The photograph keeps the visitor's own
@@ -44,6 +45,7 @@ const PARALLAX = { x: 0.012, y: 0.01 };
 const ARRIVE_MS = 1700;
 
 export function Lobby({ children }: { children: ReactNode }) {
+  const brand = useAgencyBrand().name.toUpperCase();
   const { lighting, now } = useLocalLight();
   const reduced = useReducedMotion();
   const fine = useMedia("(hover: hover) and (pointer: fine)");
@@ -148,7 +150,7 @@ export function Lobby({ children }: { children: ReactNode }) {
       <div className="lobby-shade" aria-hidden="true" />
       <header className="lobby-plaque">
         <span className="brand-mark"><span /></span>
-        <span className="lobby-plaque-name">DEVPLAYBOOK <em>/</em> V4</span>
+        <span className="lobby-plaque-name">{brand}</span>
         {time && <span className="lobby-plaque-time" aria-hidden="true"><i />{part} · {time}</span>}
       </header>
       <div className="lobby-desk">{children}</div>
