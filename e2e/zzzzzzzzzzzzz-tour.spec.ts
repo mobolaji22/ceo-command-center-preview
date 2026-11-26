@@ -85,8 +85,8 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   // corridor and manage
   await page.goto("/");
   await page.getByRole("button", { name: "Door", exact: true }).click();
-  await expect(page.locator(".door-card")).toHaveCount(13);
-  await shot(page, "The corridor: the thirteen domains, in five wings");
+  await expect(page.locator(".door-card")).toHaveCount(10);
+  await shot(page, "The corridor: the ten domains, under the seven rooms");
   // The records: from the corridor's "See all projects".
   await page.getByRole("button", { name: /SEE ALL PROJECTS/ }).click();
   await expect(page.getByRole("tab", { name: "Projects", exact: true })).toBeVisible();
