@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUp, ListChecks, X } from "lucide-react";
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { COPY, say } from "@/copy";
 import { useDataSource } from "@/lib/data";
 import { useRooms } from "@/lib/domains";
@@ -9,16 +9,20 @@ import { label } from "@/lib/format";
 import type { StudioAskAnswer } from "@/lib/studio/v4";
 
 /**
- * The studio head's composer, docked at the foot of the studio (v4 ADR-0099 Decision 9). v4 reads the words and says where they go,
+ * The studio head's composer (v4 ADR-0099 Decision 9), under what the studio head says on the studio, and at the foot of the Floor. v4 reads the words and says where they go,
  * with no model call: a place to open, a status answer from its records, or a request. A request goes to the studio unchanged through
  * the same path as any other (`intents.submit`), and the reply says where it now stands.
  */
 type Shown = { kind: "ANSWER"; answer: Extract<StudioAskAnswer, { kind: "ANSWER" }> } | { kind: "TAKEN"; status: string } | { kind: "ERROR"; message: string };
 
-export function Composer({ onGo, onBrief, onRequests }: {
+export function Composer({ onGo, onBrief, onRequests, seed, placeholder, className }: {
   onGo: (to: { place: "ROOM"; room: string } | { place: "FLOOR" }) => void;
   onBrief: () => void;
   onRequests: () => void;
+  /** Words a room's Steer move starts the request with; a new `n` puts them in the box and the cursor after them. */
+  seed?: { text: string; n: number } | undefined;
+  placeholder?: string | undefined;
+  className?: string | undefined;
 }) {
   const c = COPY.studio.composer;
   const ds = useDataSource();
@@ -27,6 +31,10 @@ export function Composer({ onGo, onBrief, onRequests }: {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [shown, setShown] = useState<Shown | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const [seeded, setSeeded] = useState(0);
+  if (seed && seed.n !== seeded) { setSeeded(seed.n); setText(seed.text); }
+  useEffect(() => { if (seeded) input.current?.focus({ preventScroll: true }); }, [seeded]);
 
   const send = async (e: FormEvent) => {
     e.preventDefault();
@@ -52,7 +60,7 @@ export function Composer({ onGo, onBrief, onRequests }: {
   };
 
   return (
-    <div className="composer-dock">
+    <div className={`composer-dock ${className ?? ""}`}>
       {shown && <div className="composer-reply" role="status" aria-live="polite">
         <button type="button" className="composer-dismiss" aria-label={c.dismiss} onClick={() => setShown(null)}><X size={14} aria-hidden="true" /></button>
         {shown.kind === "ERROR" && <p>{shown.message}</p>}
@@ -60,7 +68,7 @@ export function Composer({ onGo, onBrief, onRequests }: {
         {shown.kind === "ANSWER" && <Answer a={shown.answer} roomName={roomName} onBrief={onBrief} />}
       </div>}
       <form className="composer" onSubmit={send} aria-label={c.label}>
-        <input id={`${id}-input`} aria-label={c.label} className="composer-input" value={text} onChange={(e) => setText(e.target.value)} placeholder={c.placeholder} autoComplete="off" maxLength={2000} />
+        <input ref={input} id={`${id}-input`} aria-label={c.label} className="composer-input" value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder ?? c.placeholder} autoComplete="off" maxLength={2000} />
         <button type="submit" className="composer-send" disabled={busy || !text.trim()} aria-label={busy ? c.sending : c.send}><ArrowUp size={16} aria-hidden="true" /></button>
         <button type="button" className="composer-requests" onClick={onRequests}><ListChecks size={15} aria-hidden="true" /><span>{c.requests}</span></button>
       </form>

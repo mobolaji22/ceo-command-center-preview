@@ -18,9 +18,8 @@ import { COPY } from "@/copy";
 import { useProjectFind, useRemembered, type FindOption } from "@/lib/find";
 
 /**
- * A domain is a room you stand in, like the CEO's office: its own photograph, three objects to press, and a desk behind each.
- * The wall holds the projects pinned to the domain, the calendar its dated history, the desk the work in motion, waiting and
- * done. Where the objects sit is in the stylesheet by room (.room-<dept> .hotspot-<spot>) because every room's photograph differs.
+ * A room's workbenches (v4 ADR-0099 Decision 5): the desks its menu opens over the studio. The wall holds the projects pinned to the
+ * room, the calendar its dated history, the desk the work in motion, waiting and done; Design adds the Workshop and Brand the book.
  */
 export type RoomSpot = "wall" | "calendar" | "desk" | "workshop" | "book";
 
@@ -48,43 +47,6 @@ const counts = (data: OwnerData, dept: string, list: DomainList) => {
     done: mine.filter((t) => t.status === "COMPLETED").length,
   };
 };
-
-export function RoomStage({ data, dept, back, goTo, onAct }: { data: OwnerData; dept: string; back: () => void; goTo?: ((dept: string) => void) | undefined; onAct: (spot: RoomSpot, at: { x: number; y: number }) => void }) {
-  const { list, nameOf } = useDomains();
-  const depts = domainOrder(data, list);
-  const projects = projectsIn(data, dept, list);
-  const desk = counts(data, dept, list);
-  const art = roomArt(dept) ?? CORRIDOR_ART;
-  const name = nameOf(dept);
-  // On a phone the rail scrolls inside its own width; keep the room you are in within view.
-  const rail = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const r = rail.current;
-    const here = r?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (r && here && r.scrollWidth > r.clientWidth) r.scrollLeft = here.offsetLeft - (r.clientWidth - here.offsetWidth) / 2;
-  }, [dept]);
-  return (
-    <OfficeStage
-      className={`room-stage room-${dept.toLowerCase()}`}
-      art={art}
-      alt=""
-      eyebrow={`${(list.find((d) => d.code === dept)?.room.name ?? "Other").toUpperCase()} / ROOM ${pad(depts.indexOf(dept) + 1)}`}
-      heading={name}
-      line={<><span aria-label="On the desks">{desk.moving} in motion · {desk.waiting} waiting · {desk.done} done in this room.</span>{projects.length === 0 && <span className="wall-empty stage-note">No projects pinned on the walls.</span>}</>}
-      sideLabel={[`ROOM / ${pad(depts.indexOf(dept) + 1)}`, name.toUpperCase()]}
-      spots={spotsFor(dept).map((id) => ({ id, ...spotData[id], count: id === "desk" ? desk.waiting : 0, countNote: id === "desk" ? `${desk.waiting} waiting` : "" }))}
-      statusList={spotsFor(dept).map((id) => spotData[id].label).join(" · ")}
-      coordinate={<>40° 43′ N &nbsp; / &nbsp; 73° 59′ W</>}
-      nav={<>
-        <div className="stage-nav-links">
-          <Button variant="ghost" className="back-link" onClick={back}><ArrowLeft size={16} /> {COPY.floor.back}</Button>
-        </div>
-        <nav ref={rail} className="room-rail" aria-label="Move to another room">{depts.map((d, i) => <button key={d} type="button" className="rail-door" aria-label={`Go to ${nameOf(d)}`} aria-current={d === dept ? "page" : undefined} title={nameOf(d)} disabled={!goTo} onClick={() => goTo?.(d)}>{pad(i + 1)}</button>)}</nav>
-      </>}
-      onAct={onAct}
-    />
-  );
-}
 
 const projectName = (data: OwnerData, pid: string | null | undefined) => data.projects.find((p) => p.id === pid)?.name ?? "";
 

@@ -34,3 +34,16 @@ export function brandThemeVars(look: AgencyLook | null | undefined): Record<stri
   }
   return vars;
 }
+
+/**
+ * Where the brand's typefaces load from: one Google Fonts stylesheet for every typeface the look names, regular, medium and italic.
+ * The names pass the same check as the variables, so nothing but a typeface's name reaches the address. Null for the house look, which
+ * ships its own fonts with the app.
+ */
+export function brandFontsHref(look: AgencyLook | null | undefined): string | null {
+  if (!look) return null;
+  const faces = [...new Set(Object.values(look.type).map((t) => (t.typeface ?? "").trim()).filter((f) => FAMILY.test(f)))];
+  if (!faces.length) return null;
+  const families = faces.map((f) => `family=${encodeURIComponent(f).replace(/%20/g, "+")}:ital,wght@0,400;0,500;1,400`).join("&");
+  return `https://fonts.googleapis.com/css2?${families}&display=swap`;
+}

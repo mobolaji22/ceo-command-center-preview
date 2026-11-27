@@ -10,7 +10,7 @@ import { useDataSource } from "@/lib/data";
 import { BriefView, ComputerView, ContractsView, DirectiveView } from "@/components/cc/views";
 import { domainOrder } from "@/components/cc/domain-work";
 import { useDomains, useRooms } from "@/lib/domains";
-import { RoomDesk, RoomStage, spotsFor, type RoomSpot } from "@/components/cc/room-stage";
+import { RoomDesk, spotsFor, type RoomSpot } from "@/components/cc/room-stage";
 import { SceneFrame, ThresholdVeil, directionBetween, isOverlayMove, type SceneOrigin } from "@/components/cc/scene";
 import { DeskOverlay } from "@/components/cc/desk-overlay";
 import { DeskSkeleton } from "@/components/cc/desk-skeleton";
@@ -26,21 +26,24 @@ import { setLighting, useLighting } from "@/lib/lighting";
 import { label } from "@/lib/format";
 import type { OwnerData } from "@/lib/model";
 import { RollingNumber } from "@/components/kit";
+import { LitImage } from "@/components/cc/lit-image";
+import { OFFICE_ART } from "@/components/cc/room-art";
 import { useAgencyBrand } from "@/lib/brand";
-import { BoardCard, DecideCard, KnowCard, StudioBench } from "@/components/cc/studio-scene";
+import { RoomPanel, RoomsMenu, StudioCards, StudioHead, type CardName } from "@/components/cc/studio-home";
 import { FloorSurface } from "@/components/cc/floor";
 import { Composer } from "@/components/cc/composer";
 import { COPY, say } from "@/copy";
-import type { DecideItem } from "@/lib/studio/v4";
+import type { DecideItem, RoomCode } from "@/lib/studio/v4";
 
 const ownerKey = ["owner-data"] as const;
 const studioKey = ["studio"] as const;
 const floorKey = ["floor"] as const;
 
 /**
- * The CEO's studio (v4 ADR-0099, Plan §13.0 step 4, slice 4.2): one bench with a station for each room, Decide, Know and Board docked
- * at its edges, the Floor behind Board, and the studio head's composer at the foot. Every count and item is v4's (`GET /v1/studio`,
- * `/v1/floor`); the desks that do the work open over the scene from the card that names it, until each is re-cut into its room.
+ * The CEO's studio (v4 ADR-0099, Plan §13.0 step 4): the office is the stage. The studio head speaks from the top edge, the rooms wait
+ * behind a tab on the left edge, Decide, Know and Board are parked on the bottom edge, and a room rises over the office with its
+ * workbenches, Steer and Glance. Board opens into the Floor. Every count and item is v4's (`GET /v1/studio`, `/v1/floor`,
+ * `/v1/rooms/:room`); the desks that do the work open over the scene from what names them, until each is re-cut into its room.
  */
 const CEO_DESKS = ["computer", "contracts", "directive", "brief", "manage", "settings"] as const;
 const isDesk = (v: string): boolean => (CEO_DESKS as readonly string[]).includes(v);
@@ -106,8 +109,8 @@ export default function Index() {
   const [dir, setDir] = useState<SceneDir>("none");
   const [origin, setOrigin] = useState<SceneOrigin | undefined>();
 
-  // A desk opens over the studio (the studio stays mounted behind it), so moving between the studio and a desk is not a change of scene.
-  const overlay = (next: View) => isOverlayMove(view, next, CEO_DESKS, "office") || isOverlayMove(view, next, ["roomdesk"], "room") || (isDesk(view) && isDesk(next));
+  // A desk or a room opens over the studio (the studio stays mounted behind it), so only the Floor is a change of scene.
+  const overlay = (next: View) => next !== "floor" && view !== "floor";
   const openView = (next: View, projectId?: string, at?: SceneOrigin, itemId?: string) => { setDir(overlay(next) ? "none" : directionBetween(view, next)); setOrigin(at); setFocusProject(projectId); setFocusItem(itemId); setView(next); };
   const enterRoom = (d: string, spot?: RoomSpot, projectId?: string) => { setDept(d); if (spot) { setRoomSpot(spot); setRoomAt(undefined); openView("roomdesk", projectId); } else openView("room", projectId); };
 
@@ -124,6 +127,19 @@ export default function Index() {
   useEffect(() => { if (restored) writePlace(placeOf(view, dept, roomSpot, focusProject, focusItem)); }, [restored, view, dept, roomSpot, focusProject, focusItem]);
   // A room named in a link that the agency does not have goes back to the studio (adjusted during render, not in an effect).
   if ((view === "room" || view === "roomdesk") && domains.list.length > 0 && !domains.list.some((d) => d.code === dept)) setView("office");
+  const [headOpen, setHeadOpen] = useState(true);
+  const [roomsOpen, setRoomsOpen] = useState(false);
+  const [card, setCard] = useState<CardName | null>(null);
+  const [seed, setSeed] = useState<{ text: string; n: number } | undefined>();
+  // Pressing anywhere off a raised card or the open rooms puts them away; Escape does the same (a room handles its own Escape).
+  useEffect(() => {
+    if (!card && !roomsOpen) return;
+    const away = (e: PointerEvent) => { if (!(e.target instanceof Element && e.target.closest(".parked, .rooms-drawer, .rooms-tab"))) { setCard(null); setRoomsOpen(false); } };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape" && view === "office") { setCard(null); setRoomsOpen(false); } };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc); };
+  }, [card, roomsOpen, view]);
   const [recentRooms, setRecentRooms] = useState<string[]>([]);
   if ((view === "room" || view === "roomdesk") && dept && recentRooms[0] !== dept) setRecentRooms([dept, ...recentRooms.filter((d) => d !== dept)].slice(0, 3));
   const signOut = async () => { await qc.cancelQueries(); qc.clear(); await ds.auth.signOut(); router.replace("/auth"); };
@@ -153,10 +169,14 @@ export default function Index() {
     { id: "do:signout", group: "Actions", label: "Sign out", icon: LogOut, run: () => void signOut() },
   ];
 
-  const status = <><span className="live-dot" /> <span>{waiting ? <><RollingNumber value={waiting} /> {COPY.studio.status.awaiting}</> : COPY.studio.status.clear}</span></>;
+  const home = view === "office" || view === "room" || view === "roomdesk" || isDesk(view);
+  const status = home ? null : <><span className="live-dot" /> <span>{waiting ? <><RollingNumber value={waiting} /> {COPY.studio.status.awaiting}</> : COPY.studio.status.clear}</span></>;
   const composer = <Composer onGo={(to) => (to.place === "FLOOR" ? openView("floor") : enterRoom(to.room))} onBrief={() => openView("brief")} onRequests={() => openView("directive")} />;
+  const headComposer = <Composer className="sh-composer" placeholder={COPY.studio.head.placeholder} seed={seed} onGo={(to) => (to.place === "FLOOR" ? openView("floor") : enterRoom(to.room))} onBrief={() => openView("brief")} onRequests={() => openView("directive")} />;
+  const openItem = (d: DecideItem) => { setCard(null); openView(deskFor(d, data), d.projectId ?? undefined, undefined, d.id); };
+  const userName = auth.user?.displayName?.split(" ")[0] ?? "";
 
-  return <main className="command-center studio-home">
+  return <main className={`command-center studio-home ${home ? "is-office" : ""}`}>
     <TopBar who="CEO" center={status} date={today} initials={initials} onSettings={() => openView("settings")} onSignOut={signOut} onSearch={() => setPalette(true)} onKeys={() => setKeySheet(true)} />
     <RoomKeys commands={commands} bindings={bindings} palette={palette} setPalette={setPalette} sheet={keySheet} setSheet={setKeySheet}
       notes={[{ title: "At the signing desk", keys: [{ keys: ["J", "K"], label: "Next or previous authorization" }, { keys: ["A"], label: "Approve (then Enter to confirm)" }, { keys: ["R"], label: "Reject (then Enter to confirm)" }] }]} />
@@ -164,28 +184,19 @@ export default function Index() {
     <CursorLight />
     <ThresholdVeil sceneKey={view === "room" ? `room:${dept}` : view === "roomdesk" ? `roomdesk:${dept}:${roomSpot}` : view} dir={dir} origin={origin} />
 
-    {(view === "office" || isDesk(view)) && <SceneFrame sceneKey="office" dir={dir} origin={origin} inert={isDesk(view)}>
-      <div className="studio-scene">
-        <header className="studio-head">
-          <h1>{COPY.studio.scene.heading}</h1>
-          {brand.brand?.line && <p className="studio-line">{brand.brand.line}</p>}
-        </header>
-        {studio.isError && <div className="empty-state"><b>{(studio.error as Error).message}</b></div>}
-        {!sv && !studio.isError && <p className="studio-loading"><span className="pulse-dot" /> {COPY.studio.scene.loading}</p>}
-        {sv && <div className="studio-layout">
-          <DecideCard view={sv} onItem={(d) => openView(deskFor(d, data), d.projectId ?? undefined, undefined, d.id)} onAll={() => openView("contracts")} />
-          <StudioBench view={sv} onEnter={(room) => enterRoom(room)} />
-          <div className="studio-right">
-            <KnowCard view={sv} onOpen={() => openView("brief")} />
-            <BoardCard view={sv} onOpen={() => openView("floor")} />
-          </div>
-        </div>}
-        {composer}
+    {home && <SceneFrame sceneKey="office" dir={dir} origin={origin} inert={isDesk(view) || view === "roomdesk"}>
+      <div className={`studio-stage ${view === "room" ? "is-dim" : ""}`}>
+        <div className="studio-photo" aria-hidden="true"><LitImage art={OFFICE_ART} sizes="100vw" quality={75} className="studio-photo-img" /></div>
+        <h1 className="sr-only">{COPY.studio.scene.heading}</h1>
+        {studio.isError && <div className="empty-state studio-error"><b>{(studio.error as Error).message}</b></div>}
+        <StudioHead view={sv} name={userName} open={headOpen && view === "office"} setOpen={setHeadOpen} composer={headComposer} onRequests={() => openView("directive")}
+          onThrough={() => { const first = sv?.decide.items[0]; if (first) openItem(first); }} />
+        <RoomsMenu view={sv} open={roomsOpen} setOpen={(o) => { setRoomsOpen(o); if (o) setCard(null); }} onRoom={(room) => { setRoomsOpen(false); enterRoom(room); }} />
+        {sv && <StudioCards view={sv} open={card} setOpen={(c) => { setCard(c); if (c) setRoomsOpen(false); }} onItem={openItem} onSign={() => { setCard(null); openView("contracts"); }} onBrief={() => { setCard(null); openView("brief"); }} onFloor={() => { setCard(null); openView("floor"); }} />}
+        <RoomPanel room={view === "room" ? (dept as RoomCode) : null} data={data} refresh={refresh} onClose={() => openView("office")} onItem={openItem}
+          onSpot={(room, spot) => enterRoom(room, spot)}
+          onSeed={(text) => { openView("office"); setHeadOpen(true); setSeed((p) => ({ text, n: (p?.n ?? 0) + 1 })); }} />
       </div>
-    </SceneFrame>}
-
-    {(view === "room" || view === "roomdesk") && data && <SceneFrame sceneKey={`room:${dept}`} dir={dir} origin={origin} inert={view === "roomdesk"}>
-      <RoomStage data={data} dept={dept} back={() => openView("office")} goTo={(d) => { if (d === dept) return; const order = domainOrder(data, domains.list); setDir(order.indexOf(d) > order.indexOf(dept) ? "next" : "prev"); setOrigin(undefined); setFocusProject(undefined); setDept(d); }} onAct={(spot, at) => { setRoomSpot(spot); setRoomAt(at); openView("roomdesk", undefined, at); }} />
     </SceneFrame>}
 
     {view === "floor" && <div className="workspace">

@@ -1,7 +1,6 @@
 {
   "scene": {
     "heading": "The studio",
-    "label": "The bench, one station for each craft",
     "loading": "Setting out the bench."
   },
   "decide": {
@@ -18,7 +17,9 @@
       "STOP": "Stopped until you look",
       "DISAGREEMENT": "Two rooms, one call to make"
     },
-    "noRoom": "Whole request"
+    "noRoom": "Whole request",
+    "countOne": "1 for your pen",
+    "countMany": "{count} for your pen"
   },
   "know": {
     "title": "Know",
@@ -26,6 +27,8 @@
     "count": "{count} new since you last looked",
     "empty": "Quiet since you last looked.",
     "first": "{count} so far",
+    "short": "{count} new",
+    "quiet": "Quiet",
     "open": "Read what changed"
   },
   "board": {
@@ -74,5 +77,47 @@
     "recent": "Recent rooms",
     "records": "Records",
     "settings": "Settings"
+  },
+  "head": {
+    "who": "Your studio head",
+    "toggle": "Your studio head",
+    "greet": {
+      "morning": "Morning, {name}.",
+      "afternoon": "Afternoon, {name}.",
+      "evening": "Evening, {name}."
+    },
+    "greetNoName": {
+      "morning": "Morning.",
+      "afternoon": "Afternoon.",
+      "evening": "Evening."
+    },
+    "decide": {
+      "one": "One page waits on your pen.",
+      "many": "{count} pages wait on your pen.",
+      "none": "Nothing waits on your pen."
+    },
+    "know": {
+      "one": "One thing changed since you last looked.",
+      "many": "{count} things changed since you last looked."
+    },
+    "offer": {
+      "decide": "Shall we take them in order?",
+      "clear": "Ask me anything, or tell me where to go."
+    },
+    "through": "Take me through",
+    "placeholder": "Or ask me anything"
+  },
+  "rooms": {
+    "tab": "The rooms",
+    "title": "The rooms",
+    "crafts": "{count} crafts",
+    "needs": "{count} need your pen",
+    "open": "Open {room}",
+    "close": "Close the rooms"
+  },
+  "cards": {
+    "label": "Decide, Know and Board",
+    "open": "Open {card}",
+    "close": "Put {card} away"
   }
 }

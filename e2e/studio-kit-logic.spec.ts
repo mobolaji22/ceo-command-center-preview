@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { brandThemeVars, tokenSlug } from "../src/lib/brand-vars";
+import { brandFontsHref, brandThemeVars, tokenSlug } from "../src/lib/brand-vars";
 import { say } from "../src/copy";
 import { floorFixture, roomFixture, studioFixture, type StudioInput } from "../src/lib/data/fixtures-studio";
 import type { AgencyLook, OwnerData } from "../src/lib/model";
@@ -9,16 +9,16 @@ import type { AgencyLook, OwnerData } from "../src/lib/model";
  * and the demo's studio views tell the same story from the same records.
  */
 const look = (colours: Record<string, string>): AgencyLook => ({
-  colours: { surface: "#F3EFE7", text: "#1D1B19", ...colours },
+  colours: { surface: "#F0F0EE", text: "#111111", ...colours },
   type: { body: { family: "Serif Text", size: 17, weight: 400, tracking: 0.01, lineHeight: 1.5, typeface: null } },
   source: { assetId: "a", version: 1 },
 });
 
 test("a brand look becomes --brand-* variables; the house look sets none", () => {
   expect(brandThemeVars(null)).toEqual({});
-  const vars = brandThemeVars(look({ "Signing violet": "#4E3A8C" }));
-  expect(vars["--brand-surface"]).toBe("#F3EFE7");
-  expect(vars["--brand-signing-violet"]).toBe("#4E3A8C");
+  const vars = brandThemeVars(look({ "Signing violet": "#123456" }));
+  expect(vars["--brand-surface"]).toBe("#F0F0EE");
+  expect(vars["--brand-signing-violet"]).toBe("#123456");
   expect(vars["--brand-type-body-family"]).toBe('"Serif Text"');
   expect(vars["--brand-type-body-size"]).toBe("17px");
   expect(vars["--brand-type-body-tracking"]).toBe("0.01em");
@@ -33,6 +33,18 @@ test("a value that is not a plain colour never reaches a style", () => {
   const bad = brandThemeVars({ ...look({}), type: { body: { family: 'x"; } body { color: red', size: 9999, weight: 400, tracking: 0, lineHeight: 1.4, typeface: null } } });
   expect(bad["--brand-type-body-family"]).toBeUndefined();
   expect(bad["--brand-type-body-size"]).toBeUndefined();
+});
+
+test("the look's typefaces are fetched by name, once each; a name that is not a plain family is never fetched", () => {
+  expect(brandFontsHref(null)).toBeNull();
+  expect(brandFontsHref(look({}))).toBeNull();
+  const two = { ...look({}), type: {
+    body: { family: "Serif Text", size: 17, weight: 400, tracking: 0, lineHeight: 1.5, typeface: "Serif Text" },
+    caption: { family: "Serif Text", size: 13, weight: 400, tracking: 0, lineHeight: 1.4, typeface: "Serif Text" },
+    label: { family: "Mono Face", size: 11, weight: 500, tracking: 0.1, lineHeight: 1.2, typeface: "Mono Face" },
+    evil: { family: "x", size: 11, weight: 500, tracking: 0, lineHeight: 1.2, typeface: "x&family=y" },
+  } };
+  expect(brandFontsHref(two)).toBe("https://fonts.googleapis.com/css2?family=Serif+Text:ital,wght@0,400;0,500;1,400&family=Mono+Face:ital,wght@0,400;0,500;1,400&display=swap");
 });
 
 test("say fills each slot and leaves a missing one visible", () => {

@@ -23,6 +23,7 @@ import "./book.css";
 import "./lobby.css";
 import "./phone.css";
 import "./bench.css";
+import "./studio-home.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {

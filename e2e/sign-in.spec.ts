@@ -3,7 +3,7 @@ import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk } from "./client-room";
-import { openFromStudio, studioHeading } from "./studio";
+import { openFromStudio, parkedCard, studioHeading } from "./studio";
 
 const CEO = "ceo@agency.example";
 const OWNER = "owner@orbit.example";
@@ -50,7 +50,7 @@ test("the CEO signs in through an emailed link, and the session is not readable 
   // The data on screen came from the real API, not fixtures.
   await expect(page.getByText("DEMO DATA")).toHaveCount(0);
   // A new agency has nothing on the bench: the fixtures always do.
-  await expect(page.locator(".dock-board .dock-card-line")).toHaveText("0 on the bench");
+  await expect(parkedCard(page, "Board").locator(".parked-line")).toHaveText("0 on the bench");
 });
 
 test("a used link cannot be used again, and a wrong code is refused", async ({ page, browser }) => {

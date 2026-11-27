@@ -1,103 +1,7 @@
 /*
- * The studio home (v4 ADR-0099, slice 4.2): one bench, seven stations, three docked cards, the Floor and the composer.
- * Only the theme's tokens are used here (house tokens now; the brand's arrive through the theme provider in slice 4.7), so the
- * look changes with the record and never with this file. Motion stays with the kit: transform and opacity only, one spring.
+ * The studio head's composer and the Floor (v4 ADR-0099). The studio home itself is studio-home.css.
+ * Only the theme's tokens are used here, so the look changes with the record and never with this file.
  */
-
-.studio-home { min-height: 100svh; }
-
-.studio-scene {
-  display: flex; flex-direction: column; gap: clamp(1.25rem, 2.5vw, 2rem);
-  padding: clamp(4.75rem, 7vh, 5.5rem) clamp(1rem, 3vw, 2.75rem) 7.5rem;
-  max-width: 1440px; margin: 0 auto;
-}
-
-.studio-head h1 {
-  font-family: var(--font-display); font-weight: 500; letter-spacing: -0.01em;
-  font-size: clamp(2.4rem, 4.6vw, 4.25rem); line-height: 1; margin: 0;
-}
-.studio-line { margin: .5rem 0 0; color: var(--muted-foreground); font-size: 1.05rem; }
-.studio-loading { color: var(--muted-foreground); display: flex; gap: .6rem; align-items: center; }
-
-.studio-layout {
-  display: grid; gap: clamp(1rem, 2vw, 1.5rem); align-items: start;
-  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(230px, 280px);
-  grid-template-areas: "decide bench right";
-}
-.dock-decide { grid-area: decide; }
-.bench { grid-area: bench; }
-.studio-right { grid-area: right; display: grid; gap: clamp(1rem, 2vw, 1.5rem); }
-
-/* The bench: a graduated rule the stations stand on, read left to right in v4's order. */
-.bench {
-  list-style: none; margin: 0; padding: 0 0 1.75rem; position: relative;
-  display: grid; gap: .75rem; grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-.bench::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: .5rem; height: 9px;
-  border-top: 1px solid var(--border);
-  background: repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 24px) top / 100% 5px no-repeat,
-              repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 120px) top / 100% 9px no-repeat;
-}
-.station { animation: station-in .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
-@keyframes station-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .station { animation: none; } }
-[data-motion="off"] .station { animation: none; }
-
-.station-button {
-  width: 100%; min-height: 164px; display: flex; flex-direction: column; align-items: flex-start; gap: .75rem;
-  padding: 1.1rem 1rem 1rem; text-align: left; cursor: pointer;
-  background: var(--card); color: var(--card-foreground);
-  border: 1px solid var(--border); border-radius: var(--radius-lg);
-  transition: transform .25s cubic-bezier(.2, .8, .2, 1), border-color .2s;
-}
-.station-button:hover { transform: translateY(-3px); border-color: color-mix(in oklab, var(--primary) 45%, var(--border)); }
-.station-button:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
-.station-object { color: var(--muted-foreground); line-height: 0; }
-.station-needs .station-object { color: var(--primary); }
-.station-name { font-family: var(--font-display); font-size: 1.45rem; line-height: 1.1; font-weight: 500; }
-.station-pin { margin-top: auto; display: grid; gap: .15rem; font-size: .8rem; letter-spacing: .02em; }
-.station-pin-line { color: var(--muted-foreground); }
-.station-pin-needs .station-pin-line:first-child { color: var(--primary); font-weight: 600; }
-.station-pin-quiet .station-pin-line { opacity: .7; font-style: italic; }
-
-/* Docked cards */
-.dock-card {
-  background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: var(--radius-lg);
-  padding: 1.1rem 1.1rem 1rem; display: grid; gap: .6rem;
-}
-.dock-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-.dock-card-head h2 { margin: 0; font-size: inherit; }
-.dock-card-title {
-  background: none; border: 0; padding: 0; color: inherit; cursor: pointer;
-  font-family: var(--font-display); font-size: 1.55rem; font-weight: 500;
-}
-.dock-card-title:focus-visible, .dock-card-action:focus-visible, .decide-item:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
-.dock-card-count { font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--primary); font-variant-numeric: tabular-nums; }
-.dock-card.is-quiet .dock-card-count { color: var(--muted-foreground); opacity: .6; }
-.dock-card-line { margin: 0; color: var(--muted-foreground); font-size: .88rem; }
-.dock-card-action {
-  justify-self: start; display: inline-flex; gap: .35rem; align-items: center; margin-top: .2rem;
-  background: none; border: 0; padding: 0; cursor: pointer; color: var(--foreground);
-  font-size: .78rem; letter-spacing: .08em; text-transform: uppercase;
-}
-.dock-card-action svg { transition: transform .2s; }
-.dock-card-action:hover svg { transform: translateX(3px); }
-
-.decide-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; border-top: 1px solid var(--border); }
-.decide-item {
-  width: 100%; display: grid; gap: .1rem; text-align: left; cursor: pointer;
-  background: none; border: 0; border-bottom: 1px solid var(--border); padding: .6rem 0; color: inherit;
-}
-.decide-item:hover .decide-title { text-decoration: underline; text-underline-offset: 3px; }
-.decide-kind { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
-.decide-title { font-size: .93rem; line-height: 1.3; }
-.decide-room { font-size: .78rem; color: var(--muted-foreground); }
-.decide-more { font-size: .8rem; color: var(--muted-foreground); padding-top: .35rem; }
-
-.board-marks { margin: 0; display: flex; gap: .5rem; flex-wrap: wrap; }
-.board-mark { font-size: .78rem; padding: .15rem .5rem; border-radius: 999px; border: 1px solid var(--border); }
-.board-needs { color: var(--primary); border-color: color-mix(in oklab, var(--primary) 40%, transparent); }
 
 /* The composer, docked at the foot of the studio and the Floor */
 .composer-dock {
@@ -124,7 +28,7 @@
 .composer-reply {
   position: relative; padding: .9rem 2.5rem .9rem 1.1rem; font-size: .92rem;
   background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
-  animation: station-in .35s cubic-bezier(.2, .8, .2, 1) both;
+  animation: reply-in .35s cubic-bezier(.2, .8, .2, 1) both;
 }
 .composer-reply p { margin: 0; }
 .composer-dismiss { position: absolute; top: .6rem; right: .6rem; background: none; border: 0; color: var(--muted-foreground); cursor: pointer; }
@@ -178,13 +82,9 @@ button.floor-mark:hover { transform: scale(1.25); }
 .count-needs { color: var(--primary); font-weight: 600; }
 
 /* Narrower screens. The phone gets a shell of its own in slice 4.6; until then the same pieces stack in reading order. */
-@media (max-width: 1100px) {
-  .studio-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "bench bench" "decide right"; }
-}
 @media (max-width: 720px) {
-  .studio-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "decide" "bench" "right"; }
-  .bench { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .station-button { min-height: 132px; }
   .floor-table { min-width: 640px; }
   .floor-detail { margin-left: 0; }
 }
+
+@keyframes reply-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

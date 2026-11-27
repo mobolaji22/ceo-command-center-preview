@@ -73,12 +73,12 @@ for (const width of [390, 360]) {
   test.describe(`on a phone ${width} wide`, () => {
     test.use({ viewport: { width, height: 800 }, isMobile: true, hasTouch: true });
 
-    test("the CEO's studio: one bar, the cards and the composer, every place it opens fitting the screen", async ({ page }) => {
+    test("the CEO's studio: one bar, the studio head, the rooms and the cards, every place it opens fitting the screen", async ({ page }) => {
       await signIn(page, CEO);
       await expect(studioHeading(page)).toBeVisible();
       await expect(page.locator(".composer")).toBeVisible();
       await expectFitsThePhone(page, "the studio");
-      if (width === 390) await shot(page, "On a phone: the studio, its cards and the bench, with the composer at the foot");
+      if (width === 390) await shot(page, "On a phone: the office, the studio head speaking, the rooms tab and the cards parked below");
       for (const place of ["sign", "brief", "detail", "requests", "records"] as const) {
         await openFromStudio(page, place);
         await expect(page.locator(".desk-bar")).toBeVisible();

@@ -1,5 +1,5 @@
 import { newDirective } from "./directive";
-import { openFromStudio } from "./studio";
+import { openFromStudio, parkedCard, raiseCard } from "./studio";
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
@@ -39,8 +39,8 @@ test("a directive that is asking a question is on Decide, the count is v4's, and
 
   await page.goto("/");
   const studio = await (await page.request.get("/api/v4/v1/studio")).json();
-  const decide = page.locator(".dock-decide");
-  await expect(decide.locator(".dock-card-line")).toHaveText(`${studio.decide.count} waiting on your pen`);
+  await expect(parkedCard(page, "Decide").locator(".parked-line")).toHaveText(`${studio.decide.count} for your pen`);
+  const decide = await raiseCard(page, "Decide");
   const asked = decide.getByRole("button", { name: /^A question for you/ }).first();
   await expect(asked).toBeVisible();
   await shot(page, "The studio: Decide names what waits on the CEO");

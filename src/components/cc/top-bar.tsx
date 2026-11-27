@@ -23,7 +23,7 @@ export function TopBar({ who, center, date, initials, onSettings, onSignOut, onS
   const brand = useAgencyBrand().name.toUpperCase();
   return (
     <header className="topbar">
-      <div className="brand"><BrandMark /><span>{brand && <>{brand} <em>/</em> </>}{who}</span></div>
+      <div className="brand"><BrandMark /><span>{brand && <span className="brand-name">{brand} <em>/</em> </span>}{who}</span></div>
       <div className="topbar-center">{center}</div>
       <div className="topbar-right">
         {date && <span className="topbar-date">{date}</span>}

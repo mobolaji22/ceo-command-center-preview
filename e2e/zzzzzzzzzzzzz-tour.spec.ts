@@ -5,7 +5,7 @@ import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk } from "./client-room";
 import { expectRoomHeldStill } from "./still";
-import { openFromStudio, studioHeading } from "./studio";
+import { openFromStudio, parkedCard, raiseCard, studioHeading } from "./studio";
 import { ARRIVAL_KEY } from "../src/components/cc/lobby-arrival";
 
 /**
@@ -33,7 +33,7 @@ test.beforeEach(() => forgetSignInRequests());
 test("the CEO's studio and every desk it opens", async ({ page }) => {
   await signIn(page, CEO);
   await expect(studioHeading(page)).toBeVisible();
-  await expect(page.getByText(/waiting on your pen|Nothing waits on your pen/).first()).toBeVisible();
+  await expect(page.getByText(/pages? waits? on your pen|Nothing waits on your pen/).first()).toBeVisible();
 
   // the work in detail (once the Computer): the cases, each with its case file
   await openFromStudio(page, "detail");
@@ -105,35 +105,38 @@ test("the CEO walks the studio: each card's count is v4's and is what opening it
   const floor = (await (await page.request.get("/api/v4/v1/floor")).json()) as Floor;
   const overview = (await (await page.request.get("/api/v4/v1/console/overview")).json()) as { intents: { questions: { id: string }[] }[] };
   await expect(studioHeading(page)).toBeVisible();
-  await shot(page, "The studio: the bench, Decide, Know and Board, and the composer");
+  await shot(page, "The studio: the office, the studio head speaking first, the rooms on the left edge, Decide, Know and Board parked below");
 
-  // Decide: the count is v4's, the header says the same, and the list holds every item (five shown, the rest counted).
-  const decide = page.locator(".dock-decide");
+  // The studio head says what waits, in v4's numbers: the pages on your pen and what changed since you last looked.
   const n = studio.decide.count;
-  await expect(decide.locator(".dock-card-line")).toHaveText(n ? `${n} waiting on your pen` : "Nothing waits on your pen.");
-  await expect(page.locator(".topbar").getByText(n ? `${n} waiting on your pen` : "Nothing waits on your pen")).toBeVisible();
-  await expect(decide.locator(".decide-item")).toHaveCount(Math.min(n, 5));
-  if (n > 5) await expect(decide.locator(".decide-more")).toHaveText(`${n - 5} more`);
+  const head = page.locator(".studio-headman");
+  await expect(head).toContainText(n === 0 ? "Nothing waits on your pen." : n === 1 ? "One page waits on your pen." : `${n} pages wait on your pen.`);
+
+  // Decide: its tab carries v4's count, and raised it holds every item (five shown, the rest counted).
+  await expect(parkedCard(page, "Decide").locator(".parked-line")).toHaveText(n ? `${n} for your pen` : "Nothing waits on your pen.");
+  let decide = await raiseCard(page, "Decide");
+  await shot(page, "Decide raised from the bottom edge: what waits on the CEO's pen");
+  await expect(decide.locator(".parked-item")).toHaveCount(Math.min(n, 5));
+  if (n > 5) await expect(decide.locator(".parked-more")).toHaveText(`${n - 5} more`);
   // Each item opens where it is dealt with: a request's question in your requests, the rest to sign at the desk, a stop in detail.
   const asked = new Set(overview.intents.flatMap((i) => i.questions.map((q) => q.id)));
   for (const [i, item] of studio.decide.items.slice(0, 5).entries()) {
     const surface = item.kind === "QUESTION" && asked.has(item.id) ? "directive" : ["APPROVAL", "PLAN", "QUESTION"].includes(item.kind) ? "contracts" : "computer";
-    await decide.locator(".decide-item").nth(i).click();
+    decide = await raiseCard(page, "Decide");
+    await decide.locator(".parked-item").nth(i).click();
     await expect(page.locator(`.desk-panel[data-surface="${surface}"]`)).toBeVisible();
     await page.getByRole("button", { name: "BACK TO THE STUDIO" }).click();
   }
 
   // Know: v4's count of what happened since the last look, and it opens the brief.
-  const know = page.locator(".dock-know");
-  await expect(know.locator(".dock-card-count")).toHaveText(String(studio.know.count));
-  await know.getByRole("button", { name: "Read what changed" }).click();
+  await expect(parkedCard(page, "Know").locator(".parked-line")).toHaveText(studio.know.count ? new RegExp(`^${studio.know.count} `) : "Quiet");
+  await (await raiseCard(page, "Know")).getByRole("button", { name: "Read what changed" }).click();
   await expect(page.locator('.desk-panel[data-surface="brief"]')).toBeVisible();
   await page.getByRole("button", { name: "BACK TO THE STUDIO" }).click();
 
   // Board: its three numbers are the Floor's open rows, the open rows for you, and the open rows held (a closed one is shown, not counted).
-  const board = page.locator(".dock-board");
-  await expect(board.locator(".dock-card-line")).toHaveText(`${studio.board.engagements} on the bench`);
-  await board.getByRole("button", { name: "Walk the Floor" }).click();
+  await expect(parkedCard(page, "Board").locator(".parked-line")).toHaveText(`${studio.board.engagements} on the bench`);
+  await (await raiseCard(page, "Board")).getByRole("button", { name: "Walk the Floor" }).click();
   await expect(page.locator(".workspace-path")).toContainText("The Floor");
   const rows = page.locator(".floor-row:not(.floor-closed)");
   await expect(rows).toHaveCount(studio.board.engagements);
