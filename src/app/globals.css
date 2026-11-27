@@ -153,6 +153,7 @@
 .brand em { color: var(--primary); font-style: normal; margin: 0 6px; }
 .brand-mark { width: 24px; height: 24px; border: 1.5px solid var(--primary); transform: rotate(45deg); display: grid; place-items: center; }
 .brand-mark span { display: block; width: 8px; height: 8px; background: var(--primary); }
+.brand-mark-image { display: block; width: 24px; height: 24px; object-fit: contain; flex: none; }
 .topbar-center,.topbar-date,.workspace-path,.workspace-right { font-size: 9px; letter-spacing: .16em; color: var(--muted-foreground); font-weight: 700; }
 .topbar-center,.topbar-right,.workspace-right { display: flex; align-items: center; gap: 14px; }
 .live-dot,.pulse-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: oklch(0.78 0.14 157); box-shadow: 0 0 10px oklch(0.78 0.14 157 / 70%); flex: none; }

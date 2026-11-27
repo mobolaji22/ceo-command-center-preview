@@ -295,6 +295,8 @@ export function createApiDataSource(): DataSource {
       async agencyBrand() {
         return must(await call<AgencyBrandView>("GET", "/v1/agency/brand"));
       },
+      // The version is in the address so a newly chosen mark is never served from an old cache.
+      agencyMarkUrl: (mark) => `${PROXY}/v1/agency/brand/mark?v=${encodeURIComponent(`${mark.assetId}.${mark.version}`)}`,
     },
 
     commands: {
@@ -480,6 +482,15 @@ export function createApiDataSource(): DataSource {
         // v4 sends the page as inert text, so it is read as text here, not through the JSON reader.
         let res: Response;
         try { res = await fetch(`${PROXY}/v1/projects/${encodeURIComponent(projectId)}/sdd/pages/${sha}`, { credentials: "same-origin", headers: { Accept: "text/plain" } }); }
+        catch { return fail("Could not reach the server. Check your connection and try again."); }
+        if (res.status === 404) return fail(MESSAGES["NOT_FOUND"]!, "NOT_FOUND");
+        if (!res.ok) return fail(res.status >= 500 ? MESSAGES["SERVER_ERROR"]! : `Request failed (${res.status}).`);
+        return ok(await res.text());
+      },
+      async specimen(projectId, territoryId) {
+        // Inert text, like a study's page, so it is read as text here.
+        let res: Response;
+        try { res = await fetch(`${PROXY}/v1/projects/${encodeURIComponent(projectId)}/sdd/specimens/${encodeURIComponent(territoryId)}`, { credentials: "same-origin", headers: { Accept: "text/plain" } }); }
         catch { return fail("Could not reach the server. Check your connection and try again."); }
         if (res.status === 404) return fail(MESSAGES["NOT_FOUND"]!, "NOT_FOUND");
         if (!res.ok) return fail(res.status >= 500 ? MESSAGES["SERVER_ERROR"]! : `Request failed (${res.status}).`);

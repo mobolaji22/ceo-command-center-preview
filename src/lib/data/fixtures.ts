@@ -635,6 +635,7 @@ export function createFixturesDataSource(): DataSource {
       async agencyBrand() {
         return structuredClone(DEMO_BRAND);
       },
+      agencyMarkUrl: (mark) => `/fixtures/brand/mark-${encodeURIComponent(mark.assetId)}-${mark.version}.svg`,
       async clientData(): Promise<ClientData> {
         const s = load();
         const uid = currentUserId();
@@ -1114,6 +1115,8 @@ export function createFixturesDataSource(): DataSource {
           const res = sha ? await fetch(`/fixtures/pages/${sha}.html`).catch(() => null) : null;
           return res?.ok ? ok(await res.text()) : fail("That couldn't be found.", "NOT_FOUND");
         },
+        // Specimens are set by v4 from a direction's values; the demo has none, so its directions show their key frames.
+        specimen: async () => fail("That couldn't be found.", "NOT_FOUND"),
         versions: async (projectId) => withDesign(projectId, (d) => d.approved.map(({ version, approvedAt, approvedById }) => ({ version, approvedAt, approvedById })), false),
         version: async (projectId, version) => {
           const r = withDesign(projectId, (d) => d.approved.find((a) => a.version === version)?.document ?? null, false);

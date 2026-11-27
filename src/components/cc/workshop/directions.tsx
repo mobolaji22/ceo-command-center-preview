@@ -49,16 +49,16 @@ export function Directions({ projectId, onChosen }: { projectId: string; onChose
       <b>{open ? "Choose a direction" : "The directions explored"}</b>
       {drawn
         ? <p>Each direction is drawn as pages in its own system, then checked and critiqued before it reaches you. Switch between desktop and phone, enlarge a page, or open it live. The direction you choose goes into the Workshop, and the build starts from its pages. Images the client has not supplied yet are marked as requested.</p>
-        : <p>{doc.basis.reason || "Three directions, each drawn as key frames for a desktop and a phone."} Each frame shows the part of a page that carries the idea, in that direction's colours and type. They are not finished designs: the words are placeholders for the copy that is written next, and images are marked.</p>}
+        : <p>{doc.basis.reason || "Three directions, each drawn as key frames for a desktop and a phone."} Each frame shows the part of a page that carries the idea, in that direction's colours and type. They are not finished designs: the words are placeholders for the copy that is written next, and images are marked. Where a direction has its values, its specimen sheet comes first: its colours, type and spacing, set in its own words.</p>}
     </header>
     <div className="directions-grid">
-      {doc.territories.map((t) => <Territory key={t.id} doc={doc} territory={t} open={open} chosenHere={chosenHere} onChoose={choose} studyUrl={(file) => ds.design.studyUrl(projectId, file)} readPage={(file) => ds.design.page(projectId, file)} />)}
+      {doc.territories.map((t) => <Territory key={t.id} doc={doc} territory={t} open={open} chosenHere={chosenHere} onChoose={choose} studyUrl={(file) => ds.design.studyUrl(projectId, file)} readPage={(file) => ds.design.page(projectId, file)} readSpecimen={() => ds.design.specimen(projectId, t.id)} />)}
     </div>
     {msg && <p className="mmsg" role="status">{msg}</p>}
   </section>;
 }
 
-function Territory({ doc, territory: t, open, chosenHere, onChoose, studyUrl, readPage }: { doc: SddDocument; territory: SddTerritory; open: boolean; chosenHere: string | null; onChoose: (t: SddTerritory, changes: string) => Promise<void>; studyUrl: (file: string) => string; readPage: ReadPage }) {
+function Territory({ doc, territory: t, open, chosenHere, onChoose, studyUrl, readPage, readSpecimen }: { doc: SddDocument; territory: SddTerritory; open: boolean; chosenHere: string | null; onChoose: (t: SddTerritory, changes: string) => Promise<void>; studyUrl: (file: string) => string; readPage: ReadPage; readSpecimen: () => Promise<Result<string>> }) {
   const [withChanges, setWithChanges] = useState(false);
   const [changes, setChanges] = useState("");
   const [busy, setBusy] = useState(false);
@@ -71,6 +71,10 @@ function Territory({ doc, territory: t, open, chosenHere, onChoose, studyUrl, re
   // pass drew (ADR-0060) is shown as before, with its layout a click away.
   const drawnPages = t.systemRef !== null && frames.length > 0 && frames.every((f) => studyOf(f.id) !== null);
   const signature = t.signature ? ("device" in t.signature ? t.signature.device : `None: ${t.signature.noneBecause}`) : null;
+  // A direction with no pages is judged on its values (v4 ADR-0098): its specimen sheet leads, its key frames a click away.
+  const [view, setView] = useState<"specimen" | "frames">("specimen");
+  const specimen = useQuery({ queryKey: ["sdd-specimen", t.id, t.tokens], enabled: !drawnPages && t.tokens !== null, staleTime: Infinity, retry: false, queryFn: async () => { const r = await readSpecimen(); if (r.error) throw new Error(r.error.message); return r.data!; } });
+  const showSpecimen = !drawnPages && specimen.data !== undefined && view === "specimen";
   return <article className={`direction ${status === "Chosen" ? "is-chosen" : status ? "is-aside" : ""}`} aria-label={t.concept}>
     <div className="direction-head">
       <span className="direction-posture">{t.posture ? POSTURE_WORDS[t.posture] ?? t.posture : "Direction"}</span>
@@ -79,7 +83,12 @@ function Territory({ doc, territory: t, open, chosenHere, onChoose, studyUrl, re
     </div>
     <h3>{t.concept}</h3>
     {t.thesis && <p className="direction-thesis">{t.thesis}</p>}
-    {frames.length === 0 ? <small>No key frames were drawn for this direction.</small>
+    {!drawnPages && specimen.data !== undefined && <div className="direction-tabs" role="group" aria-label={`${t.concept}: how it is shown`}>
+      <button type="button" aria-pressed={view === "specimen"} onClick={() => setView("specimen")}>Specimen</button>
+      {frames.length > 0 && <button type="button" aria-pressed={view === "frames"} onClick={() => setView("frames")}>Key frames</button>}
+    </div>}
+    {showSpecimen ? <Specimen html={specimen.data!} concept={t.concept} />
+      : frames.length === 0 ? <small>No key frames were drawn for this direction.</small>
       : drawnPages ? <Pages frames={frames} concept={t.concept} file={(f) => studyOf(f.id)!} studyUrl={studyUrl} readPage={readPage} />
       : <div className="direction-frames">{frames.map((f) => <KeyFrame key={f.id} doc={doc} frame={f} study={studyOf(f.id) ? studyUrl(studyOf(f.id)!) : null} concept={t.concept} />)}</div>}
     {(signature || t.deliberatelyNot) && <dl className="direction-facts">
@@ -148,6 +157,16 @@ function Pages({ frames, concept, file, studyUrl, readPage }: { frames: StudyFra
         </div>
       </DialogContent>
     </Dialog>
+  </div>;
+}
+
+/**
+ * A direction's specimen sheet, as v4 set it from the direction's values. It has no script, and the frame grants it nothing
+ * (`sandbox=""`): no script, no forms, an opaque origin. It scrolls inside the card like a drawn page.
+ */
+function Specimen({ html, concept }: { html: string; concept: string }) {
+  return <div className="direction-page direction-specimen">
+    <iframe title={`${concept}: specimen sheet, set from its values`} sandbox="" referrerPolicy="no-referrer" srcDoc={html} />
   </div>;
 }
 

@@ -9,8 +9,9 @@ import type { AgencyBrandView } from "@/lib/model";
  * `name` is empty until it arrives, so a screen shows nothing rather than a name typed here; no screen writes the brand itself, and
  * `npm run lint` fails if one does (scripts/check-brand-strings.mjs).
  */
-export function useAgencyBrand(): { brand: AgencyBrandView | undefined; name: string; loading: boolean } {
+export function useAgencyBrand(): { brand: AgencyBrandView | undefined; name: string; markUrl: string | null; loading: boolean } {
   const ds = useDataSource();
   const q = useQuery({ queryKey: ["agency-brand"], queryFn: () => ds.queries.agencyBrand(), staleTime: Infinity, meta: { static: true } });
-  return { brand: q.data, name: q.data?.name ?? "", loading: q.isPending };
+  const mark = q.data?.mark ?? null;
+  return { brand: q.data, name: q.data?.name ?? "", markUrl: mark ? ds.queries.agencyMarkUrl(mark) : null, loading: q.isPending };
 }

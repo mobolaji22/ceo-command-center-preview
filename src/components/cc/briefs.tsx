@@ -10,6 +10,7 @@ import { useDataSource } from "@/lib/data";
 import { fmtAgo, fmtDate, label } from "@/lib/format";
 import type { BriefDoc, BriefStatement, BriefSummary, BriefType, DigestFrequency, NotificationPrefs, Source } from "@/lib/model";
 import { useAgencyBrand } from "@/lib/brand";
+import { BrandMark } from "@/components/cc/brand-mark";
 
 /**
  * What people are told (CC-5). The archive lists the briefs; opening one shows each statement with the records it comes from a
@@ -164,7 +165,7 @@ export function BriefPage({ id }: { id: string }) {
   const home = auth.user?.role === "owner" ? "/" : "/client";
   return <main className="command-center">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><span /></span><span>{brand && <>{brand} <em>/</em> </>}BRIEF</span></div>
+      <div className="brand"><BrandMark /><span>{brand && <>{brand} <em>/</em> </>}BRIEF</span></div>
       <div className="topbar-right"><Link href={home} className="inline-arrow">BACK TO THE COMMAND CENTER</Link></div>
     </header>
     <div className="workspace"><div className="client-wrap">

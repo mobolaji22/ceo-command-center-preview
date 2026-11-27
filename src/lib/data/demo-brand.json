@@ -3,10 +3,12 @@
   "line": "The whole studio, in one conversation.",
   "voice": null,
   "source": null,
+  "look": null,
+  "mark": null,
   "notSet": [
-    { "part": "mark", "reason": "Design has not delivered the mark yet; it arrives as an asset with the brand book." },
-    { "part": "colours", "reason": "Design has not delivered the palette yet; it arrives as tokens with the brand book." },
-    { "part": "type", "reason": "Design has not delivered the typefaces yet; they arrive as tokens with the brand book." },
+    { "part": "mark", "reason": "No mark has been chosen yet; Design's mark steps draw the options and the CEO chooses one." },
+    { "part": "colours", "reason": "Design's direction for the brand is not approved yet; its colour tokens arrive with it." },
+    { "part": "type", "reason": "Design's direction for the brand is not approved yet, or names no typefaces; its type tokens arrive with it." },
     { "part": "voice", "reason": "No brand book the CEO approved holds a voice yet." },
     { "part": "imagery", "reason": "Design has not delivered the imagery direction yet." }
   ],

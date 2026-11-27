@@ -96,6 +96,11 @@ export interface DataSource {
     domains(): Promise<DomainView[]>;
     /** The agency's brand (v4 ADR-0093): its name, line and voice, read by every screen that shows them. The same for everyone. */
     agencyBrand(): Promise<AgencyBrandView>;
+    /**
+     * Where the brand's mark is drawn from (v4 ADR-0095): public, so the lobby shows it before sign-in. v4 serves it as SVG under a
+     * policy that lets it draw and do nothing else, and the screen shows it only as an image, never inline.
+     */
+    agencyMarkUrl(mark: { assetId: string; version: number }): string;
   };
 
   commands: {
@@ -195,6 +200,11 @@ export interface DataSource {
      * reaches nothing of the viewer's.
      */
     page(projectId: string, file: string): Promise<Result<string>>;
+    /**
+     * A direction's specimen sheet (v4 ADR-0098 Decision 2): its colours, type, space and signature, set by v4 from its values, as
+     * text. It carries no script and is shown only in a sealed frame (`sandbox=""`). Not found when the direction has no values.
+     */
+    specimen(projectId: string, territoryId: string): Promise<Result<string>>;
     /** The decision owner's answer to a submitted revision. Approving needs a fresh proof of who is deciding. */
     decide(proposalId: string, input: { action: "APPROVE" | "REQUEST_REVISION"; note?: string }): Promise<Result>;
   };
