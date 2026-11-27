@@ -3,6 +3,7 @@ import { forgetSignInRequests, recordSpend } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk, openClientProject } from "./client-room";
+import { openFromStudio, studioHeading } from "./studio";
 
 /**
  * The work, in the agency (CC-4). The client sees how their project is going in their own room: the work in order, how much of
@@ -70,7 +71,7 @@ test("a client sees the work in order and the budget used, holds it, resumes it,
 test("the CEO's hold on a client's work is shown to the client, who cannot lift it; the CEO can", async ({ browser, page }) => {
   const ceoPage = await (await browser.newContext()).newPage();
   await signIn(ceoPage, CEO);
-  await ceoPage.getByRole("button", { name: "Computer", exact: true }).click();
+  await openFromStudio(ceoPage, "detail");
   await ceoPage.getByRole("button", { name: /Open case file for .*checkout/i }).click();
   const ceoFile = ceoPage.getByRole("region", { name: "Case file" }).first();
   await expect(ceoFile.getByLabel("Budget used", { exact: true })).toContainText(/\$0\.50 of/);
@@ -93,7 +94,7 @@ test("the CEO's hold on a client's work is shown to the client, who cannot lift 
 
   // the CEO lifts it from the contracts desk, where the work's questions are
   await ceoPage.goto("/");
-  await ceoPage.getByRole("button", { name: "Contracts", exact: true }).click();
+  await openFromStudio(ceoPage, "sign");
   const desk = ceoPage.locator(".contracts-desk");
   await expect(desk.getByText("QUESTIONS FROM THE WORK")).toBeVisible();
   const q = desk.getByLabel("The work is paused").first();

@@ -14,7 +14,7 @@ import {
 import { isSampleBook } from "@/lib/deliverables/samples";
 import type { OwnerData } from "@/lib/model";
 import { useDomains } from "@/lib/domains";
-import { projectsIn } from "./corridor";
+import { projectsIn } from "./domain-work";
 import { DeskFrame } from "./desk-frame";
 import { Empty } from "./views";
 import { useStepUp } from "./step-up";

@@ -6,8 +6,8 @@ import sddSample from "@/lib/design/sdd-sample-drawn.json";
 import demoBrand from "./demo-brand.json";
 import type { MediaStoryboard, MediaStudioPiece, MediaStudioStoryboard, MediaStudioView, MediaTimeline } from "@/lib/media/v4";
 import type { KeptBrand } from "@/lib/deliverables/v4";
-import type { RoomCode, RoomInitiativeView, WorkbenchKind } from "@/lib/studio/v4";
-import { floorFixture, roomFixture, studioFixture, type StudioInput } from "./fixtures-studio";
+import type { RoomCode, RoomInitiativeView, StationView, WorkbenchKind } from "@/lib/studio/v4";
+import { askFixture, floorFixture, roomFixture, studioFixture, type StudioInput } from "./fixtures-studio";
 import { SAMPLE_STRATEGY_DECISION_ID, sampleBook } from "@/lib/deliverables/samples";
 import type {
   ProjectObjectiveView,
@@ -466,6 +466,7 @@ const DEMO_DOMAINS: DomainView[] = ([
 /** The rooms in v4's order, from the demo's domain list; and which rooms have a platform of their own (v4 ROOM_WORKBENCHES). */
 const DEMO_ROOM_CODES = [...new Set(DEMO_DOMAINS.map((d) => d.room.code))] as RoomCode[];
 const DEMO_WORKBENCHES: Partial<Record<RoomCode, WorkbenchKind>> = { DESIGN: "WORKSHOP", MEDIA: "STUDIO" };
+const DEMO_SIGNATURES: Record<RoomCode, StationView["signature"]> = { STRATEGY: "COMPASS", BRAND: "SEAL", DESIGN: "PENCIL", MEDIA: "LENS", ENGINEERING: "BRACKETS", GROWTH: "SPROUT", COMPLIANCE: "SCALES" };
 const demoRoomOfDomain = (name: string): RoomCode | null => (DEMO_DOMAINS.find((d) => d.name.toLowerCase() === name.toLowerCase())?.room.code as RoomCode | undefined) ?? null;
 
 /** What `GET /v1/agency/brand` serves, for the demo (v4 ADR-0093). The only place the demo's brand is written; screens read it. */
@@ -569,7 +570,7 @@ export function createFixturesDataSource(): DataSource {
     const s = load();
     const me = s.users.find((u) => u.id === currentUserId());
     if (!me || me.role !== "owner") throw new Error("The studio is the agency's view.");
-    return { data: s.data, rooms: DEMO_ROOM_CODES, roomOfDomain: demoRoomOfDomain, initiatives: s.initiatives ?? {}, lastSeen: s.lastSeen, isCeo: true };
+    return { data: s.data, rooms: DEMO_ROOM_CODES, roomOfDomain: demoRoomOfDomain, signatureOf: (room) => DEMO_SIGNATURES[room], initiatives: s.initiatives ?? {}, lastSeen: s.lastSeen, isCeo: true };
   };
   const addEvent = (s: Store, e: Omit<V4Event, "id" | "created_at" | "actor_id"> & { actor_id?: string | null }) => {
     s.data.events.unshift({ id: id(), created_at: new Date().toISOString(), actor_id: e.actor_id ?? currentUserId(), ...e });
@@ -679,6 +680,12 @@ export function createFixturesDataSource(): DataSource {
     },
 
     commands: {
+      async ask(text) {
+        let input: StudioInput;
+        try { input = studioInput(); } catch (e) { return fail((e as Error).message, "FORBIDDEN"); }
+        const names: Array<[string, RoomCode]> = DEMO_DOMAINS.flatMap((d) => [[d.room.name, d.room.code as RoomCode], [d.name, d.room.code as RoomCode], [d.code, d.room.code as RoomCode]] as Array<[string, RoomCode]>);
+        return ok(structuredClone(askFixture(input, text, names)));
+      },
       async setInitiative(room, setting) {
         const s = load();
         const me = s.users.find((u) => u.id === currentUserId());

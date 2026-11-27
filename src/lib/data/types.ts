@@ -1,6 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
-import type { FloorView, InitiativeSetting, RoomCode, RoomInitiativeView, RoomView, StudioView } from "@/lib/studio/v4";
+import type { FloorView, InitiativeSetting, RoomCode, RoomInitiativeView, RoomView, StudioAskAnswer, StudioView } from "@/lib/studio/v4";
 import type { MediaStoryboard, MediaStudioPiece, MediaStudioRender, MediaStudioStoryboard, MediaStudioView, MediaTimeline, StoryboardChange, StoryboardDecision } from "@/lib/media/v4";
 import type { AgencyBrandView, ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, ThreadView, WorkspaceView, PersonGuide, GuideLogEntry, StepMaterials, TeamView } from "../model";
 
@@ -113,6 +113,11 @@ export interface DataSource {
   commands: {
     /** Sets a room's initiative dial (ADR-0091 Decision 11): the CEO's alone. v4 keeps every setting as a record. */
     setInitiative(room: RoomCode, setting: InitiativeSetting): Promise<Result<RoomInitiativeView>>;
+    /**
+     * The studio head's composer (v4 ADR-0099 Decision 9): v4 says where the words go, with no model call. A place to open, a status
+     * answer from its records, or DIRECTIVE, which the composer then submits as a request (`intents.submit`) unchanged.
+     */
+    ask(text: string): Promise<Result<StudioAskAnswer>>;
     // Authorizations ("contracts")
     resolveApproval(id: string, approved: boolean): Promise<Result>;
     setApprovalConstraints(id: string, text: string): Promise<Result>;

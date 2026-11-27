@@ -19,3 +19,14 @@ export function useDomains(): { list: DomainList; loading: boolean; nameOf: (cod
   const list = q.data ?? [];
   return { list, loading: q.isPending, nameOf: (code) => list.find((d) => d.code === code)?.name ?? humanize(code) };
 }
+
+/**
+ * The seven rooms (v4 ADR-0091, ADR-0092), in v4's order, read from the same domain list: each domain names the room it sits in, so
+ * there is still one list of them, the API's. `roomName` gives a room's display name, or the code while the list is arriving.
+ */
+export function useRooms(): { rooms: Array<{ code: string; name: string }>; loading: boolean; roomName: (code: string) => string } {
+  const { list, loading } = useDomains();
+  const rooms: Array<{ code: string; name: string }> = [];
+  for (const d of list) if (!rooms.some((r) => r.code === d.room.code)) rooms.push({ code: d.room.code, name: d.room.name });
+  return { rooms, loading, roomName: (code) => rooms.find((r) => r.code === code)?.name ?? humanize(code) };
+}

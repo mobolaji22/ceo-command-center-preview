@@ -60,6 +60,7 @@ const input = (): StudioInput => ({
   } as unknown as OwnerData,
   rooms: ["DESIGN", "ENGINEERING"],
   roomOfDomain: (d) => (d === "Design" ? "DESIGN" : d === "Engineering" ? "ENGINEERING" : null),
+  signatureOf: () => "PENCIL",
   initiatives: {},
   lastSeen: at,
   isCeo: true,

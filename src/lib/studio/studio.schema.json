@@ -24,6 +24,18 @@
                   "COMPLIANCE"
                 ]
               },
+              "signature": {
+                "type": "string",
+                "enum": [
+                  "COMPASS",
+                  "SEAL",
+                  "PENCIL",
+                  "LENS",
+                  "BRACKETS",
+                  "SPROUT",
+                  "SCALES"
+                ]
+              },
               "needsYou": {
                 "type": "integer",
                 "minimum": 0,
@@ -42,6 +54,7 @@
             },
             "required": [
               "room",
+              "signature",
               "needsYou",
               "live",
               "held"
@@ -943,6 +956,299 @@
         "interrupts"
       ],
       "additionalProperties": false
+    },
+    {
+      "title": "StudioAskAnswer",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "GO"
+            },
+            "place": {
+              "type": "string",
+              "enum": [
+                "ROOM",
+                "FLOOR"
+              ]
+            },
+            "room": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "STRATEGY",
+                    "BRAND",
+                    "DESIGN",
+                    "MEDIA",
+                    "ENGINEERING",
+                    "GROWTH",
+                    "COMPLIANCE"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "place",
+            "room"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ANSWER"
+            },
+            "topic": {
+              "type": "string",
+              "enum": [
+                "NEEDS_YOU",
+                "HELD",
+                "NEW"
+              ]
+            },
+            "room": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "STRATEGY",
+                    "BRAND",
+                    "DESIGN",
+                    "MEDIA",
+                    "ENGINEERING",
+                    "GROWTH",
+                    "COMPLIANCE"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "decide": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "APPROVAL",
+                      "PLAN",
+                      "QUESTION",
+                      "PERSON_STEP",
+                      "STOP",
+                      "DISAGREEMENT"
+                    ]
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 400
+                  },
+                  "room": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "STRATEGY",
+                          "BRAND",
+                          "DESIGN",
+                          "MEDIA",
+                          "ENGINEERING",
+                          "GROWTH",
+                          "COMPLIANCE"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "organizationId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "projectId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "since": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "id",
+                  "title",
+                  "room",
+                  "organizationId",
+                  "projectId",
+                  "since"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "held": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "taskId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 400
+                  },
+                  "projectId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "room": {
+                    "type": "string",
+                    "enum": [
+                      "STRATEGY",
+                      "BRAND",
+                      "DESIGN",
+                      "MEDIA",
+                      "ENGINEERING",
+                      "GROWTH",
+                      "COMPLIANCE"
+                    ]
+                  },
+                  "reason": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "AWAITING_CLARIFICATION",
+                          "AWAITING_APPROVAL",
+                          "AWAITING_CONTEXT",
+                          "AWAITING_CREDENTIAL",
+                          "POLICY_BLOCK",
+                          "NEGOTIATION_CONFLICT",
+                          "BUDGET_EXCEEDED",
+                          "QUALITY_BLOCK",
+                          "ANOMALY",
+                          "HUMAN_TASK",
+                          "EXTERNAL_DEPENDENCY",
+                          "PAUSED_BY_OWNER",
+                          "AWAITING_CONSULTATION",
+                          "CONSULTATION_OBJECTION",
+                          "CONSULTATION_ESCALATION",
+                          "SUBSTITUTE_INVALIDATED",
+                          "AWAITING_DECISION"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "stopped": {
+                    "type": "string",
+                    "enum": [
+                      "WAITING",
+                      "BLOCKED",
+                      "FAILED"
+                    ]
+                  },
+                  "since": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "taskId",
+                  "title",
+                  "projectId",
+                  "room",
+                  "reason",
+                  "stopped",
+                  "since"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "know": {
+              "type": "object",
+              "properties": {
+                "since": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "since",
+                "count"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "kind",
+            "topic",
+            "room",
+            "decide",
+            "held",
+            "know"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "DIRECTIVE"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      ]
     }
   ]
 }

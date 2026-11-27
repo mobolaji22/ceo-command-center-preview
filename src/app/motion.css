@@ -233,7 +233,7 @@
 /* ---- cursor light: a pool of lamplight that trails a real pointer; off in day lighting and focus mode ---- */
 .cursor-light { position: fixed; left: 0; top: 0; z-index: 4; width: 520px; height: 520px; border-radius: 50%; pointer-events: none; opacity: 0; mix-blend-mode: screen; will-change: transform; background: radial-gradient(circle, oklch(0.82 0.12 80 / 11%) 0%, oklch(0.8 0.12 78 / 4%) 42%, transparent 68%); transition: opacity 0.5s ease; }
 .cursor-light[data-on] { opacity: 1; }
-[data-lighting="day"] .cursor-light, .focus-mode .cursor-light { opacity: 0 !important; }
+[data-lighting="day"] .cursor-light { opacity: 0 !important; }
 
 /* ---- hotspot previews: the panel arrives where the pointer or focus already is ---------------------------- */
 .hotspot.selected { scale: 1.08; }

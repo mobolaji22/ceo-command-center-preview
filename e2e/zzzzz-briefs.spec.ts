@@ -3,6 +3,7 @@ import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk, openClientProject } from "./client-room";
+import { openFromStudio } from "./studio";
 
 /**
  * What people are told (CC-5). A client reads what was written to them, opens the records behind a statement and has every one of
@@ -102,26 +103,27 @@ test("a quiet hours window with the same start and end is refused in words, and 
   await expect(page.getByRole("form", { name: "How you are told" }).getByLabel("From", { exact: true })).toHaveValue("21:30");
 });
 
-test("the CEO reads every client's briefs on the brief desk, and sets how they are told on the phone", async ({ page }) => {
+test("the CEO reads every client's briefs from Know, and sets how they are told in Settings", async ({ page }) => {
   await signIn(page, CEO);
-  await page.getByRole("button", { name: "Brief", exact: true }).click();
+  await openFromStudio(page, "brief");
   const archive = page.getByLabel("Briefs", { exact: true });
   await expect(archive.locator(".brief-row").first()).toBeVisible();
   await archive.locator(".brief-row").first().getByRole("button", { name: /^Read / }).click();
   await expect(archive.getByRole("article").first().locator(".brief-statement").first()).toBeVisible();
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Phone", exact: true }).click();
-  await page.getByRole("button", { name: /^How you are told/ }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  const settings = page.locator('[data-desk="settings"]');
+  await settings.getByRole("tab", { name: "Notifications", exact: true }).click();
   const form = page.getByRole("form", { name: "How you are told" });
   await form.getByLabel("Digest", { exact: true }).selectOption("OFF");
   await expect(form.getByLabel("At", { exact: true })).toHaveCount(0);
   await form.getByRole("button", { name: "Save" }).click();
   await expect(form.getByRole("status")).toHaveText("Saved.");
 
-  // A reload keeps the desk that was open (the address names it), so the phone is still in hand.
+  // A reload keeps the desk that was open (the address names it), and what was saved.
   await page.reload();
-  await expect(page.locator('.desk-panel[data-surface="phone"]')).toBeVisible();
-  await page.getByRole("button", { name: /^How you are told/ }).click();
+  await expect(page.locator('.desk-panel[data-surface="settings"]')).toBeVisible();
+  await page.locator('[data-desk="settings"]').getByRole("tab", { name: "Notifications", exact: true }).click();
   await expect(page.getByRole("form", { name: "How you are told" }).getByLabel("Digest", { exact: true })).toHaveValue("OFF");
 });

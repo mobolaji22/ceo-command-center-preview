@@ -1,8 +1,15 @@
 {
+  "scene": {
+    "heading": "The studio",
+    "label": "The bench, one station for each craft",
+    "loading": "Setting out the bench."
+  },
   "decide": {
     "title": "Decide",
     "empty": "Nothing waits on your pen.",
     "count": "{count} waiting on your pen",
+    "all": "Everything to sign",
+    "more": "{count} more",
     "kinds": {
       "APPROVAL": "Your signature",
       "PLAN": "A plan to read",
@@ -10,30 +17,62 @@
       "PERSON_STEP": "Your move",
       "STOP": "Stopped until you look",
       "DISAGREEMENT": "Two rooms, one call to make"
-    }
+    },
+    "noRoom": "Whole request"
   },
   "know": {
     "title": "Know",
     "since": "Since you last looked",
-    "count": "{count} new",
+    "count": "{count} new since you last looked",
     "empty": "Quiet since you last looked.",
-    "first": "Everything so far"
+    "first": "{count} so far",
+    "open": "Read what changed"
   },
   "board": {
     "title": "Board",
-    "summary": "{engagements} on the bench",
-    "needsYou": "{count} need you",
+    "summary": "{count} on the bench",
+    "needsYou": "{count} for you",
     "held": "{count} held",
     "open": "Walk the Floor"
   },
   "station": {
-    "needsYou": "needs you",
-    "live": "at work",
-    "held": "held",
+    "needsYou": "{count} for you",
+    "live": "{count} at work",
+    "held": "{count} held",
     "quiet": "quiet"
   },
   "composer": {
+    "label": "Ask the studio",
     "placeholder": "Ask the studio, or say where to go",
-    "send": "Send"
+    "send": "Send",
+    "sending": "Reading it",
+    "dismiss": "Close",
+    "answers": {
+      "NEEDS_YOU": "Waiting on your pen",
+      "HELD": "Held, and why",
+      "NEW": "Since you last looked"
+    },
+    "empty": {
+      "NEEDS_YOU": "Nothing waits on you.",
+      "HELD": "Nothing is held. Every step is moving or done.",
+      "NEW": "Quiet since you last looked."
+    },
+    "inRoom": "In {room}",
+    "newCount": "{count} things changed. The brief has each one.",
+    "openBrief": "Open the brief",
+    "taken": "Taken to the studio as a request.",
+    "requests": "Your requests",
+    "noReason": "stopped without a named reason"
+  },
+  "status": {
+    "awaiting": "waiting on your pen",
+    "clear": "Nothing waits on your pen"
+  },
+  "palette": {
+    "places": "Places",
+    "rooms": "Rooms",
+    "recent": "Recent rooms",
+    "records": "Records",
+    "settings": "Settings"
   }
 }

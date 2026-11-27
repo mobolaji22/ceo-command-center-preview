@@ -1,5 +1,5 @@
 import type { OwnerData, Task } from "../model";
-import type { DecideItem, EngagementRow, FloorGroup, FloorView, HeldItem, InitiativeSetting, RoomCode, RoomInitiativeView, RoomMoveView, RoomView, RoomWorkState, StudioView, WorkbenchKind } from "@/lib/studio/v4";
+import type { DecideItem, EngagementRow, FloorGroup, FloorView, HeldItem, InitiativeSetting, RoomCode, RoomInitiativeView, RoomMoveView, RoomView, RoomWorkState, StationView, StudioAskAnswer, StudioAskTopic, StudioView, WorkbenchKind } from "@/lib/studio/v4";
 
 /**
  * The studio's views for the demo (v4 ADR-0099), worked out from the demo's own records the way v4 works them out from its tables, so
@@ -13,6 +13,8 @@ export type StudioInput = {
   rooms: readonly RoomCode[];
   /** The room a task's domain belongs to, by the domain's name as the demo's tasks carry it. */
   roomOfDomain: (domainName: string) => RoomCode | null;
+  /** The object each room's station carries (v4 ROOM_SIGNATURES). */
+  signatureOf: (room: RoomCode) => StationView["signature"];
   initiatives: Record<string, RoomInitiativeView>;
   lastSeen: string | null;
   isCeo: boolean;
@@ -94,7 +96,7 @@ export function studioFixture(i: StudioInput): StudioView {
   return {
     stations: i.rooms.map((room) => {
       const mine = tasks.filter((t) => i.roomOfDomain(t.domain) === room);
-      return { room, needsYou: decide.filter((d) => d.room === room).length, live: mine.filter((t) => LIVE.has(t.status)).length, held: mine.filter((t) => HELD.has(t.status)).length };
+      return { room, signature: i.signatureOf(room), needsYou: decide.filter((d) => d.room === room).length, live: mine.filter((t) => LIVE.has(t.status)).length, held: mine.filter((t) => HELD.has(t.status)).length };
     }),
     decide: { count: decide.length, items: decide },
     know: { since, count: since ? i.data.events.filter((e) => e.created_at > since).length : i.data.events.length },
@@ -141,5 +143,40 @@ export function roomFixture(i: StudioInput, room: RoomCode, workbench: Workbench
     }),
     initiative: initiativeOf(i, room),
     workbench,
+  };
+}
+
+/**
+ * The composer for the demo, imitating v4's `askStudio`: a room or the Floor to open, a status answer from the demo's records, or
+ * the words handed to the request flow. `roomNames` are the demo's room and domain names with the room each belongs to.
+ */
+export function askFixture(i: StudioInput, text: string, roomNames: ReadonlyArray<[string, RoomCode]>): StudioAskAnswer {
+  const t = text.toLowerCase().replace(/[’‘]/g, "'").replace(/&/g, " and ").replace(/[^a-z0-9' ?]+/g, " ").replace(/\s+/g, " ").trim();
+  const named = (s: string): RoomCode | null => roomNames.find(([n]) => new RegExp(`(?:^| )${n.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim()}(?:$| |\\?)`).test(s))?.[1] ?? null;
+  const floor = /^(?:floor|board|every engagement|all (?:the )?work|everything)$/;
+  const go = /^(?:please )?(?:take me to|go to|open|show me|show|bring up|jump to|head to|walk me to) (?:the )?(.+?) ?\??$/.exec(t);
+  if (go) {
+    const target = go[1]!.trim();
+    if (floor.test(target)) return { kind: "GO", place: "FLOOR", room: null };
+    const room = named(target);
+    if (room && target.split(" ").length <= 4) return { kind: "GO", place: "ROOM", room };
+  }
+  const bare = named(t);
+  if (bare && t.split(" ").length <= 3 && !t.endsWith("?")) return { kind: "GO", place: "ROOM", room: bare };
+  if (floor.test(t)) return { kind: "GO", place: "FLOOR", room: null };
+  const asks = (text.trim().endsWith("?") || /^(?:what|what's|whats|which|who|anything|is|are|any|how many|how much|show me|tell me|catch me up|where)\b/.test(t)) && t.split(" ").length <= 14;
+  const topic: StudioAskTopic | undefined = !asks ? undefined
+    : /\b(?:needs? (?:me|my)|need me|waiting (?:on|for) me|my (?:turn|move|call|signature|yes)|for me to|to (?:sign|decide|approve)|decide)\b/.test(t) ? "NEEDS_YOU"
+      : /\b(?:stuck|held|blocked|waiting|late|stalled|holding|paused|failed)\b/.test(t) ? "HELD"
+        : /\b(?:new|happened|changed|since|catch me up|while i was away|missed)\b/.test(t) ? "NEW" : undefined;
+  if (!topic) return { kind: "DIRECTIVE" };
+  const room = named(t);
+  const studio = studioFixture(i);
+  const held = i.rooms.flatMap((r) => roomFixture(i, r, "CHOICES").glance.held);
+  return {
+    kind: "ANSWER", topic, room,
+    decide: topic === "NEEDS_YOU" ? studio.decide.items.filter((d) => !room || d.room === room) : [],
+    held: topic === "HELD" ? held.filter((h) => !room || h.room === room) : [],
+    know: studio.know,
   };
 }

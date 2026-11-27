@@ -1,7 +1,7 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
 import type { MediaStudioPiece, MediaStudioRender, MediaStudioStoryboard, MediaStudioView } from "@/lib/media/v4";
-import type { FloorView, RoomInitiativeView, RoomView, StudioView } from "@/lib/studio/v4";
+import type { FloorView, RoomInitiativeView, RoomView, StudioAskAnswer, StudioView } from "@/lib/studio/v4";
 import type { AgencyBrandView, ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, ConversationMessage, ThreadSummary, ThreadView, ThreadWait, WorkspaceView, ConversationView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, PersonGuide, StepMaterials, TeamView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 import { WAIT_LINE } from "../format";
@@ -311,6 +311,9 @@ export function createApiDataSource(): DataSource {
     },
 
     commands: {
+      async ask(text) {
+        return call<StudioAskAnswer>("POST", "/v1/studio/ask", { text });
+      },
       async setInitiative(room, setting) {
         return call<RoomInitiativeView>("PUT", `/v1/rooms/${encodeURIComponent(room)}/initiative`, setting);
       },

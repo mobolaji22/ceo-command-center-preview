@@ -1,11 +1,11 @@
 "use client";
 
-import { ArrowLeft, BookOpen, CalendarDays, ChevronLeft, ChevronRight, DoorOpen, ListChecks, PanelTop, PenTool } from "lucide-react";
+import { ArrowLeft, BookOpen, CalendarDays, ChevronLeft, ChevronRight, ListChecks, PanelTop, PenTool } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { fmtDate, label, pad, statusTone } from "@/lib/format";
 import type { OwnerData } from "@/lib/model";
-import { domainOrder, projectsIn, taskIn, type Entry } from "./corridor";
+import { domainOrder, projectsIn, taskIn, type Entry } from "./domain-work";
 import { useDomains, type DomainList } from "@/lib/domains";
 import { DeskFrame, firstFilled } from "./desk-frame";
 import { OfficeStage, type Spot } from "./office-stage";
@@ -14,6 +14,7 @@ import { Empty } from "./views";
 import { WorkshopDesk } from "./workshop/workshop";
 import { BookDesk } from "./book";
 import { FindBar, Marked, TextFind } from "./find-bar";
+import { COPY } from "@/copy";
 import { useProjectFind, useRemembered, type FindOption } from "@/lib/find";
 
 /**
@@ -48,7 +49,7 @@ const counts = (data: OwnerData, dept: string, list: DomainList) => {
   };
 };
 
-export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: OwnerData; dept: string; back: () => void; toOffice: () => void; goTo?: ((dept: string) => void) | undefined; onAct: (spot: RoomSpot, at: { x: number; y: number }) => void }) {
+export function RoomStage({ data, dept, back, goTo, onAct }: { data: OwnerData; dept: string; back: () => void; goTo?: ((dept: string) => void) | undefined; onAct: (spot: RoomSpot, at: { x: number; y: number }) => void }) {
   const { list, nameOf } = useDomains();
   const depts = domainOrder(data, list);
   const projects = projectsIn(data, dept, list);
@@ -76,8 +77,7 @@ export function RoomStage({ data, dept, back, toOffice, goTo, onAct }: { data: O
       coordinate={<>40° 43′ N &nbsp; / &nbsp; 73° 59′ W</>}
       nav={<>
         <div className="stage-nav-links">
-          <Button variant="ghost" className="back-link" onClick={back}><ArrowLeft size={16} /> ALL ROOMS</Button>
-          <Button variant="ghost" className="back-link" aria-label="BACK TO OFFICE" onClick={toOffice}><DoorOpen size={16} /> OFFICE</Button>
+          <Button variant="ghost" className="back-link" onClick={back}><ArrowLeft size={16} /> {COPY.floor.back}</Button>
         </div>
         <nav ref={rail} className="room-rail" aria-label="Move to another room">{depts.map((d, i) => <button key={d} type="button" className="rail-door" aria-label={`Go to ${nameOf(d)}`} aria-current={d === dept ? "page" : undefined} title={nameOf(d)} disabled={!goTo} onClick={() => goTo?.(d)}>{pad(i + 1)}</button>)}</nav>
       </>}
