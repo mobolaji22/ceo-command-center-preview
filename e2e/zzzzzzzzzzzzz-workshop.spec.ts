@@ -117,6 +117,11 @@ test("the question's link opens the client's Workshop; the three directions are 
   await expect(directions.locator("article.direction")).toHaveCount(3);
   for (const name of ["Roastery Notice", "Batch Ticket", "Roast Calendar"]) {
     const t = directions.getByRole("article", { name });
+    // With no pages drawn, a direction opens on its specimen sheet, set by v4 from its values in a sealed frame (ADR-0098).
+    const specimen = t.locator(".direction-specimen iframe");
+    await expect(specimen).toHaveAttribute("sandbox", "");
+    await expect(t.frameLocator(".direction-specimen iframe").getByRole("heading", { name })).toBeVisible();
+    await t.getByRole("button", { name: "Key frames" }).click();
     // Each key frame is shown as v4's renderer drew it (ADR-0060): a study per key frame, served through the proxy to the client.
     await expect(t.locator("figure.keyframe-study")).toHaveCount(2);
     await expect.poll(() => t.locator("figure.keyframe-study img").first().evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBeGreaterThan(300);

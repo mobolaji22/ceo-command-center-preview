@@ -20,7 +20,8 @@ export const CEO_EMAIL = "ceo@agency.example";
 const withDb = (user?: string) => {
   const u = new URL(ADMIN);
   u.pathname = `/${DB}`;
-  if (user) { u.username = user; u.password = ""; }
+  // The app role has no password where Postgres trusts local connections (CI); elsewhere APP_DB_PASSWORD gives it, as in v4's tests.
+  if (user) { u.username = user; u.password = process.env["APP_DB_PASSWORD"] ?? ""; }
   return u.toString();
 };
 
