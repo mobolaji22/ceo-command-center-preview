@@ -11,7 +11,7 @@ import type { Op } from "@/lib/design/edit";
 import { choosing, type AnnotationTarget, type SddVersion } from "@/lib/design/v4";
 import type { ClientData, OwnerData } from "@/lib/model";
 import { Empty } from "../views";
-import { projectsIn } from "../corridor";
+import { projectsIn } from "../domain-work";
 import { useDomains } from "@/lib/domains";
 import { useStepUp } from "../step-up";
 import { Artboard } from "./canvas";

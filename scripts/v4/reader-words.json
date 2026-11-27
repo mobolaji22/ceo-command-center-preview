@@ -1,0 +1,113 @@
+{
+  "$id": "dpb:reader-words/1",
+  "patterns": [
+    {
+      "check": "WORK_STANDARD",
+      "defect": "UNFINISHED",
+      "source": "\\b(?:TODO|TBD|TBC|FIXME|TKTK)\\b",
+      "flags": ""
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "UNFINISHED",
+      "source": "\\blorem ipsum\\b|\\bdolor sit amet\\b",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "UNFINISHED",
+      "source": "\\[(?:insert|add|your|placeholder|client|company|business|name|tbd|todo|enter|replace)\\b[^\\]\\n]{0,60}\\](?!\\()",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "UNFINISHED",
+      "source": "\\{\\{\\s*[A-Za-z_][\\w.]*\\s*\\}\\}",
+      "flags": ""
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "UNFINISHED",
+      "source": "\\b(?:placeholder|sample|dummy) (?:text|copy|content|headline)\\b",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "NARRATION",
+      "source": "\\b(?:this|the following|the below|our) (?:section|page|piece|copy|post|article|guide|deck|document|report|brochure|flyer|email|video|slide|site|website)s? (?:showcases?|highlights?|explores?|outlines?|presents?|introduces?|walks you through|aims to|is designed to|will (?:show|explore|walk|cover|outline|highlight|introduce))\\b",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "NARRATION",
+      "source": "\\b(?:below|in this (?:section|page|post|guide|article)),? you(?:'ll| will) (?:find|discover|learn|see)\\b",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "SELF_DESCRIPTION",
+      "source": "\\bas an ai\\b|\\bas a language model\\b|\\bi hope this helps\\b|\\bfeel free to (?:adjust|tweak|modify|edit)\\b|\\blet me know if you(?:'d| would) like\\b",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "SELF_DESCRIPTION",
+      "source": "\\bhere(?:'s| is) (?:your|the|a) (?:revised |updated |final |polished )?(?:copy|draft|version|tagline|headline|text|email|caption)\\b",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "FILLER",
+      "source": "\\bin today's (?:fast-paced|digital|modern|ever-changing|competitive|busy|connected) (?:world|age|landscape|era|market)\\b",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "FILLER",
+      "source": "\\bin the (?:ever-evolving|ever-changing|fast-paced) (?:world|landscape|realm) of\\b|\\bin a world where\\b|\\blook no further\\b",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "FILLER",
+      "source": "\\bunlock(?:ing)? the (?:power|potential|secrets?) of\\b|\\bdelv(?:e|es|ing) (?:deep )?into\\b|\\bembark on (?:a|your) journey\\b|\\ba testament to\\b|\\b(?:rich|vibrant) tapestry\\b",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "EMPTY_HEDGE",
+      "source": "\\bit(?:'s| is) (?:important|worth|crucial|essential) to (?:note|mention|remember|highlight) that\\b|\\bit(?:\\'s| is) worth (?:noting|mentioning) that\\b|\\bit (?:is|should be) noted that\\b|\\bit goes without saying\\b|\\bneedless to say\\b",
+      "flags": "i"
+    },
+    {
+      "check": "WORK_STANDARD",
+      "defect": "EMOJI_BULLET",
+      "source": "^[ \\t]*(?![©®™])\\p{Extended_Pictographic}️?[ \\t]",
+      "flags": "mu"
+    },
+    {
+      "check": "EXPRESSION",
+      "defect": "DESCRIBES_SERVICE",
+      "source": "^(?:the|a|an|your|our)\\s+(?:[\\p{L}'’-]+\\s+){0,3}?(?:studio|agency|team|company|firm|platform|service|partner|shop|store|business|consultancy|collective|brand|bakery|caf[eé]|restaurant|kitchen|clinic|practice|school|app|tool|solution|people|experts?|specialists?)\\s+(?:that|which|who|for|with|where|in)\\b",
+      "flags": "iu"
+    },
+    {
+      "check": "EXPRESSION",
+      "defect": "DESCRIBES_SERVICE",
+      "source": "^we(?:'re|’re| are)?\\s+(?:design|build|make|create|offer|provide|deliver|help|handle|develop|produce|manage|specialise|specialize|a|an|the)\\b",
+      "flags": "i"
+    },
+    {
+      "check": "EXPRESSION",
+      "defect": "DESCRIBES_SERVICE",
+      "source": "\\b(?:full[- ]service|one[- ]stop|end[- ]to[- ]end|all[- ]in[- ]one|turnkey)\\b",
+      "flags": "i"
+    },
+    {
+      "check": "EXPRESSION",
+      "defect": "VIRTUE_HOOK",
+      "source": "\\b(?:honest|honesty|transparent|transparency|quality|trusted|trustworthy|reliable|reliability|passionate|passion|innovative|innovation|excellence|excellent|integrity|premium|world[- ]class|best[- ]in[- ]class|cutting[- ]edge|award[- ]winning|state[- ]of[- ]the[- ]art)\\b",
+      "flags": "i"
+    }
+  ]
+}

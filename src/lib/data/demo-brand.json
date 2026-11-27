@@ -1,16 +1,114 @@
 {
   "name": "Boxwood",
-  "line": "The whole studio, in one conversation.",
-  "voice": null,
-  "source": null,
-  "look": null,
-  "mark": null,
+  "line": "Every craft at one bench.",
+  "voice": {
+    "name": "The bench",
+    "why": "It speaks as makers rather than as a service, which is what craft first asks for. It carries the name and the studio line without forcing them: boxwood is a maker's wood, and the bench is where every craft meets. It keeps the owner as the author of every decision. Its short, concrete sentences survive a button as well as a home page. The engraver is too terse to explain a choice, the manifesto shouts, and the host and the concierge sound like service, not craft.",
+    "wordsWeUse": [
+      "make",
+      "bench",
+      "grain",
+      "cut",
+      "finish",
+      "choose",
+      "your call",
+      "the page",
+      "draft",
+      "ready",
+      "signed",
+      "craft"
+    ],
+    "wordsWeAvoid": [
+      "seamless",
+      "elevate",
+      "leverage",
+      "solutions",
+      "cutting-edge",
+      "unlock",
+      "empower",
+      "journey",
+      "world-class",
+      "best-in-class",
+      "passionate",
+      "AI-powered"
+    ]
+  },
+  "source": {
+    "assetId": "cmwyav6d700017d8hnovnsrcd",
+    "version": 1
+  },
+  "look": {
+    "colours": {
+      "surface": "#F3EFE7",
+      "text": "#1D1B19",
+      "muted": "#625D55",
+      "panel": "#E7E1D5",
+      "signing": "#4E3A8C"
+    },
+    "type": {
+      "body": {
+        "family": "serif",
+        "size": 19,
+        "weight": 400,
+        "tracking": 0,
+        "lineHeight": 1.55,
+        "typeface": "Source Serif 4"
+      },
+      "label": {
+        "family": "mono",
+        "size": 13,
+        "weight": 500,
+        "tracking": 0.02,
+        "lineHeight": 1.35,
+        "typeface": "JetBrains Mono"
+      },
+      "caption": {
+        "family": "mono",
+        "size": 12,
+        "weight": 400,
+        "tracking": 0.06,
+        "lineHeight": 1.4,
+        "typeface": "JetBrains Mono"
+      },
+      "display": {
+        "family": "serif",
+        "size": 72,
+        "weight": 500,
+        "tracking": -0.015,
+        "lineHeight": 1.05,
+        "typeface": "Source Serif 4"
+      },
+      "body-small": {
+        "family": "serif",
+        "size": 16,
+        "weight": 400,
+        "tracking": 0,
+        "lineHeight": 1.5,
+        "typeface": "Source Serif 4"
+      },
+      "display-phone": {
+        "family": "serif",
+        "size": 42,
+        "weight": 500,
+        "tracking": -0.01,
+        "lineHeight": 1.08,
+        "typeface": "Source Serif 4"
+      }
+    },
+    "source": {
+      "assetId": "cmwyavrsw000v7d8huzt7bj4c",
+      "version": 1
+    }
+  },
+  "mark": {
+    "assetId": "cmwy3xmix000o7da9oib4d5am",
+    "version": 1
+  },
   "notSet": [
-    { "part": "mark", "reason": "No mark has been chosen yet; Design's mark steps draw the options and the CEO chooses one." },
-    { "part": "colours", "reason": "Design's direction for the brand is not approved yet; its colour tokens arrive with it." },
-    { "part": "type", "reason": "Design's direction for the brand is not approved yet, or names no typefaces; its type tokens arrive with it." },
-    { "part": "voice", "reason": "No brand book the CEO approved holds a voice yet." },
-    { "part": "imagery", "reason": "Design has not delivered the imagery direction yet." }
+    {
+      "part": "imagery",
+      "reason": "Design has not delivered the imagery direction yet."
+    }
   ],
-  "updatedAt": "2026-11-26T12:00:00.000Z"
+  "updatedAt": "2026-11-27T01:26:13.397Z"
 }

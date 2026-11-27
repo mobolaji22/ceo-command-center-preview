@@ -1,6 +1,7 @@
 import type { SddDocument, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
 import type { MediaStudioPiece, MediaStudioRender, MediaStudioStoryboard, MediaStudioView } from "@/lib/media/v4";
+import type { FloorView, RoomInitiativeView, RoomView, StudioAskAnswer, StudioView } from "@/lib/studio/v4";
 import type { AgencyBrandView, ProjectObjectiveView, ActionLinkView, AuditChain, Asset, ClientIntentView, ClientPlanView, ConversationMessage, ThreadSummary, ThreadView, ThreadWait, WorkspaceView, ConversationView, UnderstandingVersion, UnderstandingView, Counsel, Feasibility, MaterialWay, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DelegationView, DomainView, OwnerData, NotificationItem, NotificationPrefs, PlanContent, PlanVersion, Question, RunTask, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, PersonGuide, StepMaterials, TeamView } from "../model";
 import { fail, ok, type DataSource, type Result } from "./types";
 import { WAIT_LINE } from "../format";
@@ -297,9 +298,25 @@ export function createApiDataSource(): DataSource {
       },
       // The version is in the address so a newly chosen mark is never served from an old cache.
       agencyMarkUrl: (mark) => `${PROXY}/v1/agency/brand/mark?v=${encodeURIComponent(`${mark.assetId}.${mark.version}`)}`,
+      async studio() {
+        return must(await call<StudioView>("GET", "/v1/studio"));
+      },
+      async floor() {
+        return must(await call<FloorView>("GET", "/v1/floor"));
+      },
+      async room(room, projectId) {
+        const query = projectId ? `?project=${encodeURIComponent(projectId)}` : "";
+        return must(await call<RoomView>("GET", `/v1/rooms/${encodeURIComponent(room)}${query}`));
+      },
     },
 
     commands: {
+      async ask(text) {
+        return call<StudioAskAnswer>("POST", "/v1/studio/ask", { text });
+      },
+      async setInitiative(room, setting) {
+        return call<RoomInitiativeView>("PUT", `/v1/rooms/${encodeURIComponent(room)}/initiative`, setting);
+      },
       async resolveApproval(id, approved) {
         return voidResult(await call("POST", `/v1/approvals/${id}/resolve`, { approved }));
       },

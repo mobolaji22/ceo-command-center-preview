@@ -6,6 +6,8 @@ import sddSample from "@/lib/design/sdd-sample-drawn.json";
 import demoBrand from "./demo-brand.json";
 import type { MediaStoryboard, MediaStudioPiece, MediaStudioStoryboard, MediaStudioView, MediaTimeline } from "@/lib/media/v4";
 import type { KeptBrand } from "@/lib/deliverables/v4";
+import type { RoomCode, RoomInitiativeView, StationView, WorkbenchKind } from "@/lib/studio/v4";
+import { askFixture, floorFixture, roomFixture, studioFixture, type StudioInput } from "./fixtures-studio";
 import { SAMPLE_STRATEGY_DECISION_ID, sampleBook } from "@/lib/deliverables/samples";
 import type {
   ProjectObjectiveView,
@@ -147,7 +149,7 @@ const STATUS_LINE = (i: { status: string; questions: unknown[]; delivery?: { out
 /** A thread of a project (v4 ADR-0078): the request that opened it and any later ones in it. Requests not listed have one each. */
 type FixtureThread = { id: string; organization_id: string; project_id: string | null; title: string; opened_from_id: string | null; intent_ids: string[] };
 
-type Store = { team?: TeamView; guides?: Record<string, PersonGuide>; standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; ledger?: LedgerDecision[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; media?: Record<string, MediaStudioPiece[]>; storyboards?: Record<string, MediaStudioStoryboard[]>; kept?: Record<string, KeptBrand>; conversations?: Record<string, Array<ConversationMessage & { by?: string | undefined }>>; threads?: FixtureThread[] };
+type Store = { team?: TeamView; guides?: Record<string, PersonGuide>; standingProjects?: string[]; fees?: FeesView; prices?: Record<string, DemoPrice | null>; spend?: { monthly: number; perCall: number }; endedSessions?: string[]; data: OwnerData; users: User[]; assets: Asset[]; lastSeen: string | null; plans: PlanVersion[]; decisions: DecisionEntry[]; ledger?: LedgerDecision[]; delegations: DelegationView[]; runs: RunView[]; questions: Question[]; links: Array<{ token: string; view: ActionLinkView }>; briefs: BriefDoc[]; prefs: Record<string, NotificationPrefs>; notifications: NotificationItem[]; budgets: Record<string, BudgetView>; design?: Record<string, DemoDesign>; media?: Record<string, MediaStudioPiece[]>; storyboards?: Record<string, MediaStudioStoryboard[]>; kept?: Record<string, KeptBrand>; conversations?: Record<string, Array<ConversationMessage & { by?: string | undefined }>>; threads?: FixtureThread[]; initiatives?: Record<string, RoomInitiativeView> };
 
 /**
  * A project's design document in the demo, as v4 keeps it: the approved versions, and the one revision being worked on (a draft, one
@@ -461,6 +463,12 @@ const DEMO_DOMAINS: DomainView[] = ([
   pack: { version: "0.1.0", basis, contract: null, stages: ["plan"], implementation: { "implemented-and-tested": 0, partial: 0, missing: 0 }, bridge: { SESSION: 1, BRIEF: 0, CODE: 0, PERSON: 0 } },
 }));
 
+/** The rooms in v4's order, from the demo's domain list; and which rooms have a platform of their own (v4 ROOM_WORKBENCHES). */
+const DEMO_ROOM_CODES = [...new Set(DEMO_DOMAINS.map((d) => d.room.code))] as RoomCode[];
+const DEMO_WORKBENCHES: Partial<Record<RoomCode, WorkbenchKind>> = { DESIGN: "WORKSHOP", MEDIA: "STUDIO" };
+const DEMO_SIGNATURES: Record<RoomCode, StationView["signature"]> = { STRATEGY: "COMPASS", BRAND: "SEAL", DESIGN: "PENCIL", MEDIA: "LENS", ENGINEERING: "BRACKETS", GROWTH: "SPROUT", COMPLIANCE: "SCALES" };
+const demoRoomOfDomain = (name: string): RoomCode | null => (DEMO_DOMAINS.find((d) => d.name.toLowerCase() === name.toLowerCase())?.room.code as RoomCode | undefined) ?? null;
+
 /** What `GET /v1/agency/brand` serves, for the demo (v4 ADR-0093). The only place the demo's brand is written; screens read it. */
 const DEMO_BRAND = demoBrand as AgencyBrandView;
 
@@ -557,6 +565,13 @@ export function createFixturesDataSource(): DataSource {
     save(s);
     return ok(undefined as void);
   };
+  // The studio is the agency's view (v4 requireAgency): the CEO's alone in the demo, as in v4.
+  const studioInput = (): StudioInput => {
+    const s = load();
+    const me = s.users.find((u) => u.id === currentUserId());
+    if (!me || me.role !== "owner") throw new Error("The studio is the agency's view.");
+    return { data: s.data, rooms: DEMO_ROOM_CODES, roomOfDomain: demoRoomOfDomain, signatureOf: (room) => DEMO_SIGNATURES[room], initiatives: s.initiatives ?? {}, lastSeen: s.lastSeen, isCeo: true };
+  };
   const addEvent = (s: Store, e: Omit<V4Event, "id" | "created_at" | "actor_id"> & { actor_id?: string | null }) => {
     s.data.events.unshift({ id: id(), created_at: new Date().toISOString(), actor_id: e.actor_id ?? currentUserId(), ...e });
   };
@@ -636,6 +651,18 @@ export function createFixturesDataSource(): DataSource {
         return structuredClone(DEMO_BRAND);
       },
       agencyMarkUrl: (mark) => `/fixtures/brand/mark-${encodeURIComponent(mark.assetId)}-${mark.version}.svg`,
+      async studio() {
+        return structuredClone(studioFixture(studioInput()));
+      },
+      async floor() {
+        return structuredClone(floorFixture(studioInput()));
+      },
+      async room(room, projectId) {
+        const input = studioInput();
+        if (!DEMO_ROOM_CODES.includes(room)) throw new Error("That room couldn't be found.");
+        if (projectId && !input.data.projects.some((p) => p.id === projectId)) throw new Error("That project couldn't be found.");
+        return structuredClone(roomFixture(input, room, DEMO_WORKBENCHES[room] ?? "CHOICES", projectId));
+      },
       async clientData(): Promise<ClientData> {
         const s = load();
         const uid = currentUserId();
@@ -653,6 +680,24 @@ export function createFixturesDataSource(): DataSource {
     },
 
     commands: {
+      async ask(text) {
+        let input: StudioInput;
+        try { input = studioInput(); } catch (e) { return fail((e as Error).message, "FORBIDDEN"); }
+        const names: Array<[string, RoomCode]> = DEMO_DOMAINS.flatMap((d) => [[d.room.name, d.room.code as RoomCode], [d.name, d.room.code as RoomCode], [d.code, d.room.code as RoomCode]] as Array<[string, RoomCode]>);
+        return ok(structuredClone(askFixture(input, text, names)));
+      },
+      async setInitiative(room, setting) {
+        const s = load();
+        const me = s.users.find((u) => u.id === currentUserId());
+        if (!me || me.role !== "owner") return fail("Only the CEO sets how much a room does on its own.", "FORBIDDEN");
+        if (!DEMO_ROOM_CODES.includes(room)) return fail("That room couldn't be found.", "NOT_FOUND");
+        if (setting.watches.length > 8) return fail("A room watches at most eight things.", "INVALID_REQUEST");
+        const view: RoomInitiativeView = { room, ...setting, isDefault: false, setById: me.id, setAt: new Date().toISOString() };
+        (s.initiatives ??= {})[room] = view;
+        addEvent(s, { project_id: null, type: "ROOM_INITIATIVE_CHANGED", summary: "CEO reset how far a room goes on its own", client_visible: false });
+        save(s);
+        return ok(structuredClone(view));
+      },
       async resolveApproval(aid, approved) {
         return mutate((s) => {
           const a = approvalById(s, aid);

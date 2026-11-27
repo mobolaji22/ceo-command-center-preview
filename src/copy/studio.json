@@ -1,0 +1,123 @@
+{
+  "scene": {
+    "heading": "The studio",
+    "loading": "Setting out the bench."
+  },
+  "decide": {
+    "title": "Decide",
+    "empty": "Nothing waits on your pen.",
+    "count": "{count} waiting on your pen",
+    "all": "Everything to sign",
+    "more": "{count} more",
+    "kinds": {
+      "APPROVAL": "Your signature",
+      "PLAN": "A plan to read",
+      "QUESTION": "A question for you",
+      "PERSON_STEP": "Your move",
+      "STOP": "Stopped until you look",
+      "DISAGREEMENT": "Two rooms, one call to make"
+    },
+    "noRoom": "Whole request",
+    "countOne": "1 for your pen",
+    "countMany": "{count} for your pen"
+  },
+  "know": {
+    "title": "Know",
+    "since": "Since you last looked",
+    "count": "{count} new since you last looked",
+    "empty": "Quiet since you last looked.",
+    "first": "{count} so far",
+    "short": "{count} new",
+    "quiet": "Quiet",
+    "open": "Read what changed"
+  },
+  "board": {
+    "title": "Board",
+    "summary": "{count} on the bench",
+    "needsYou": "{count} for you",
+    "held": "{count} held",
+    "open": "Walk the Floor"
+  },
+  "station": {
+    "needsYou": "{count} for you",
+    "live": "{count} at work",
+    "held": "{count} held",
+    "quiet": "quiet"
+  },
+  "composer": {
+    "label": "Ask the studio",
+    "placeholder": "Ask the studio, or say where to go",
+    "send": "Send",
+    "sending": "Reading it",
+    "dismiss": "Close",
+    "answers": {
+      "NEEDS_YOU": "Waiting on your pen",
+      "HELD": "Held, and why",
+      "NEW": "Since you last looked"
+    },
+    "empty": {
+      "NEEDS_YOU": "Nothing waits on you.",
+      "HELD": "Nothing is held. Every step is moving or done.",
+      "NEW": "Quiet since you last looked."
+    },
+    "inRoom": "In {room}",
+    "newCount": "{count} things changed. The brief has each one.",
+    "openBrief": "Open the brief",
+    "taken": "Taken to the studio as a request.",
+    "requests": "Your requests",
+    "noReason": "stopped without a named reason"
+  },
+  "status": {
+    "awaiting": "waiting on your pen",
+    "clear": "Nothing waits on your pen"
+  },
+  "palette": {
+    "places": "Places",
+    "rooms": "Rooms",
+    "recent": "Recent rooms",
+    "records": "Records",
+    "settings": "Settings"
+  },
+  "head": {
+    "who": "Your studio head",
+    "toggle": "Your studio head",
+    "greet": {
+      "morning": "Morning, {name}.",
+      "afternoon": "Afternoon, {name}.",
+      "evening": "Evening, {name}."
+    },
+    "greetNoName": {
+      "morning": "Morning.",
+      "afternoon": "Afternoon.",
+      "evening": "Evening."
+    },
+    "decide": {
+      "one": "One page waits on your pen.",
+      "many": "{count} pages wait on your pen.",
+      "none": "Nothing waits on your pen."
+    },
+    "know": {
+      "one": "One thing changed since you last looked.",
+      "many": "{count} things changed since you last looked."
+    },
+    "offer": {
+      "decide": "Shall we take them in order?",
+      "clear": "Ask me anything, or tell me where to go."
+    },
+    "through": "Take me through",
+    "placeholder": "Or ask me anything"
+  },
+  "rooms": {
+    "tab": "The rooms",
+    "title": "The rooms",
+    "crafts": "{count} crafts",
+    "needs": "{count} need your pen",
+    "open": "Open {room}",
+    "close": "Close the rooms"
+  },
+  "cards": {
+    "label": "Decide, Know and Board",
+    "open": "Open {card}",
+    "close": "Put {card} away"
+  }
+}

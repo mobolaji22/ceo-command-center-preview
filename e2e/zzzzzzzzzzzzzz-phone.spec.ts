@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openFromStudio, studioHeading } from "./studio";
 
 /**
  * The phone (P6.21 P7): every desk, the CEO's and a client's, at two phone widths, held to what a phone needs instead of judged by
@@ -30,6 +31,8 @@ async function expectFitsThePhone(page: Page, where: string) {
     const W = innerWidth, H = innerHeight;
     const shown = (e: Element) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none" && !e.closest("[inert],[aria-hidden='true']"); };
     const inScroller = (e: Element) => { for (let p = e.parentElement; p; p = p.parentElement) { const s = getComputedStyle(p); if (/(auto|scroll|hidden)/.test(s.overflowX) && p.scrollWidth > p.clientWidth) return true; } return false; };
+    // The composer is docked at the foot like the bar of buttons before it: what scrolls beneath it is not drawn over, and the
+    // page leaves room below the last line so everything can be read above it.
     // Scrolled out of sight inside a scroller is not covered: a brief just past the bottom of the Lamp's list sits in the desk's
     // bottom margin, where the point under it is the scrim, so whether the check failed depended on how long the list happened to be.
     const clippedAt = (e: Element, x: number, y: number) => { for (let p = e.parentElement; p; p = p.parentElement) { const s = getComputedStyle(p); if (s.overflowX === "visible" && s.overflowY === "visible") continue; const c = p.getBoundingClientRect(); if (x < c.left || x > c.right || y < c.top || y > c.bottom) return true; } return false; };
@@ -41,10 +44,10 @@ async function expectFitsThePhone(page: Page, where: string) {
       if (r.top < 0 || r.bottom > H || r.left < 0 || r.right > W) return false;
       if (clippedAt(e, r.left + r.width / 2, r.top + r.height / 2)) return false;
       const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-      return !!top && top !== e && !e.contains(top) && !top.contains(e) && !top.closest("label,button,a,.demo-banner") && !e.closest(".demo-banner");
+      return !!top && top !== e && !e.contains(top) && !top.contains(e) && !top.closest("label,button,a,.demo-banner,.composer-dock") && !e.closest(".demo-banner");
     }).map((e) => { const r = e.getBoundingClientRect(); return `"${(e as HTMLElement).innerText.trim().slice(0, 30)}" under ${name(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)!)}`; });
     // Text needs a gutter: nothing to read may touch the edge of the screen.
-    const edge = all.filter((e) => e.children.length === 0 && (e as HTMLElement).innerText?.trim().length > 2 && !inScroller(e)).filter((e) => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= H && (r.left < 8 || r.right > W - 8); }).map((e) => `"${(e as HTMLElement).innerText.trim().slice(0, 30)}"`);
+    const edge = all.filter((e) => e.children.length === 0 && (e as HTMLElement).innerText?.trim().length > 2 && !inScroller(e)).filter((e) => { const r = e.getBoundingClientRect(); return r.width > 1 && r.height > 1 && r.top >= 0 && r.bottom <= H && (r.left < 8 || r.right > W - 8); }).map((e) => `"${(e as HTMLElement).innerText.trim().slice(0, 30)}"`);
     const bar = document.querySelector(".desk-bar");
     const scroll = document.querySelector(".desk-scroll");
     const first = scroll ? [...scroll.querySelectorAll("*")].filter((e) => shown(e) && [...e.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim())).map((e) => e.getBoundingClientRect().top).sort((a, b) => a - b)[0] : undefined;
@@ -70,30 +73,27 @@ for (const width of [390, 360]) {
   test.describe(`on a phone ${width} wide`, () => {
     test.use({ viewport: { width, height: 800 }, isMobile: true, hasTouch: true });
 
-    test("the CEO's office: one bar, the desks from the bottom bar, every desk fitting the screen", async ({ page }) => {
+    test("the CEO's studio: one bar, the studio head, the rooms and the cards, every place it opens fitting the screen", async ({ page }) => {
       await signIn(page, CEO);
-      await expect(page.locator(".spot-bar")).toBeVisible();
-      await expectFitsThePhone(page, "the office");
-      if (width === 390) await shot(page, "On a phone: one bar, and the room's desks along the bottom");
-      for (const desk of ["Computer", "Phone", "Contracts", "Directive", "Brief"]) {
-        await open(page, desk);
+      await expect(studioHeading(page)).toBeVisible();
+      await expect(page.locator(".composer")).toBeVisible();
+      await expectFitsThePhone(page, "the studio");
+      if (width === 390) await shot(page, "On a phone: the office, the studio head speaking, the rooms tab and the cards parked below");
+      for (const place of ["sign", "brief", "detail", "requests", "records"] as const) {
+        await openFromStudio(page, place);
         await expect(page.locator(".desk-bar")).toBeVisible();
-        await expectFitsThePhone(page, `the ${desk} desk`);
+        await expectFitsThePhone(page, `the ${place} desk`);
         await back(page);
       }
+      await openFromStudio(page, "floor");
+      await expect(page.locator(".floor")).toBeVisible();
+      await expectFitsThePhone(page, "the Floor");
+      if (width === 390) await shot(page, "The Floor on a phone: the table scrolls sideways inside itself, the page does not");
+      await page.getByRole("button", { name: "Back to the studio" }).click();
       await settings(page);
       await expectFitsThePhone(page, "Settings");
       if (width === 390) await shot(page, "Settings on a phone: its sections are a row of tabs");
       await back(page);
-
-      // The switch: hotspots on the picture instead of the bar, and back. The choice is kept.
-      await page.getByRole("button", { name: "Hotspots", exact: true }).click();
-      await expect(page.locator(".spot-bar")).toHaveCount(0);
-      await expect(page.getByRole("button", { name: "Computer", exact: true })).toBeVisible();
-      await page.reload();
-      await expect(page.getByRole("button", { name: "Hotspots", exact: true })).toHaveAttribute("aria-pressed", "true");
-      await page.getByRole("button", { name: "Bar", exact: true }).click();
-      await expect(page.locator(".spot-bar")).toBeVisible();
     });
 
     test("a client's room: every desk fitting the screen, and Settings from the account menu", async ({ page }) => {

@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests, seedGuidedStep } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openFromStudio } from "./studio";
 
 /**
  * The agency's team (v4 ADR-0072). The CEO invites a team member and gives them a job role covering the hosted-store setup, each
@@ -54,7 +55,7 @@ test("the CEO gives a team member a job role, and the member sees only the steps
 
   // A role covering the store setup, given to the member.
   // Settings reopens on its own after a reload, so close it and open it again to read the team afresh.
-  await settings.getByRole("button", { name: "BACK TO OFFICE" }).click();
+  await settings.getByRole("button", { name: "BACK TO THE STUDIO" }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await settings.getByRole("tab", { name: "Team", exact: true }).click();
   await expect(settings.getByRole("list", { name: "Team members" })).toContainText(MEMBER);
@@ -90,8 +91,8 @@ test("the CEO gives a team member a job role, and the member sees only the steps
   await memberCtx.close();
 
   // The CEO sees who the step is with, and can still do it.
-  await settings.getByRole("button", { name: "BACK TO OFFICE" }).click();
-  await page.getByRole("button", { name: "Contracts", exact: true }).click();
+  await settings.getByRole("button", { name: "BACK TO THE STUDIO" }).click();
+  await openFromStudio(page, "sign");
   const theirs = page.locator(".contracts-desk").getByRole("article", { name: q.title }).filter({ has: page.getByLabel("Step-by-step guide") }).first();
   await expect(theirs).toContainText("With Store setup on your team. You can still do it yourself.");
 });

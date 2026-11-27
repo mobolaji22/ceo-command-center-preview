@@ -1,0 +1,90 @@
+/*
+ * The studio head's composer and the Floor (v4 ADR-0099). The studio home itself is studio-home.css.
+ * Only the theme's tokens are used here, so the look changes with the record and never with this file.
+ */
+
+/* The composer, docked at the foot of the studio and the Floor */
+.composer-dock {
+  position: fixed; left: 50%; bottom: max(1rem, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  width: min(720px, calc(100vw - 2rem)); z-index: 30; display: grid; gap: .5rem;
+}
+.composer {
+  display: flex; align-items: center; gap: .5rem; padding: .45rem .45rem .45rem 1.1rem;
+  background: color-mix(in oklab, var(--card) 92%, transparent); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: 999px; box-shadow: 0 10px 30px -12px rgb(0 0 0 / .45);
+}
+.composer-input { flex: 1; min-width: 0; background: none; border: 0; color: var(--foreground); font-size: 1rem; padding: .55rem 0; }
+.composer-input:focus { outline: none; }
+.composer:focus-within { border-color: var(--ring); }
+.composer-send {
+  width: 2.4rem; height: 2.4rem; border-radius: 999px; border: 0; cursor: pointer; display: grid; place-items: center;
+  background: var(--primary); color: var(--primary-foreground); transition: transform .2s, opacity .2s;
+}
+.composer-requests { display: inline-flex; align-items: center; gap: .35rem; background: none; border: 0; border-left: 1px solid var(--border); margin-left: .25rem; padding: .3rem 0 .3rem .7rem; color: var(--muted-foreground); font-size: .82rem; white-space: nowrap; cursor: pointer; }
+.composer-requests:hover { color: var(--foreground); }
+@media (max-width: 720px) { .composer-requests span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
+.composer-send:disabled { opacity: .35; cursor: default; }
+.composer-send:not(:disabled):hover { transform: scale(1.05); }
+.composer-reply {
+  position: relative; padding: .9rem 2.5rem .9rem 1.1rem; font-size: .92rem;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  animation: reply-in .35s cubic-bezier(.2, .8, .2, 1) both;
+}
+.composer-reply p { margin: 0; }
+.composer-dismiss { position: absolute; top: .6rem; right: .6rem; background: none; border: 0; color: var(--muted-foreground); cursor: pointer; }
+.composer-answer-head { margin: 0 0 .45rem; font-family: var(--font-display); font-size: 1.2rem; font-weight: 500; }
+.composer-answer-room { color: var(--muted-foreground); font-size: .95rem; }
+.composer-answer { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.composer-answer li { display: grid; }
+.composer-answer-note { font-size: .78rem; color: var(--muted-foreground); }
+.composer-link { background: none; border: 0; padding: 0; color: var(--primary); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.composer-status { color: var(--muted-foreground); }
+
+/* The Floor */
+.floor-title { font-family: var(--font-display); font-weight: 500; font-size: clamp(2rem, 3.6vw, 3rem); margin: 0 0 1.25rem; }
+.floor { display: grid; gap: 1.25rem; padding-bottom: 7rem; }
+.floor-tools { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.floor-chip, .floor-select, .floor-detail {
+  font-size: .82rem; padding: .4rem .8rem; border-radius: 999px; border: 1px solid var(--border);
+  background: transparent; color: var(--foreground); cursor: pointer;
+}
+.floor-select { background: var(--card); }
+.floor-chip[aria-pressed="true"] { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+.floor-detail { margin-left: auto; }
+.floor-empty { color: var(--muted-foreground); }
+.floor-table th.floor-group-name { padding: 1.6rem 0 .5rem; border-bottom: 1px solid var(--border); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); font-weight: 600; }
+.floor-studio .floor-group-name { color: var(--primary); }
+.floor-scroll { overflow-x: auto; }
+.floor-table { width: 100%; border-collapse: collapse; }
+.floor-table th, .floor-table td { padding: .7rem .5rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+.floor-table thead th { padding-top: 0; border-bottom-color: transparent; }
+.floor-col-name { width: 32%; }
+.floor-col-stage { width: 12%; }
+.floor-col-room { width: 6%; text-align: center !important; }
+.floor-room-head { display: inline-block; font-size: .66rem; letter-spacing: .04em; color: var(--muted-foreground); font-weight: 500; writing-mode: vertical-rl; transform: rotate(180deg); max-height: 7.5rem; text-align: left; }
+.floor-table thead th { vertical-align: bottom; }
+.floor-name { background: none; border: 0; padding: 0; color: var(--foreground); cursor: pointer; font-size: 1rem; text-align: left; }
+.floor-name:hover { text-decoration: underline; text-underline-offset: 3px; }
+.floor-wait { display: block; font-size: .75rem; color: var(--muted-foreground); margin-top: .15rem; }
+.floor-stage { font-size: .85rem; }
+.floor-state { display: block; font-size: .72rem; color: var(--muted-foreground); }
+.floor-closed { opacity: .55; }
+.floor-mark { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--border); padding: 0; background: transparent; vertical-align: middle; }
+button.floor-mark { cursor: pointer; transition: transform .15s; }
+button.floor-mark:hover { transform: scale(1.25); }
+.mark-idle { border-style: dashed; opacity: .4; }
+.mark-live { background: color-mix(in oklab, var(--foreground) 55%, transparent); border-color: transparent; }
+.mark-done { background: color-mix(in oklab, var(--foreground) 18%, transparent); border-color: transparent; }
+.mark-held { background: transparent; border: 2px solid var(--muted-foreground); }
+.mark-needs_you { background: var(--primary); border-color: var(--primary); }
+.floor-col-counts { white-space: nowrap; font-size: .78rem; text-align: right !important; }
+.floor-count { display: inline-block; margin-left: .5rem; color: var(--muted-foreground); }
+.count-needs { color: var(--primary); font-weight: 600; }
+
+/* Narrower screens. The phone gets a shell of its own in slice 4.6; until then the same pieces stack in reading order. */
+@media (max-width: 720px) {
+  .floor-table { min-width: 640px; }
+  .floor-detail { margin-left: 0; }
+}
+
+@keyframes reply-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

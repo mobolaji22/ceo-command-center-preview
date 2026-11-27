@@ -3,6 +3,7 @@ import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk } from "./client-room";
+import { openFromStudio, parkedCard, studioHeading } from "./studio";
 
 const CEO = "ceo@agency.example";
 const OWNER = "owner@orbit.example";
@@ -34,8 +35,8 @@ test("the CEO signs in through an emailed link, and the session is not readable 
   // Opening the link does not spend it: a person has to confirm.
   await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: /The command center/ })).toBeVisible();
-  await shot(page, "The CEO signs in with an emailed code and arrives in the office");
+  await expect(studioHeading(page)).toBeVisible();
+  await shot(page, "The CEO signs in with an emailed code and arrives in the studio");
 
   const cookies = await context.cookies();
   const session = cookies.find((c) => c.name === "dpb_session");
@@ -48,7 +49,8 @@ test("the CEO signs in through an emailed link, and the session is not readable 
 
   // The data on screen came from the real API, not fixtures.
   await expect(page.getByText("DEMO DATA")).toHaveCount(0);
-  await expect(page.getByText(/0 projects/)).toBeVisible();
+  // A new agency has nothing on the bench: the fixtures always do.
+  await expect(parkedCard(page, "Board").locator(".parked-line")).toHaveText("0 on the bench");
 });
 
 test("a used link cannot be used again, and a wrong code is refused", async ({ page, browser }) => {
@@ -57,7 +59,7 @@ test("a used link cannot be used again, and a wrong code is refused", async ({ p
   const p1 = await first.newPage();
   await p1.goto(mail.meta!.link!);
   await p1.getByRole("button", { name: "Continue" }).click();
-  await expect(p1.getByRole("heading", { name: /The command center/ })).toBeVisible();
+  await expect(studioHeading(p1)).toBeVisible();
 
   await page.goto(mail.meta!.link!);
   await page.getByRole("button", { name: "Continue" }).click();
@@ -85,7 +87,7 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
   const mail = await requestLink(page, CEO);
   await page.getByLabel("SIX-DIGIT CODE").fill(mail.meta!.code!);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("heading", { name: /The command center/ })).toBeVisible();
+  await expect(studioHeading(page)).toBeVisible();
 
   // Who has access is a setting (P6.21): clients and their people are in Settings, behind the header's settings icon.
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -141,10 +143,9 @@ test("the CEO adds a client, invites its owner after a step-up, and the owner si
   await expect(library.getByRole("status")).toContainText(/not accepted/);
   await expect(owner.locator(".resolved-row", { hasText: "fake.png" })).toHaveCount(0);
 
-  // The CEO sees the new client's file in the records' library (from the corridor's "See all projects", P6.21 D1).
+  // The CEO sees the new client's file in the records' library (P6.21 D1).
   await page.goto("/");
-  await page.getByRole("button", { name: "Door", exact: true }).click();
-  await page.getByRole("button", { name: /SEE ALL PROJECTS/ }).click();
+  await openFromStudio(page, "records");
   await page.getByRole("tab", { name: "Library", exact: true }).click();
   await expect(page.locator(".resolved-row", { hasText: "logo.png" })).toBeVisible();
   await ownerCtx.close();
@@ -154,7 +155,7 @@ test("signing out ends the session for good", async ({ page, context }) => {
   const mail = await requestLink(page, CEO);
   await page.goto(mail.meta!.link!);
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: /The command center/ })).toBeVisible();
+  await expect(studioHeading(page)).toBeVisible();
   const secret = (await context.cookies()).find((c) => c.name === "dpb_session")!.value;
 
   await page.getByRole("button", { name: "Sign out" }).click();

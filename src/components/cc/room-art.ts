@@ -1,8 +1,6 @@
 import type { StaticImageData } from "next/image";
 import corridor from "@/assets/agency-corridor.jpg";
 import corridorDay from "@/assets/agency-corridor-day.jpg";
-import office from "@/assets/ceo-office.jpg";
-import officeDay from "@/assets/ceo-office-day.jpg";
 import clientRoom from "@/assets/agency-client-room.jpg";
 import clientRoomDay from "@/assets/agency-client-room-day.jpg";
 import lobby from "@/assets/agency-lobby.jpg";
@@ -25,6 +23,8 @@ import strategy from "@/assets/agency-room-strategy.jpg";
 import strategyDay from "@/assets/agency-room-strategy-day.jpg";
 import media from "@/assets/agency-room-media.jpg";
 import mediaDay from "@/assets/agency-room-media-day.jpg";
+import office from "@/assets/ceo-office.jpg";
+import officeDay from "@/assets/ceo-office-day.jpg";
 import compliance from "@/assets/agency-room-compliance.jpg";
 import complianceDay from "@/assets/agency-room-compliance-day.jpg";
 
@@ -49,8 +49,9 @@ const ROOMS: Record<string, LitArt> = {
   COMPLIANCE: { night: compliance, day: complianceDay },
 };
 
-export const CORRIDOR_ART: LitArt = { night: corridor, day: corridorDay };
+/** The CEO's office, where the studio head works and every room opens from (v4 ADR-0099 Decision 1). */
 export const OFFICE_ART: LitArt = { night: office, day: officeDay };
+export const CORRIDOR_ART: LitArt = { night: corridor, day: corridorDay };
 export const CLIENT_ART: LitArt = { night: clientRoom, day: clientRoomDay };
 /** The street entrance, where everyone signs in: it keeps the visitor's own time of day, not the building's setting. */
 export const LOBBY_ART: LitArt = { night: lobby, day: lobbyDay };

@@ -3,6 +3,7 @@ import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk, openClientProject } from "./client-room";
+import { openFromStudio, studioHeading } from "./studio";
 
 /**
  * The CEO's side of standing permission (CC). For a client it is the client's decision, so the CEO can set one only under the
@@ -29,7 +30,7 @@ test.beforeEach(() => forgetSignInRequests());
 
 test("the CEO sets a standing permission for a client under the client's permission, the owner sees it as done for them and takes it back", async ({ browser, page }) => {
   await signIn(page, CEO);
-  await page.getByRole("button", { name: "Computer", exact: true }).click();
+  await openFromStudio(page, "detail");
   await page.getByRole("tab", { name: "Security/Gov" }).click();
 
   const orbit = page.getByRole("region", { name: "Standing permission for Orbit" });

@@ -5,6 +5,7 @@ import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 import { openClientDesk } from "./client-room";
 import { expectRoomHeldStill } from "./still";
+import { openFromStudio, parkedCard, raiseCard, studioHeading } from "./studio";
 import { ARRIVAL_KEY } from "../src/components/cc/lobby-arrival";
 
 /**
@@ -29,38 +30,30 @@ test.describe.configure({ mode: "serial" });
 evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
-test("the CEO's office and every desk in it", async ({ page }) => {
+test("the CEO's studio and every desk it opens", async ({ page }) => {
   await signIn(page, CEO);
-  await expect(page.getByRole("heading", { name: /The command center/ })).toBeVisible();
-  await expect(page.getByText(/projects · \d+ awaiting your signature/)).toBeVisible();
+  await expect(studioHeading(page)).toBeVisible();
+  await expect(page.getByText(/pages? waits? on your pen|Nothing waits on your pen/).first()).toBeVisible();
 
-  // computer: the cases, each with its case file
-  await page.getByRole("button", { name: "Computer", exact: true }).click();
+  // the work in detail (once the Computer): the cases, each with its case file
+  await openFromStudio(page, "detail");
   await expect(page.getByText(/\d+ projects · \d+ tasks · \d+ decisions on record/)).toBeVisible();
   await expect(page.locator(".dossier-row").first()).toBeVisible();
   await expectRoomHeldStill(page);
   await page.getByRole("button", { name: /Open case file for/ }).first().click();
   await expect(page.getByRole("region", { name: "Case file" }).first()).toBeVisible();
-  await shot(page, "The Computer: every case, with the work in order and the budget used in its case file");
+  await shot(page, "The work in detail: every case, with the work in order and the budget used in its case file");
 
-  // contracts desk
+  // everything to sign
   await page.goto("/");
-  await page.getByRole("button", { name: "Contracts", exact: true }).click();
+  await openFromStudio(page, "sign");
   await expect(page.locator(".contracts-desk").getByText("QUESTIONS FROM THE WORK")).toBeVisible();
   await expect(page.locator(".contracts-desk").getByText("PLANS AWAITING A SIGNATURE")).toBeVisible();
-  await shot(page, "The contracts desk: what the work is asking, and the plans waiting for a signature");
+  await shot(page, "Everything to sign: what the work is asking, and the plans waiting for a signature");
 
-  // phone
+  // your requests
   await page.goto("/");
-  await page.getByRole("button", { name: "Phone", exact: true }).click();
-  await expect(page.getByText("Questions From The Work")).toBeVisible();
-  await page.getByRole("button", { name: /^How you are told/ }).click();
-  await expect(page.getByRole("form", { name: "How you are told" })).toBeVisible();
-  await shot(page, "The phone: what is pressing, the briefs told, and how the CEO wants to be told");
-
-  // directive desk
-  await page.goto("/");
-  await page.getByRole("button", { name: "Directive", exact: true }).click();
+  await openFromStudio(page, "requests");
   // The work first; a new directive is a button, and the form can be put away (P6.21). A draft is never discarded unasked.
   await expect(page.getByRole("button", { name: "New project", exact: true })).toBeVisible();
   const composer = await newDirective(page);
@@ -73,22 +66,18 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   await again.getByRole("button", { name: "Discard" }).click();
   await expect(page.getByLabel("New request")).toHaveCount(0);
   await expect(page.locator(".thread-row").first()).toBeVisible();
-  await shot(page, "The directive desk: projects and their threads, for a client or for the agency itself");
+  await shot(page, "Your requests: projects and their threads, for a client or for the studio itself");
 
-  // brief desk
+  // what changed
   await page.goto("/");
-  await page.getByRole("button", { name: "Brief", exact: true }).click();
+  await openFromStudio(page, "brief");
   await expect(page.getByText("EVERYTHING YOU HAVE BEEN TOLD")).toBeVisible();
   await expect(page.getByLabel("Briefs", { exact: true }).locator(".brief-row").first()).toBeVisible();
-  await shot(page, "The brief desk: what happened while the CEO was away, and every brief with its sources");
+  await shot(page, "What changed: what happened while the CEO was away, and every brief with its sources");
 
-  // corridor and manage
+  // records
   await page.goto("/");
-  await page.getByRole("button", { name: "Door", exact: true }).click();
-  await expect(page.locator(".door-card")).toHaveCount(10);
-  await shot(page, "The corridor: the ten domains, under the seven rooms");
-  // The records: from the corridor's "See all projects".
-  await page.getByRole("button", { name: /SEE ALL PROJECTS/ }).click();
+  await openFromStudio(page, "records");
   await expect(page.getByRole("tab", { name: "Projects", exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Library", exact: true })).toBeVisible();
   await shot(page, "Records: the projects and the library");
@@ -97,6 +86,77 @@ test("the CEO's office and every desk in it", async ({ page }) => {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   for (const s of ["Pricing", "Model spend", "How the agency runs", "Notifications", "People and access", "Your sessions"]) await expect(page.getByRole("tab", { name: s, exact: true })).toBeVisible();
   await shot(page, "Settings: pricing, model spend, how the agency runs, notifications, access and sessions");
+});
+
+type Studio = {
+  decide: { count: number; items: { kind: string; id: string; projectId: string | null }[] };
+  know: { count: number };
+  board: { engagements: number; needsYou: number; held: number };
+};
+type Floor = { groups: { name: string; kind: "CLIENT" | "INTERNAL"; studioOwn: boolean; engagements: { projectId: string; needsYou: number; held: number }[] }[] };
+
+/**
+ * The CEO's walk (v4 ADR-0099, slice 4.2's proof): from the studio into every card and across the Floor's groups, every number on the
+ * way being v4's and being what pressing it finds. The test reads v4 once and compares; it holds no counts of its own.
+ */
+test("the CEO walks the studio: each card's count is v4's and is what opening it finds, and the Floor holds every group", async ({ page }) => {
+  await signIn(page, CEO);
+  const studio = (await (await page.request.get("/api/v4/v1/studio")).json()) as Studio;
+  const floor = (await (await page.request.get("/api/v4/v1/floor")).json()) as Floor;
+  const overview = (await (await page.request.get("/api/v4/v1/console/overview")).json()) as { intents: { questions: { id: string }[] }[] };
+  await expect(studioHeading(page)).toBeVisible();
+  await shot(page, "The studio: the office, the studio head speaking first, the rooms on the left edge, Decide, Know and Board parked below");
+
+  // The studio head says what waits, in v4's numbers: the pages on your pen and what changed since you last looked.
+  const n = studio.decide.count;
+  const head = page.locator(".studio-headman");
+  await expect(head).toContainText(n === 0 ? "Nothing waits on your pen." : n === 1 ? "One page waits on your pen." : `${n} pages wait on your pen.`);
+
+  // Decide: its tab carries v4's count, and raised it holds every item (five shown, the rest counted).
+  await expect(parkedCard(page, "Decide").locator(".parked-line")).toHaveText(n ? `${n} for your pen` : "Nothing waits on your pen.");
+  let decide = await raiseCard(page, "Decide");
+  await shot(page, "Decide raised from the bottom edge: what waits on the CEO's pen");
+  await expect(decide.locator(".parked-item")).toHaveCount(Math.min(n, 5));
+  if (n > 5) await expect(decide.locator(".parked-more")).toHaveText(`${n - 5} more`);
+  // Each item opens where it is dealt with: a request's question in your requests, the rest to sign at the desk, a stop in detail.
+  const asked = new Set(overview.intents.flatMap((i) => i.questions.map((q) => q.id)));
+  for (const [i, item] of studio.decide.items.slice(0, 5).entries()) {
+    const surface = item.kind === "QUESTION" && asked.has(item.id) ? "directive" : ["APPROVAL", "PLAN", "QUESTION"].includes(item.kind) ? "contracts" : "computer";
+    decide = await raiseCard(page, "Decide");
+    await decide.locator(".parked-item").nth(i).click();
+    await expect(page.locator(`.desk-panel[data-surface="${surface}"]`)).toBeVisible();
+    await page.getByRole("button", { name: "BACK TO THE STUDIO" }).click();
+  }
+
+  // Know: v4's count of what happened since the last look, and it opens the brief.
+  await expect(parkedCard(page, "Know").locator(".parked-line")).toHaveText(studio.know.count ? new RegExp(`^${studio.know.count} `) : "Quiet");
+  await (await raiseCard(page, "Know")).getByRole("button", { name: "Read what changed" }).click();
+  await expect(page.locator('.desk-panel[data-surface="brief"]')).toBeVisible();
+  await page.getByRole("button", { name: "BACK TO THE STUDIO" }).click();
+
+  // Board: its three numbers are the Floor's open rows, the open rows for you, and the open rows held (a closed one is shown, not counted).
+  await expect(parkedCard(page, "Board").locator(".parked-line")).toHaveText(`${studio.board.engagements} on the bench`);
+  await (await raiseCard(page, "Board")).getByRole("button", { name: "Walk the Floor" }).click();
+  await expect(page.locator(".workspace-path")).toContainText("The Floor");
+  const rows = page.locator(".floor-row:not(.floor-closed)");
+  await expect(rows).toHaveCount(studio.board.engagements);
+  await shot(page, "The Floor: every engagement, grouped by client, the studio's own and your work, with a mark for each room");
+  await page.getByRole("button", { name: "For you", exact: true }).click();
+  await expect(rows).toHaveCount(studio.board.needsYou);
+  await page.getByRole("button", { name: "Held", exact: true }).click();
+  await expect(rows).toHaveCount(studio.board.held);
+  await page.getByRole("button", { name: "Everything", exact: true }).click();
+
+  // The Floor's groups are v4's, in v4's order: each client by name, the studio's own, and your work.
+  const name = (g: Floor["groups"][number]) => (g.kind === "CLIENT" ? g.name : g.studioOwn ? "The studio's own" : "Your work");
+  await expect(page.locator(".floor-group-name")).toHaveText(floor.groups.map(name));
+  expect(floor.groups.some((g) => g.kind === "CLIENT"), "a client's work is on the Floor").toBe(true);
+  expect(floor.groups.some((g) => g.studioOwn), "the studio's own work is on the Floor").toBe(true);
+  for (const [i, g] of floor.groups.entries()) await expect(page.locator(".floor-group").nth(i).locator(".floor-row")).toHaveCount(g.engagements.length);
+
+  // A row's name opens its records; a room's mark opens that room.
+  await page.locator(".floor-row").first().locator(".floor-name").click();
+  await expect(page.locator('.desk-panel[data-surface="manage"]')).toBeVisible();
 });
 
 // The arrival from the lobby is an entrance, not part of the room: a desk opened while it plays ends it, so it never draws over the
@@ -114,7 +174,7 @@ test("a desk opened while the room is still arriving from the lobby ends the arr
   }, ARRIVAL_KEY);
   await page.goto("/");
   await expect(page.locator(".lobby-arrival")).toHaveCount(1);
-  await page.getByRole("button", { name: "Computer", exact: true }).click();
+  await openFromStudio(page, "detail");
   await expect(page.locator(".lobby-arrival")).toHaveCount(0);
   await expectRoomHeldStill(page);
 });

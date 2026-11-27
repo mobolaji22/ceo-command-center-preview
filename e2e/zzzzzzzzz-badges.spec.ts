@@ -1,13 +1,14 @@
 import { newDirective } from "./directive";
+import { openFromStudio, parkedCard, raiseCard } from "./studio";
 import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
 
 /**
- * The hotspots in the office say how many things need the CEO (CC). A directive that is asking a question needs the CEO, so the
- * directive desk and the phone carry a count, the count is what a person who cannot see the badge hears, and it is what opening the
- * desk finds. The brief and the door carry none.
+ * The studio's Decide card says how many things wait on the CEO (v4 ADR-0099, slice 4.2). A directive that is asking a question
+ * waits on the CEO, so it is on Decide with what it is, the card's count is v4's count, and pressing the item opens the request it
+ * belongs to. Know and Board count other things and carry their own numbers.
  */
 const CEO = "ceo@agency.example";
 
@@ -26,10 +27,10 @@ test.describe.configure({ mode: "serial" });
 evidence(test);
 test.beforeEach(() => forgetSignInRequests());
 
-test("a directive that is asking a question puts a count on the directive desk and the phone, and the desk shows exactly that many", async ({ page }) => {
+test("a directive that is asking a question is on Decide, the count is v4's, and pressing it opens the request", async ({ page }) => {
   await signIn(page, CEO);
   // a request too vague to plan is asking the CEO a question
-  await page.getByRole("button", { name: "Directive", exact: true }).click();
+  await openFromStudio(page, "requests");
   const composer = await newDirective(page);
   await composer.getByLabel("FOR").selectOption({ label: "Orbit" });
   await composer.getByLabel("WHAT WOULD YOU LIKE DONE?").fill("Refresh the brand");
@@ -37,19 +38,15 @@ test("a directive that is asking a question puts a count on the directive desk a
   await expect(page.locator(".directive-detail").getByRole("status").first()).toContainText("Received.");
 
   await page.goto("/");
-  const directive = page.getByRole("button", { name: "Directive", exact: true });
-  const phone = page.getByRole("button", { name: "Phone", exact: true });
-  await expect(directive).toHaveAccessibleDescription(/^\d+ (needs|need) you$/);
-  await expect(phone).toHaveAccessibleDescription(/^\d+ (needs|need) you$/);
-  const badge = (await directive.locator(".hotspot-badge").innerText()).trim();
-  expect(badge).toMatch(/^[1-9]$/);
-  // the brief and the door carry no count
-  await expect(page.getByRole("button", { name: "Brief", exact: true }).locator(".hotspot-badge")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Door", exact: true }).locator(".hotspot-badge")).toHaveCount(0);
-  await shot(page, "The office: a count on the places that need the CEO");
+  const studio = await (await page.request.get("/api/v4/v1/studio")).json();
+  await expect(parkedCard(page, "Decide").locator(".parked-line")).toHaveText(`${studio.decide.count} for your pen`);
+  const decide = await raiseCard(page, "Decide");
+  const asked = decide.getByRole("button", { name: /^A question for you/ }).first();
+  await expect(asked).toBeVisible();
+  await shot(page, "The studio: Decide names what waits on the CEO");
 
-  await directive.click();
-  // The desk opens on "Needs you", and it lists exactly the threads the badge counted.
+  await asked.click();
+  // It opens the CEO's requests on "Needs you", where the request that asked is.
   await expect(page.getByRole("tab", { name: /^Needs you/ })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".thread-row")).toHaveCount(Number(badge));
+  await expect(page.locator(".thread-row", { hasText: "Refresh the brand" }).first()).toBeVisible();
 });

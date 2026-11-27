@@ -7,7 +7,7 @@ import type { SceneDir } from "@/lib/motion";
  * How deep each screen sits in the building. Going deeper is "forward" (through a door), shallower is "back" (out of one),
  * and the same depth is a step to the side. Rooms beside each other slide the way the corridor runs (next / prev).
  */
-const DEPTH: Record<string, number> = { office: 0, hallway: 1, computer: 1, phone: 1, contracts: 1, directive: 1, brief: 1, manage: 1, room: 2, roomdesk: 3 };
+const DEPTH: Record<string, number> = { office: 0, floor: 1, computer: 1, contracts: 1, directive: 1, brief: 1, manage: 1, room: 2, roomdesk: 3 };
 
 /** Desks open over their room rather than replacing it; moving between a room and its desk is not a change of scene. */
 export const isOverlayMove = (from: string, to: string, desks: readonly string[], stage: string) => (from === stage && desks.includes(to)) || (to === stage && desks.includes(from));
@@ -40,16 +40,6 @@ export function SceneFrame({ sceneKey, dir, origin, inert, children }: { sceneKe
     </div>
   );
 }
-
-/**
- * Where on the office photo each destination's object sits (the same percentages the hotspots use). A desk opens out of its
- * object and folds back into it, so attention travels from the object to its working surface and returns.
- */
-const OBJECT_AT: Record<string, SceneOrigin> = {
-  hallway: { x: 8, y: 57 }, brief: { x: 34, y: 48 }, contracts: { x: 52, y: 68 }, directive: { x: 63, y: 53 }, phone: { x: 73, y: 74 }, computer: { x: 85, y: 47 },
-};
-/** The object a transition is about: the destination when going in, the screen being left when coming back out. */
-export const originFor = (from: string, to: string): SceneOrigin | undefined => OBJECT_AT[to === "office" ? from : to];
 
 /** A brief wash of light over the screen change. It never takes pointer events, so nothing waits on it. */
 export function ThresholdVeil({ sceneKey, dir, origin }: { sceneKey: string; dir: SceneDir; origin?: SceneOrigin | undefined }) {

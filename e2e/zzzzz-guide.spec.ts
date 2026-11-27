@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests, seedGuidedStep } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openFromStudio, studioHeading } from "./studio";
 
 /**
  * A person's step with a guide (v4 ADR-0071), on the contracts desk where the work's questions are. The CEO, who does the agency's
@@ -27,7 +28,7 @@ test.beforeEach(() => forgetSignInRequests());
 test("the CEO follows a person's step's guide, logs each step with its proof, and cannot call it done early", async ({ page }) => {
   const q = seedGuidedStep(CEO);
   await signIn(page, CEO);
-  await page.getByRole("button", { name: "Contracts", exact: true }).click();
+  await openFromStudio(page, "sign");
   const card = page.locator(".contracts-desk").getByRole("article", { name: q.title }).filter({ has: page.getByLabel("Step-by-step guide") }).first();
   const guide = card.getByLabel("Step-by-step guide");
   await expect(guide).toContainText("0 of 9 steps done");

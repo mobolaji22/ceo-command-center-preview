@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { forgetSignInRequests } from "./db";
 import { mailCount, mailTo } from "./outbox";
 import { evidence, shot } from "./evidence";
+import { openFromStudio, studioHeading } from "./studio";
 
 /**
  * The Computer's Decision Ledger and Security/Gov tabs (CC) read the records: every plan decision with who made it, what the agency
@@ -26,7 +27,7 @@ test.beforeEach(() => forgetSignInRequests());
 
 test("the ledger lists every plan decision with who made it, and the governance tab shows what is in force and that the chains are intact", async ({ page }) => {
   await signIn(page, CEO);
-  await page.getByRole("button", { name: "Computer", exact: true }).click();
+  await openFromStudio(page, "detail");
 
   await page.getByRole("tab", { name: "Decision Ledger" }).click();
   const decisions = page.getByLabel("Plan decisions");

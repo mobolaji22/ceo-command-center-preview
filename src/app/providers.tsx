@@ -8,6 +8,7 @@ import { DemoBanner } from "@/components/demo-banner";
 import { applyLighting } from "@/lib/lighting";
 import { applyMotionPref } from "@/lib/motion";
 import { ConfirmHost } from "@/components/cc/motion";
+import { BrandTheme } from "@/lib/brand-theme";
 
 /**
  * How often what is on screen is read again while the tab is visible ("LIVE LEDGER"). The API has no stream yet, so every screen
@@ -28,6 +29,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <DataSourceProvider>
+        <BrandTheme />
         {children}
         <DemoBanner />
         <ConfirmHost />

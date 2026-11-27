@@ -1,0 +1,50 @@
+{
+  "title": "The Floor",
+  "back": "Back to the studio",
+  "empty": "The bench is clear. New work lands here first.",
+  "studioOwn": "The studio's own",
+  "yourWork": "Your work",
+  "client": "Client",
+  "detail": "Work in detail",
+  "records": "Records",
+  "filters": {
+    "label": "Show",
+    "all": "Everything",
+    "needsYou": "For you",
+    "held": "Held",
+    "anyRoom": "Every room",
+    "anyGroup": "Every client and your own"
+  },
+  "nothingMatches": "Nothing on the Floor matches that.",
+  "stages": {
+    "UNDERSTAND": "Understand",
+    "ADVISE": "Advise",
+    "PLAN": "Plan",
+    "MAKE": "Make",
+    "PROVE": "Prove",
+    "HAND_OVER": "Hand over",
+    "LEARN": "Learn"
+  },
+  "noStage": "Off the loop",
+  "states": {
+    "MOVING": "Moving",
+    "PAUSED": "Paused",
+    "CLOSED": "Closed"
+  },
+  "roomStates": {
+    "NEEDS_YOU": "Needs you",
+    "HELD": "Held",
+    "LIVE": "At work",
+    "DONE": "Done",
+    "IDLE": "Not called in"
+  },
+  "mark": "{room}: {state}",
+  "needsYou": "{count} for you",
+  "held": "{count} held",
+  "waits": "Waits: {reason}",
+  "columns": {
+    "engagement": "Engagement",
+    "stage": "Where it is on the loop",
+    "counts": "For you and held"
+  }
+}
