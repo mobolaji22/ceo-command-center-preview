@@ -209,6 +209,11 @@ export interface DataSource {
      * reaches nothing of the viewer's.
      */
     page(projectId: string, file: string): Promise<Result<string>>;
+    /**
+     * A direction's specimen sheet (v4 ADR-0098 Decision 2): its colours, type, space and signature, set by v4 from its values, as
+     * text. It carries no script and is shown only in a sealed frame (`sandbox=""`). Not found when the direction has no values.
+     */
+    specimen(projectId: string, territoryId: string): Promise<Result<string>>;
     /** The decision owner's answer to a submitted revision. Approving needs a fresh proof of who is deciding. */
     decide(proposalId: string, input: { action: "APPROVE" | "REQUEST_REVISION"; note?: string }): Promise<Result>;
   };

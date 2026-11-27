@@ -501,6 +501,15 @@ export function createApiDataSource(): DataSource {
         if (!res.ok) return fail(res.status >= 500 ? MESSAGES["SERVER_ERROR"]! : `Request failed (${res.status}).`);
         return ok(await res.text());
       },
+      async specimen(projectId, territoryId) {
+        // Inert text, like a study's page, so it is read as text here.
+        let res: Response;
+        try { res = await fetch(`${PROXY}/v1/projects/${encodeURIComponent(projectId)}/sdd/specimens/${encodeURIComponent(territoryId)}`, { credentials: "same-origin", headers: { Accept: "text/plain" } }); }
+        catch { return fail("Could not reach the server. Check your connection and try again."); }
+        if (res.status === 404) return fail(MESSAGES["NOT_FOUND"]!, "NOT_FOUND");
+        if (!res.ok) return fail(res.status >= 500 ? MESSAGES["SERVER_ERROR"]! : `Request failed (${res.status}).`);
+        return ok(await res.text());
+      },
       annotate: (projectId, input) => call("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/annotations`, { target: { kind: input.target.kind, id: input.target.id }, kind: input.kind, text: input.text }),
       settle: (projectId, annotationId, input) => call("POST", `/v1/projects/${encodeURIComponent(projectId)}/sdd/annotations/${encodeURIComponent(annotationId)}/settle`, input),
       decide: async (proposalId, input) => voidResult(await call("POST", `/v1/proposals/${encodeURIComponent(proposalId)}/decision`, input)),
