@@ -47,10 +47,11 @@ test("a client sends a request with a file and a link, answers the questions, se
 
   const card = thread.locator(".intent-card", { hasText: "We want a better website" });
   // The client reads where it stands in one line, then one question at a time with its place in the round (P6.20).
-  // What v4 asks today: the direction (the request could be read either way), whether a duty brings Compliance in, and the result to aim at.
+  // What v4 asks today: the direction (the request could be read either way), whether a duty brings Compliance in, the result to aim
+  // at, and the timing. A round asks what the work needs now, up to six (v4 ADR-0096), so timing no longer waits for a second round.
   await expect(card.locator('[data-stage="QUESTIONS"]')).toBeVisible();
-  await expect(card.locator(".cv-status")).toHaveText("3 questions for you.");
-  await expect(card.getByText("Question 1 of 3")).toBeVisible();
+  await expect(card.locator(".cv-status")).toHaveText("4 questions for you.");
+  await expect(card.getByText("Question 1 of 4")).toBeVisible();
   await expect(card.locator(".cv-question")).toHaveCount(1);
   await shot(page, "A client's request: where it stands, then one question at a time");
 
@@ -58,7 +59,6 @@ test("a client sends a request with a file and a link, answers the questions, se
   await expect(card.getByRole("heading", { name: "What we need from you" })).toBeVisible();
   await expect(card.locator('.material[aria-label="Brand guidelines"]')).toBeVisible();
 
-  // Timing is asked once the rest is known.
   await answerEveryQuestion(card, [/^Keep the current direction/, /^No, none applies/, /^More sales or sign-ups/, /Within the quarter/]);
   await expect(card.locator('[data-stage="PLAN_READY"]')).toBeVisible();
   await expect(card.locator(".cv-question")).toHaveCount(0);
