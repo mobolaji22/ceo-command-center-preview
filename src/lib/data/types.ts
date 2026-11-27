@@ -1,5 +1,6 @@
 import type { AnnotationKind, AnnotationTarget, SddAnnotation, SddDocument, SddVersion, SddView } from "@/lib/design/v4";
 import type { ClientBookView, KeptBrand } from "@/lib/deliverables/v4";
+import type { FloorView, InitiativeSetting, RoomCode, RoomInitiativeView, RoomView, StudioView } from "@/lib/studio/v4";
 import type { MediaStoryboard, MediaStudioPiece, MediaStudioRender, MediaStudioStoryboard, MediaStudioView, MediaTimeline, StoryboardChange, StoryboardDecision } from "@/lib/media/v4";
 import type { AgencyBrandView, ProjectObjectiveView, ActionLinkView, Answer, AuditChain, AppRole, Asset, AssetKind, ClientIntentView, ClientPlanView, ConversationView, UnderstandingView, BriefCheck, BriefDoc, BriefSummary, BriefType, BudgetView, ClientData, DecisionEntry, LedgerDecision, DomainView, DelegationView, NotificationItem, NotificationPrefs, OrgRole, OwnerData, PlanChange, PlanVersion, Question, RunView, Session, FeeScope, FeesView, Rigor, SessionView, SpendView, SystemView, ThreadView, WorkspaceView, PersonGuide, GuideLogEntry, StepMaterials, TeamView } from "../model";
 
@@ -101,9 +102,17 @@ export interface DataSource {
      * policy that lets it draw and do nothing else, and the screen shows it only as an image, never inline.
      */
     agencyMarkUrl(mark: { assetId: string; version: number }): string;
+    /** The office (v4 ADR-0099 Decisions 1 and 3): a pin per room, and what Decide, Know and Board hold. The agency's view. */
+    studio(): Promise<StudioView>;
+    /** Every engagement at once, grouped by whose work it is, what needs the person first (ADR-0099 Decision 14). */
+    floor(): Promise<FloorView>;
+    /** One room's Glance, its Steer moves with why each is not open yet, its dial and its workbench; on one engagement when given. */
+    room(room: RoomCode, projectId?: string): Promise<RoomView>;
   };
 
   commands: {
+    /** Sets a room's initiative dial (ADR-0091 Decision 11): the CEO's alone. v4 keeps every setting as a record. */
+    setInitiative(room: RoomCode, setting: InitiativeSetting): Promise<Result<RoomInitiativeView>>;
     // Authorizations ("contracts")
     resolveApproval(id: string, approved: boolean): Promise<Result>;
     setApprovalConstraints(id: string, text: string): Promise<Result>;

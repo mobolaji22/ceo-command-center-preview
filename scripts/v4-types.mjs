@@ -3,7 +3,8 @@
 // either document here; a field v4 adds or removes reaches the screens only through these files.
 //   - the design document (SddDocument), which the Workshop edits;
 //   - the Brand book and the Market report (Deliverable), which the Brand and Market rooms and the client's Library lay out;
-//   - the Media studio's view and the timeline it edits (MediaStudio, v4 ADR-0081 Decision 13).
+//   - the Media studio's view and the timeline it edits (MediaStudio, v4 ADR-0081 Decision 13);
+//   - the studio's office, Floor and rooms, and a room's initiative dial (Studio, v4 ADR-0099).
 //
 //   npm run v4:types             copy v4's schemas (V4_DIR, default ../dev-playbook-v4) and write the types from them
 //   npm run v4:types -- --check  fail if the types differ from the copied schemas, or a copy from v4's when a checkout is present
@@ -17,6 +18,7 @@ const GENERATED = [
   { name: "SddDocument", schema: "src/lib/design/sdd-document.schema.json", types: "src/lib/design/sdd.generated.ts", v4: "packages/contracts/schemas/sdd-document.schema.json" },
   { name: "Deliverable", schema: "src/lib/deliverables/deliverables.schema.json", types: "src/lib/deliverables/deliverables.generated.ts", v4: "packages/contracts/schemas/deliverables.schema.json" },
   { name: "MediaStudio", schema: "src/lib/media/media-studio.schema.json", types: "src/lib/media/media-studio.generated.ts", v4: "packages/contracts/schemas/media-studio.schema.json" },
+  { name: "Studio", schema: "src/lib/studio/studio.schema.json", types: "src/lib/studio/studio.generated.ts", v4: "packages/contracts/schemas/studio.schema.json" },
 ];
 const check = process.argv.includes("--check");
 

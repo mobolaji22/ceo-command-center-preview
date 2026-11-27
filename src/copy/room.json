@@ -1,0 +1,57 @@
+{
+  "glance": {
+    "title": "Glance",
+    "live": "{count} at work",
+    "needsYou": "Waiting on you",
+    "held": "Held, and why",
+    "progress": "How far along",
+    "progressOf": "{done} of {of}",
+    "disagreements": "Where the rooms disagree",
+    "quiet": "Nothing on this bench right now."
+  },
+  "steer": {
+    "title": "Steer",
+    "moves": {
+      "INITIATIVE": "Set its initiative",
+      "REDIRECT": "Change course",
+      "PAUSE": "Pause",
+      "RESUME": "Pick it back up",
+      "STANDING_RULE": "Leave a standing rule",
+      "REDO": "Send it back",
+      "TIGHTEN_BAR": "Raise the bar"
+    },
+    "whichEngagement": "On which piece of work?"
+  },
+  "initiative": {
+    "title": "How far it goes on its own",
+    "modes": {
+      "0": "Waits for you to start",
+      "1": "Suggests, then waits",
+      "2": "Gets it ready for your yes",
+      "3": "Goes ahead inside what you approved",
+      "4": "Keeps watch and acts within your rules",
+      "5": "Reshapes its own way of working, within its charter"
+    },
+    "watches": "What it keeps an eye on",
+    "watchesEmpty": "Nothing yet. Name up to eight things.",
+    "cadence": "How often it looks",
+    "cadences": {
+      "DAILY": "Each day",
+      "WEEKLY": "Each week",
+      "MONTHLY": "Each month"
+    },
+    "interrupts": "May interrupt you",
+    "waits": "Waits in Know",
+    "untouched": "As every room begins: it suggests, then waits for you.",
+    "save": "Set it",
+    "saved": "Set."
+  },
+  "workbench": {
+    "title": "Workbench",
+    "kinds": {
+      "WORKSHOP": "Workshop",
+      "STUDIO": "Studio",
+      "CHOICES": "On the table"
+    }
+  }
+}

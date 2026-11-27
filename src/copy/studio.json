@@ -1,0 +1,39 @@
+{
+  "decide": {
+    "title": "Decide",
+    "empty": "Nothing waits on your pen.",
+    "count": "{count} waiting on your pen",
+    "kinds": {
+      "APPROVAL": "Your signature",
+      "PLAN": "A plan to read",
+      "QUESTION": "A question for you",
+      "PERSON_STEP": "Your move",
+      "STOP": "Stopped until you look",
+      "DISAGREEMENT": "Two rooms, one call to make"
+    }
+  },
+  "know": {
+    "title": "Know",
+    "since": "Since you last looked",
+    "count": "{count} new",
+    "empty": "Quiet since you last looked.",
+    "first": "Everything so far"
+  },
+  "board": {
+    "title": "Board",
+    "summary": "{engagements} on the bench",
+    "needsYou": "{count} need you",
+    "held": "{count} held",
+    "open": "Walk the Floor"
+  },
+  "station": {
+    "needsYou": "needs you",
+    "live": "at work",
+    "held": "held",
+    "quiet": "quiet"
+  },
+  "composer": {
+    "placeholder": "Ask the studio, or say where to go",
+    "send": "Send"
+  }
+}

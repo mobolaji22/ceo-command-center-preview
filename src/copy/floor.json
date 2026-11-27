@@ -1,0 +1,29 @@
+{
+  "title": "The Floor",
+  "empty": "The bench is clear. New work lands here first.",
+  "studioOwn": "The studio's own",
+  "client": "Client",
+  "stages": {
+    "UNDERSTAND": "Understand",
+    "ADVISE": "Advise",
+    "PLAN": "Plan",
+    "MAKE": "Make",
+    "PROVE": "Prove",
+    "HAND_OVER": "Hand over",
+    "LEARN": "Learn"
+  },
+  "states": {
+    "MOVING": "Moving",
+    "PAUSED": "Paused",
+    "CLOSED": "Closed"
+  },
+  "roomStates": {
+    "NEEDS_YOU": "Needs you",
+    "HELD": "Held",
+    "LIVE": "At work",
+    "DONE": "Done",
+    "IDLE": "Not called in"
+  },
+  "needsYou": "{count} need you",
+  "held": "{count} held"
+}
