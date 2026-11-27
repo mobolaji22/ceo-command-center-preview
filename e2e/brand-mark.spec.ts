@@ -21,6 +21,9 @@ async function withMark(page: Page, served: "svg" | "missing") {
 
 evidence(test);
 
+// A brand request still being answered when a test ends would find its page gone; the routes go with the test.
+test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: "ignoreErrors" }); });
+
 test("the lobby is signed with the chosen mark, as an image, by its version", async ({ page }) => {
   await withMark(page, "svg");
   await page.goto("/auth");
